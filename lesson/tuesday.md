@@ -376,18 +376,22 @@ Checked in: #1, the pauses in Steps 1, 2 and 4. #2, the pauses in Steps 3 and 5.
 
 ---
 
-## 1:08 · The paper · "Switching to Git: The Good, the Bad, and the Ugly"
+## 1:08 · The paper · "Switching to Git: the Good, the Bad, and the Ugly"
 
 **Time:** 4 min (say 1 · pairs 2 · close 1).
 
-**Say:**
-- "You lived the Tuesday paper today. Microsoft Research, ISSRE 2016."
-- "The good: Git's new ways of working help developers work more efficiently."
-- "The bad and the ugly? Rebase, squash and force push can destroy change history."
-- "Companies study that history to see how work flows. Auditors use it to check who changed what."
-- "They propose ways to limit the damage. And an algorithm that rebuilds how changes reached main."
+**The one message:** **Flat history is data loss.** (The paper's own words, §3.1.)
 
-**Watch for:** We only have the abstract. Give no numbers. Don't describe their algorithm or countermeasures.
+**Say:**
+- "You just lived this paper. Microsoft Research moved its teams to Git, ISSRE 2016."
+- "The good: cheap branches and local saves made developers faster."
+- "The bad: developers love a clean, flat history. The paper says: flat history is data loss."
+- "Fast-forward forgets which branch a change came from. Rebase rewrites the change. Squash drops the cards, even who made them."
+- "The ugly: Microsoft measures how fast a change reaches main. They had to rebuild that tracing from scratch for Git. Some losses could not be recovered."
+
+**Board line:** Flat history is data loss.
+
+**Watch for:** Use only facts from `tuesday_paper_notes.md`. Say "the paper estimates", never "proved".
 
 **Problem.** One person writes the history. A different person reads it later. They want different things.
 
@@ -396,6 +400,8 @@ Checked in: #1, the pauses in Steps 1, 2 and 4. #2, the pauses in Steps 3 and 5.
 - "No force push to main."
 - "Squash only your own branch, before you share it."
 - "Log every push somewhere nobody can rewrite."
+
+**Close (1 min), say:** "The paper's advice: choose which habits your team allows, on purpose. Keep merge cards (`--no-ff`). Revert whole cards, never parts."
 - "Keep the old cards on a hidden branch."
 
 **Ask:** "Who pays for your rule?"

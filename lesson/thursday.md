@@ -418,7 +418,7 @@ Each team gets a finding it did not judge in Claim Court. Every card ends with t
 - Git 2.23 (2019) came before this paper. It did not remove `checkout`.
 - The paper names neither switch nor restore in its results. Only a cited question's link says "restore" (ref 41).
 - The paper says De Rosso and Jackson "propose alternative designs" (p.26). The name Gitless comes from their ref 17, not from this paper.
-- No numbers from the Tuesday paper. We only have its abstract.
+- Tuesday paper facts: use only `tuesday_paper_notes.md` (full text read). Its one message: flat history is data loss.
 
 ## Slide wordings to know about (deck not changed)
 

@@ -15,7 +15,7 @@
 | 0:42 | Step 5 · Push and pull. First lab wins, others refused. | Why did the Wall refuse your card instead of adding it? | It would drop the first lab's card. The Wall only moves forward. |
 | 0:51 | Step 6 · Revert, reset, reflog. Sabotage on Step 5, then Next. | Why is adding a fix card safe, but moving back is not? | A fix card only adds. Moving back drops a shared card. |
 | 1:00 | Step 7 · Squash, force push, gc. Audit → replace → Audit → bin. | Who added the tentacles? Where does that answer still exist? | Not on the Wall. Only on the labs' laptops. |
-| 1:08 | The paper. Pairs, 2 min. | You run your company's Wall. One rule: clean history, and the auditor still knows? | No force push to main. |
+| 1:08 | The paper: **flat history is data loss.** Pairs, 2 min. | You run your company's Wall. One rule: clean history, and the auditor still knows? | No force push to main. |
 | 1:12 | Exit question. Laptops closed, index card. | A password reached the Wall. Does revert remove it? If not, what would? | No. Change the password. Rewrite, force push, gc. |
 | 1:15 | Step 8 · Wrap. Read the homework. | — | — |
 | 1:17 | **Buffer, 3 min.** | — | — |

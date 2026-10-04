@@ -1,5 +1,8 @@
 # Tuesday paper: notes from the full text
 
+> **THE ONE MESSAGE (use these exact words everywhere: app, slides, projector, lesson):**
+> **Flat history is data loss.** The habits that make Git history clean (fast-forward, rebase, squash) erase where a change came from and who made it. Some of that cannot be recovered.
+
 **Just, Herzig, Czerwonka, Murphy. "Switching to Git: the Good, the Bad, and the Ugly." ISSRE 2016.** (Saarland University + Microsoft / Microsoft Research)
 Full text read (12 pp.). Everything below is from the paper. Numbers are the paper's own estimates.
 
