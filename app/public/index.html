@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Monster Lab</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/app.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <section id="join" class="join" hidden>
+    <form id="join-form" class="join-card" novalidate>
+      <h1>Monster Lab</h1>
+      <p class="lede">Your lab builds one monster. Every button runs real Git.</p>
+      <label class="field">
+        <span>Your name</span>
+        <input id="join-name" name="name" maxlength="24" autocomplete="given-name" spellcheck="false">
+      </label>
+      <fieldset class="field">
+        <legend>Pick your lab</legend>
+        <div id="join-labs" class="lab-picks"></div>
+      </fieldset>
+      <button class="primary big" type="submit">Join</button>
+      <p id="join-error" class="form-error" role="alert"></p>
+    </form>
+  </section>
+
+  <div id="main" hidden>
+    <header class="top">
+      <span class="brand">Monster Lab</span>
+      <span id="crumbs" class="crumbs"></span>
+    </header>
+
+    <main id="layout" class="layout">
+      <aside class="mission" aria-label="Mission">
+        <div id="mission"></div>
+        <details id="behind" class="behind">
+          <summary><b>Behind the door</b><span>what Git just did</span></summary>
+          <div id="behind-body"></div>
+          <details id="plumbing" class="plumbing">
+            <summary>Show the low-level steps Git ran</summary>
+            <ol id="plumbing-list"></ol>
+          </details>
+        </details>
+      </aside>
+
+      <div id="stage" class="stage">
+        <div id="banner" class="banner" role="status" hidden></div>
+
+        <section id="work" class="work" aria-label="Your draft">
+          <div class="work-head">
+            <h2 id="draft-title">Your draft</h2>
+            <span id="on-note" class="on-note"></span>
+          </div>
+          <div id="draft" class="draft"></div>
+          <p id="draft-status" class="draft-status"></p>
+        </section>
+
+        <section id="actions" class="actions" aria-label="Buttons"></section>
+
+        <section id="wrap" class="wrap" hidden></section>
+
+        <section id="table" class="table" aria-label="Your lab's cards">
+          <div class="table-head">
+            <h2>Your lab's cards</h2>
+            <code>git log</code>
+          </div>
+          <div id="graph-scroll" class="graph-scroll"><svg id="graph" class="graph"></svg></div>
+          <p id="legend" class="legend"></p>
+          <div id="wall-block" class="wall-block" hidden>
+            <div class="table-head">
+              <h2><span class="wall-dot"></span>The Wall</h2>
+              <span class="muted">the class's shared copy</span>
+            </div>
+            <div id="wall-scroll" class="graph-scroll"><svg id="wall-graph" class="graph"></svg></div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <div id="popover" class="popover" hidden></div>
+
+  <dialog id="card-dialog" class="dialog" aria-label="Card details">
+    <button class="close" data-close aria-label="Close">×</button>
+    <div class="dialog-body"></div>
+  </dialog>
+
+  <dialog id="resolver-dialog" class="dialog wide" aria-label="Combine the two sides">
+    <button class="close" data-close aria-label="Close">×</button>
+    <div class="dialog-body"></div>
+  </dialog>
+
+  <dialog id="diary-dialog" class="dialog" aria-label="Safety diary">
+    <button class="close" data-close aria-label="Close">×</button>
+    <div class="dialog-body"></div>
+  </dialog>
+
+  <dialog id="confirm-dialog" class="dialog small" aria-label="Are you sure?">
+    <div class="dialog-body"></div>
+  </dialog>
+
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+</body>
+</html>

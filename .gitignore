@@ -1,0 +1,17 @@
+# dependencies and runtime data
+node_modules/
+app/data/
+app/bin/
+*.log
+__pycache__/
+
+# copyrighted papers: links are in papers/README.md
+papers/*.pdf
+papers/*.txt
+
+# generated images (keep the PDFs and pptx)
+slides/renders/
+story/page-*.png
+app/e2e/shots/
+slides/build/style_sample.pptx
+slides/build/visual_system_sampler.pptx

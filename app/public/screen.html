@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Monster Lab</title>
+  <link rel="stylesheet" href="/admin.css">
+  <script type="module" src="/screen.js"></script>
+</head>
+<body id="screen">
+  <header class="s-head">
+    <h1 id="s-title"></h1>
+    <span id="s-clock" class="s-clock"></span>
+  </header>
+  <p id="s-line" class="s-line"></p>
+
+  <main id="s-main" class="s-main">
+    <div id="s-join" class="s-join" hidden>
+      <p class="s-label">Scan to join</p>
+      <img id="s-qr" alt="QR code for the join link">
+      <p id="s-url" class="mono"></p>
+    </div>
+    <div id="s-stage" class="s-stage" hidden>
+      <div id="s-wall" class="s-wall" hidden>
+        <p class="s-label">The Wall</p>
+        <svg id="s-wall-graph" class="graph"></svg>
+      </div>
+      <div id="s-audits" class="s-audits" hidden></div>
+    </div>
+    <div id="s-wrap" class="s-wrap" hidden></div>
+    <section id="s-labs" class="s-labs"></section>
+  </main>
+</body>
+</html>

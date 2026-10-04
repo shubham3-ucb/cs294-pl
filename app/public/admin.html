@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Monster Lab · Teacher</title>
+  <link rel="stylesheet" href="/admin.css">
+  <script type="module" src="/admin.js"></script>
+</head>
+<body id="admin">
+  <header class="bar">
+    <h1>Monster Lab <span class="muted">· Teacher</span></h1>
+    <span id="conn" class="conn" title="Reconnecting"></span>
+  </header>
+
+  <main>
+    <section class="top">
+      <div class="stepper">
+        <div class="step-head">
+          <h2 id="step-title"></h2>
+          <div class="timer">
+            <span id="timer"></span>
+            <button id="timer-restart" class="small">Restart timer</button>
+          </div>
+        </div>
+        <!-- This step, in lesson order. Empty rows hide. -->
+        <div class="flow">
+          <div class="row"><p class="label">Watch</p><p id="facilitator"></p></div>
+          <div class="row"><p class="label">Problem</p><p id="problem"></p></div>
+          <div class="row"><p class="label">Pause · ask</p>
+            <div><p id="check" class="check"></p><button id="ask"></button></div></div>
+          <div class="row"><p class="label">Hope to hear</p><p id="hope"></p></div>
+          <div class="row"><p class="label">Idea</p><p id="idea"></p></div>
+          <div class="row"><p class="label">How Git does it</p><p id="how"></p></div>
+        </div>
+
+        <!-- Before pressing Next: name the next problem and ask for the idea. -->
+        <div class="coming">
+          <p class="label" id="coming-title"></p>
+          <div class="flow">
+            <div class="row"><p class="label">Problem</p><p id="next-problem"></p></div>
+            <div class="row"><p class="label">Ask first</p><p id="next-ask"></p></div>
+            <div class="row"><p class="label">Idea</p><p id="next-idea"></p></div>
+          </div>
+          <div class="step-nav">
+            <button id="break"></button>
+            <button id="prev">Prev</button>
+            <button id="next" class="primary"></button>
+            <label id="step-lab" class="step-lab" hidden><span id="step-lab-label"></span> <select id="step-lab-select"></select></label>
+          </div>
+          <p id="next-note" class="muted small"></p>
+        </div>
+      </div>
+
+      <div id="join" class="join">
+        <img id="qr" alt="QR code for the join link">
+        <p id="join-url" class="mono"></p>
+        <p id="people"></p>
+        <label class="labs-count">Labs <select id="lab-count"></select></label>
+      </div>
+    </section>
+
+    <section class="tools">
+      <button id="sabotage">Sabotage 🥸</button>
+      <button id="audit">Audit: who added 🐙?</button>
+      <button id="gc">Empty the Wall's bin <code>git gc</code></button>
+      <button id="reset" class="danger">Reset session</button>
+      <a id="projector" class="button" target="_blank" rel="noopener">Open projector</a>
+      <p id="tool-result" class="tool-result" aria-live="polite"></p>
+    </section>
+
+    <section id="audits" class="audits" hidden></section>
+
+    <section id="labs" class="labs"></section>
+
+    <section class="bottom">
+      <div class="panel" id="wall-panel" hidden>
+        <h3>The Wall <code>wall.git</code></h3>
+        <div id="wall-scroll" class="scroll"><svg class="graph"></svg></div>
+      </div>
+      <div class="panel">
+        <h3>Feed <button id="feed-all" class="small" hidden>Show all labs</button></h3>
+        <ol id="feed" class="feed"></ol>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
