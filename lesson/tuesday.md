@@ -1,442 +1,480 @@
-# Tuesday · Monster Lab · lesson script
+# Tuesday · Outfit Lab · lesson script
 
 80 min · 10–12 students in 3 labs · every button runs real Git.
-**S** = Shubham, at the front. He talks, clicks the admin page, and writes on the board.
+
+**S** = Shubham, at the front. He presses **Next** and writes on the board.
+
 **A** = Ananya. She walks between the labs.
 
+The class is one fixed list of scenes. S presses only **Next**. Each Next moves the students and the projector one scene.
+Every Say, Do, Ask, Hope to hear and Board line below, and every technical card, is the text in the app (`app/server/steps.js`). Read it as written. [that lab] and [the boss lab] are filled in on the teacher page.
+
 **Before class**
-- The app is running. The admin page is open on S's laptop.
-- The projector shows `/screen`. Labs = 3. Test the join from one phone.
-- The board says "Git in 7 lines". Leave room for seven lines.
-- Put one index card and a pen at each seat.
+- Start the app. Open the Teacher link on S's laptop.
+- Press **Start presenting**. Drag the new window onto the projector. Press F for full screen.
+- Test the join from one phone. Then open **Details** and press **Reset session**.
+- To rehearse alone: **Details** → **Rehearse with bots**. **Reset session** removes the bots.
+- The board says "Git in 7 lines". Leave room for seven lines (Steps 0–6).
 
-**How every step runs**
-1. **Problem.** S names the moment the students lived.
-2. **Ask** for the idea. Ask *before* you click Next. The new buttons show Git names.
-3. **Idea.** Wait for a student to say it. Silence? Use the hint.
-4. **Do.** Click Next. Students do it in the app.
-5. **Pause.** Ask. Wait 10 seconds. Listen for "Hope to hear".
-6. **How Git does it.** Say it. Then write one line on the board.
+**How every scene runs**
+- **Next:** → or Space. **Back:** ←. A clicker works in either window.
+- **Task scene.** Students do the step in the app: what to do, their mission, goals that tick, **Stuck? Hint**. The projector shows the step, one line, a timer and each lab's outfit. From Step 4, it shows the Wall too.
+- **Reveal scene.** The projector shows one technical card per tool: the command, then What it is · What it does · How Git does it. Students see the same card in the app. Each card's text is under its reveal below.
+- **Ask before the reveal.** Never say a Git name before a student says the idea.
+- Someone says the Git name first? Say: "Right. Now say what it does, without Git words."
+- **Show on projector** puts the question up. The answer stays folded on S's laptop.
+- At each reveal, students can type an answer and a one-line takeaway. The console shows "7/10 answered". **Show answers on projector** shows them, without names.
+- **When to press Next:** the readiness line, e.g. "Labs done: 2/3 · Lab 3: Merging: TOP to pick".
+- **A lab is stuck?** Students have **Stuck? Hint**. Still stuck? Press **Rescue** on its tile. The app finishes the step for that lab with real Git.
+- From Step 3 on, one student per lab presses. The app says to swap each step.
 
-In Steps 5 and 6, students hit the problem first. The idea comes last, out of the pause.
-Never say a Git name before a student says the idea.
-Someone says the Git name first? Say: "Right. Now say what it does, without Git words."
-From Step 3 on, one student per lab presses. Swap who presses each step. The lab decides together.
+**Learning objectives** (for us; the Step 0 reveal says them in plain words)
 
-| Clock | Block | Min |
+After this session, we should be confident students could:
+1. **Explain** why "changing" history always makes new commits.
+   - A commit never changes. Its ID is a hash of everything in it, parent IDs included.
+   - A branch is only a label on one commit. Making one copies nothing.
+   - A remote holds the same commits, with the same IDs. A rebase writes new ones.
+2. **Predict** when a merge conflicts and when a push is refused. Then **fix** both.
+3. **Choose** revert, reset, or squash + force push for a shared mistake. **Say** what each one keeps or destroys.
+
+Checked in: #1, the reveals of Steps 1, 2 and 4. #2, the reveals of Steps 3 and 4. #3, the reveals of Steps 5 and 6, and the exit question.
+
+| Clock | Scene | Min |
 |---|---|---|
-| 0:00 | Opening | 3 |
-| 0:03 | Step 0 · Chaos | 4 |
-| 0:07 | Learning objectives | 1 |
-| 0:08 | Step 1 · Commit | 7 |
-| 0:15 | Step 2 · Branch | 7 |
-| 0:22 | Step 3 · Merge | 10 |
-| 0:32 | **Break** | 4 |
-| 0:36 | Step 4 · Meet the Wall | 6 |
-| 0:42 | Step 5 · Push and pull | 9 |
-| 0:51 | Step 6 · Revert, reset, reflog | 9 |
-| 1:00 | Step 7 · Squash, force push, gc | 8 |
-| 1:08 | The paper | 4 |
+| 0:00 | Join | 3 |
+| 0:03 | Step 0 · Everyone, one outfit | 1.5 |
+| 0:04:30 | Step 0 · What would fix it? | 3.5 |
+| 0:08 | Step 1 · Save every version | 4 |
+| 0:12 | Step 1 · How Git does it | 3 |
+| 0:15 | Step 2 · Try two ideas at once | 4 |
+| 0:19 | Step 2 · How Git does it | 3 |
+| 0:22 | Step 3 · Make one outfit from both | 7 |
+| 0:29 | Step 3 · How Git does it | 4 |
+| 0:33 | **Break** | 4 |
+| 0:37 | Step 4 · Put your outfit on the Wall | 8 |
+| 0:45 | Step 4 · How Git does it | 5 |
+| 0:50 | Step 5 · Oops: undo a shared mistake | 6 |
+| 0:56 | Step 5 · How Git does it | 3 |
+| 0:59 | Step 6 · The boss wants it clean | 4 |
+| 1:03 | Step 6 · How Git does it | 4 |
+| 1:07 | The paper | 5 |
 | 1:12 | Exit question | 3 |
-| 1:15 | Step 8 · Wrap and closing line | 2 |
+| 1:15 | What you built | 2 |
 | 1:17 | **Buffer** | 3 |
 
 ---
 
-## 0:00 · Opening
+## 0:00 · Join
 
 **Time:** 3 min.
 
-**Do:** Show the join QR on the projector. Stay on Step 0.
-**Do (students):** Scan the QR. Type your name. Pick Lab 1, 2 or 3.
-**Watch for:** Labs can only change before Step 1. Wait until the count matches the room.
+**Projector:** the QR, the link and the labs. "Open the link and type your name. The app picks your lab."
 
-**Say:** "No Git lecture today. You'll hit seven problems. Your lab invents a fix for each one. Then we show how Git does the same thing. Every button runs real Git."
+**Say:** No Git lecture today. You'll hit seven problems, and your lab invents a fix for each. Every button runs real Git.
 
----
+**Do:** Wait until the count matches the room. The app balances the labs. Labs lock at Step 1.
 
-## 0:03 · Step 0 · Everyone, one monster · no Git yet
+**Watch for:** About 4 per lab. 1–3 people: one lab plus a practice lab that plays by itself. 4–8: 2 labs. 9–12: 3. 13 or more: 4 to 6. With 2 or more labs, no lab starts with 1 person. To change the count, use **Details** before Step 1. After Step 1, a late joiner goes to the smallest lab.
 
-**Time:** 4 min (chaos 90 s · talk 2.5 min).
-
-**Do:** Nothing to click. Step 0 is already on.
-**Say:** "Your lab shares one monster. Change any part, any time. Go."
-**Time:** After 90 seconds, say "Hands off."
-
-**Problem.**
-**Ask:** "What did your monster look like a minute ago? Who changed the legs?"
-**Hope to hear:** "No idea. Nothing was saved."
-
-**Ask:** "What rule would fix this?"
-**Idea:** Save every version, with a name on it. Never overwrite.
-**If silent, ask:** "Three coauthors share one paper draft with no history. What do you want?"
-
-**How Git does it.** Not yet. Git is the tool programmers use for this. It saves every version, with who made it.
+**Watch for:** Each student gets a short tour on joining. The **?** in their top bar replays it.
 
 ---
 
-## 0:07 · Learning objectives
+## 0:03 · Step 0 · Everyone, one outfit · no Git yet
 
-**Time:** 1 min.
+**Time:** 1.5 min.
 
-After this session, we should be confident students could:
-1. **Explain** why "changing" history always makes new commits.
-   - A commit never changes. Its ID is a hash of everything in it, parent included.
-   - A branch is only a label on one commit. Making one copies nothing.
-   - A remote holds the same commits, with the same IDs.
-2. **Predict** when a merge conflicts and when a push is refused. Then **fix** both.
-3. **Choose** revert, reset, or squash + force push for a shared mistake. **Say** what each one keeps or destroys.
+**Say:** Your lab shares one outfit. Change any part, any time. Go.
 
-Checked in: #1, the pauses in Steps 1, 2 and 4. #2, the pauses in Steps 3 and 5. #3, the pauses in Steps 6 and 7, and the exit question.
+**Do:** After 90 seconds, say "Hands off." Then ask.
 
-**Say (no Git names yet):** "You'll explain how Git saves, splits, combines and shares work. You'll predict when Git says no. You'll pick the right undo when others have your mistake."
+**Ask:** What did your outfit look like a minute ago? Who changed the shoes?
 
----
+**Hope to hear:** No idea. Nothing was saved.
 
-## 0:08 · Step 1 · Save every version · `git commit`, `git log`
+## 0:04:30 · Step 0 · What would fix it?
 
-**Time:** 7 min (ask 1 · do 3 · pause 2 · reveal 1).
+**Time:** 3.5 min.
 
-**Problem.** In Step 0 the old monster vanished. Nobody knew who did what.
-**Ask:** "What should each saved version hold?"
-**Idea:** The whole monster, who saved it, and the version it came from.
-**If silent, ask:** "To get the old legs back, what do you need?"
-**If nobody says "the version it came from", ask:** "You find 20 saved monsters in a pile. How do you know which one each grew from?" (Each one names the one before it.)
+**Projector:** "Nothing was saved. Nobody knows who changed what." Behind the door: "No Git yet. Git saves every version, with who made it."
 
-**Do:** Next → Step 1.
-**Say:** "From now on, every save makes a card."
-**Do (students):**
-- Change one part. A dashed purple outline means "not saved".
-- Press **Save card**. Take turns. Everyone saves at least once.
-- Click any card. Press **Show what Git stored**. Find the parent, the author and the message.
+**Say:** Today you'll explain how Git saves, splits, combines and shares work. You'll predict when Git says no, and pick the right undo.
 
-**Watch for (A):** Anyone who hasn't saved yet.
-**Watch for (A):** A lab done early? Say: "Open Behind the door. Press **Show the low-level steps Git ran**. One save is four commands."
+**Ask:** What rule would fix this?
 
-**Pause.**
-**Ask:** "Which card came 3 saves ago, and who made it?"
-**Hope to hear:** "Follow the arrows back three cards. The name is on the card."
-**Ask:** "Why do arrows point back, never forward?"
-**Hope to hear:** "When you save, the card before exists. The next one doesn't. A saved card never changes, so no arrow gets added later."
-**If silent, ask:** "Add an arrow forward. Which card must change?"
+**Hope to hear:** Save every version, with a name on it.
 
-**How Git does it.**
-- `git commit` saves a snapshot of all your files, not only the changes. Unchanged files are stored once and reused. It also stores the parent (the card before), author, time and message.
-- Git computes the commit's ID from all of that (a hash). Change one emoji and the ID changes. So you can't edit a commit. A change makes a new one.
-- `git log` starts at the newest commit and follows the parents back. (In a terminal, `git add` first picks what goes in.)
+**If silent:** Three coauthors share one paper draft with no history. What do you want?
 
-**Do:** Write on the board: "1. Card (commit): a full snapshot + its parent. Never changes."
+**Board:** 0. Save every version, with a name on it.
 
 ---
 
-## 0:15 · Step 2 · Try two ideas at once · `git branch`, `git switch`
-
-**Time:** 7 min (ask 1 · do 3 · pause 2 · reveal 1).
-
-**Problem.**
-**Say:** "The client wants two ideas tried at once. Don't lose the monster you have."
-**Ask:** "Half your lab tries one idea. Half tries the other. Same draft. What goes wrong?"
-**Hope to hear:** "Step 0 again. We overwrite each other."
-
-**Ask:** "Cards never change. So both ideas can grow from the same card. How does each half find its own newest card?"
-**Idea:** Each idea puts its own sticky note on its newest card. Saving moves only that note.
-**If silent, ask:** "You have cards and arrows. How do you mark 'this is my latest'?"
-
-**Do:** Next → Step 2. The app splits each lab into Pair A and Pair B.
-**Say:** "Your lab already has one sticky note: main. It marks the monster you have now."
-**Do (students):**
-- Pair A: one partner presses **New sticky note** `cat-robot`. The other presses **Switch to** `cat-robot`. FACE → 🐱, BODY → 🤖. **Save card**.
-- Pair B: the same with `superhero`. BODY → 🦸, LEGS → 🐙. **Save card**.
-- Then **Switch to** `main` and back. Watch the draft change. Look, don't edit.
-
-**Watch for:** Both missions change BODY on purpose. That sets up Step 3. Don't tell them.
-**Watch for (A):** Before a pair edits, the "You're on:" chip shows their own note.
-
-**Pause.**
-**Ask:** "Where is the original monster now? Did anything get copied?"
-**Hope to hear:** "It's still on main's card. Nothing was copied. We only added a sticky note."
-**If silent, ask:** "Count the cards before and after you made the note."
-
-**How Git does it.**
-- A branch is a tiny file that holds one commit ID. Making one copies nothing.
-- HEAD (the pink YOU pin) says which branch you're on. A new commit moves that branch forward.
-- `git switch -c cat-robot` creates the branch and moves HEAD to it. `git switch main` moves HEAD back. Your files change to main's snapshot.
-
-**Do:** Write on the board: "2. Sticky note (branch): a label on one card. Saving moves it."
-
----
-
-## 0:22 · Step 3 · Make one monster from both · `git merge`
-
-**Time:** 10 min (ask 1 · do 5 · pause 3 · reveal 1).
-
-**Problem.**
-**Say:** "The client wants one monster with both ideas."
-**Ask:** "Look at FACE on the two newest cards. They differ. Which side changed it?"
-**Hope to hear:** "Can't tell from two cards. We need the card where we split."
-**Idea:** Compare each part with the card where you split. One side changed it: keep that. Both changed it: a person decides.
-**If silent, ask:** "What did FACE look like before you split?"
-
-**Do:** Next → Step 3.
-**Do (students):** One driver per lab. Everyone watches.
-1. **Switch to** `main`.
-2. **Merge [cat-robot ▾] into main**. Main's note slides forward. No new card appears.
-3. **Merge [superhero ▾] into main**. A window opens. FACE ✓ and LEGS ✓ are done. BODY is red.
-4. Agree on one body. Pick it. Press **Finish merge**.
-
-**Watch for:** Chips **Fast-forward**, **Merge** and **Conflict solved** in every lab.
-**Watch for (A):** A lab says "take the newest". Ask: "Whose work did you throw away?"
-
-**Pause.**
-**Ask:** "Why did the first merge only move the note?"
-**Hope to hear:** "Main had nothing new since cat-robot split off. There was nothing to combine."
-**Ask:** "Why did FACE and LEGS combine alone, but BODY needed you?"
-**Hope to hear:** "Compared with the card where we split, FACE and LEGS changed on one side. BODY changed on both."
-**If silent, ask:** "In the merge window, what does the At start card show for BODY?"
-
-**How Git does it.**
-- Main has no new commits since the branch split off? Then `git merge cat-robot` moves main's label forward. That is a fast-forward. No new commit.
-- Otherwise Git finds the merge base: the newest commit both sides share. It compares each side with it. Changed on one side: keep it. Changed on both, differently: CONFLICT.
-- On a conflict, Git stops. It writes both versions between `<<<<<<<` and `>>>>>>>`. You fix the file, then `git add` and `git commit`. The merge commit has two parents.
-
-**Say (to labs that finish early):** "Edits on neighboring lines also conflict. That's why `monster.txt` has a `---` line between parts."
-
-**Do:** Write on the board: "3. Merge: compare both sides with the card they share."
-
----
-
-## 0:32 · Break
+## 0:08 · Step 1 · Save every version
 
 **Time:** 4 min.
 
-**Say:** "Break. Back in 4 minutes."
-**Do:** Write the real return time on the board. Start the timer. Stay on Step 3.
-**Watch for (A):** Any lab without **Merge** and **Conflict solved**. Finish the merge with them now.
+**Say:** From now on, every save makes a card.
+
+**Do:** Ask first. Then say "Go."
+
+**Ask:** What should each saved version hold?
+
+**Hope to hear:** The whole outfit, who saved it, and the version it came from.
+
+**If silent:** To get the old shoes back, what do you need?
+
+**Students:** Change one part, then press **Save card**. Everyone saves once.
+
+**Watch for (A):** Anyone who hasn't saved yet. Their lab-mates' Stuck? Hint names them.
+
+## 0:12 · Step 1 · How Git does it · `git commit`
+
+**Time:** 3 min.
+
+**Projector:** the `git commit` card, then the trust line: "Git stores the name and clock your laptop gives it. It checks neither."
+
+**Card:** `git commit`
+- **What it is:** a saved snapshot of the whole project.
+- **What it does:** records the exact state, who saved it, when, and the commit before it.
+- **How Git does it:** each file is stored as a blob, the folder as a tree. A commit object = tree ID + parent ID(s) + author + committer + message. Its ID is the SHA-1 of that object, so any change gives a new ID. Nothing is edited in place.
+
+**Say:** `git commit` stores the whole outfit, the card before, your name, the time and a message. The ID is computed from all of it, so any change makes a new card. The name and the time are whatever your laptop says.
+
+**Ask:** Why do arrows point back, never forward?
+
+**Hope to hear:** The next card doesn't exist yet. Cards never change.
+
+**If silent:** Add an arrow forward. Which card must change?
+
+**If asked:** A commit points to a full snapshot (a tree), not a diff. Unchanged files are stored once and reused. In a terminal, `git add` first picks what goes in.
+
+**If asked:** Anyone can set both by hand: `git config user.name`, `GIT_AUTHOR_DATE`, `GIT_COMMITTER_DATE`. A signed commit (`git commit -S`) shows which key signed it, not when. The paper estimates over 99,000 "wrong" timestamps in 9 open-source projects (§5.6–5.7).
+
+**Board:** 1. Card (commit): a full snapshot + its parent. Never changes.
 
 ---
 
-## 0:36 · Step 4 · Meet the Wall · `git clone`
+## 0:15 · Step 2 · Try two ideas at once
 
-**Time:** 6 min (ask 1 · do 2 · pause 2 · reveal 1).
+**Time:** 4 min.
 
-**Problem.**
-**Say:** "The client wants one monster from the whole class. Each lab's cards live only in that lab."
-**Ask:** "How do three labs share, without one lab holding the only copy?"
-**Idea:** One shared copy on the wall. Each lab keeps a full copy and copies new cards from it.
-**If silent, ask:** "The shared copy burns down. What should still exist?" (Every lab's full copy.)
+**Say:** The client wants two ideas tried at once. In one draft, you overwrite each other, like Step 0.
 
-**Do:** Lab select (by Next): leave the default. That's the first lab done with Step 3. Next → Step 4.
-**Say:** "This is the Wall, like GitHub. Lab N's monster is on it. Every lab's cards were replaced by a full copy of the Wall. Your counts are kept for the wrap."
-**Do (students):** Click the newest card in your lab's cards. Then the newest card on the Wall. Read its ID out to the next lab.
+**Do:** Ask first. Both missions change TOP on purpose. Don't tell them.
 
-**Watch for:** All three labs read out the same ID.
+**Ask:** Cards never change. How does each half of your lab find its own newest card?
 
-**Pause.**
-**Ask:** "Two labs never made that card. Why does their copy have the same ID?"
-**Hope to hear:** "The ID is computed from what's on the card. Same card, same ID, anywhere."
-**If silent, ask:** "Open it. Press **Show what Git stored**. What goes into the ID?"
-**Ask (follow-up):** "Suppose you could edit an old card. Change one emoji. What happens to its ID? And to every card after it?"
-**Hope to hear:** "It gets a new ID. So does every later card, because each holds its parent's ID."
-**Say:** "Remember this for Step 7."
+**Hope to hear:** Each idea puts its own sticky note on its newest card.
 
-**How Git does it.**
-- `git clone` copies every commit on the Wall. Your copy is full, not a link.
-- The blue `wall/main` (usually `origin/main`) is the Wall's main at your last check. It moves only when you fetch, pull or push.
-- A commit's ID is a hash of everything in it, parent ID included. Same commit, same ID on every laptop.
+**If silent:** You have cards and arrows. How do you mark 'this is my latest'?
 
-**Do:** Write on the board: "4. The Wall (remote): a full copy. Same card, same ID everywhere."
+**Students:** Pair A makes sticky note **fancy**: HAT → 🎩, TOP → 👔. Pair B makes **sporty**: TOP → 🎽, SHOES → 🥾. Each saves a card.
 
----
+**Watch for (A):** Before a pair edits, the "You're on:" chip shows their own note.
 
-## 0:42 · Step 5 · Put your monster on the Wall · `git push`, `git pull`
+## 0:19 · Step 2 · How Git does it · `git branch`
 
-**Time:** 9 min (do 5 · pause 3 · reveal 1). Students hit the problem first.
+**Time:** 3 min.
 
-**Do:** Next → Step 5.
-**Say:** "Put your monster on the Wall. The first lab there wins."
-**Do (students):**
-- Make your lab's change. Lab 1: FACE → 🐲. Lab 2: LEGS → 🛼. Lab 3: BODY → 🌵.
-- **Save card**, then **Send to Wall**.
-- Refused? Press **Get & combine**. Then **Send to Wall** again.
+**Projector:** the `git branch` card.
 
-**Watch for:** The first lab gets in. The other two are refused.
-**Watch for:** Their combine has no red. Each lab changed a different part of the same card. Git combines them alone and makes a merge card.
-**Watch for (A):** "Refused twice" on the admin page. Check the lab pressed **Get & combine** before sending again.
-**Watch for:** Done when the Wall shows 🐲 🌵 🛼.
+**Card:** `git branch`
+- **What it is:** a movable label on one commit.
+- **What it does:** lets you try an idea without touching main.
+- **How Git does it:** a branch is a tiny file (`.git/refs/heads/<name>`) holding one commit ID. Committing moves it forward. HEAD records which branch you are on. Creating a branch copies nothing.
 
-**Problem.** We sent our monster, and the Wall said no.
+**Say:** A branch is a tiny file holding one card's ID. Your pin (HEAD) says which note you're on. Saving moves only that note.
 
-**Pause.**
-**Ask:** "Why did the Wall refuse your card instead of adding it?"
-**Hope to hear:** "Moving the Wall to our card would drop the first lab's card. The Wall only moves forward."
-**If silent, ask:** "Follow your card's arrows back. Do you ever reach the first lab's card?"
-**Idea:** The Wall never drops a card. It only takes cards built on its newest card.
-**Ask (follow-up):** "Git combined three labs with no red. Is the monster right?"
-**Hope to hear:** "Git can't tell. It compares lines, not meaning. A person or a test still checks."
+**Do:** If asked: here each sticky note keeps its own shared draft, a teaching choice. In real Git, branches share one working tree (unless you add one with `git worktree`).
 
-**How Git does it.**
-- `git push` uploads your commits. It asks the Wall to move its main to yours. Git allows only a fast-forward. The Wall's newest commit must already be in your history. Otherwise: `! [rejected]`.
-- `git pull` = `git fetch` + `git merge wall/main`. Fetch copies the Wall's new commits and moves `wall/main`. Merge combines them into your main.
-- A push never merges. You combine on your laptop, then push again.
+**Ask:** Where is the original outfit now? Did anything get copied?
 
-**Do:** Write on the board: "5. Send (push) only moves the Wall forward. Behind? Get & combine (pull) first."
+**Hope to hear:** Still on main's card. Nothing was copied.
+
+**If silent:** Count the cards before and after you made the note.
+
+**Board:** 2. Sticky note (branch): a label on one card. Saving moves it.
 
 ---
 
-## 0:51 · Step 6 · Oops: undo a shared mistake · `git revert`, `git reset`, `git reflog`
+## 0:22 · Step 3 · Make one outfit from both
 
-**Time:** 9 min (setup 2 · do 4 · pause 2 · reveal 1).
+**Time:** 7 min.
 
-**Do:** Press **Sabotage**. Stay on Step 5. The Intern's 🥸 card lands on the Wall.
-**Say:** "The intern pushed a 'tiny style fix' to the Wall. Everyone: **Get & combine**."
+**Say:** The client wants one outfit with both ideas. One person presses, everyone watches.
 
-**Problem.** A bad card is on the Wall. Now every lab has a copy.
-**Ask:** "How do you get rid of it?" Sort the answers into two kinds. "Go back to before it." "Save a new card that removes it."
-**Say:** "We'll try both."
+**Do:** Ask first. A lab says "take the newest"? Ask: "Whose work did you throw away?"
 
-**Do:** Next → Step 6.
-**Say:**
-- "Lab 2: open the card right before 🥸. Press **Move my note back here**. Then **Send to Wall**."
-- "Labs 1 and 3: open the 🥸 card. Press **Undo this card**. Then **Send to Wall**."
+**Ask:** HAT differs on the two newest cards. Which side changed it?
 
-**Watch for:**
-- Lab 2 is refused. That is the lesson.
-- Of Labs 1 and 3, the second to send is refused. Its combine has no red. Both labs made the same fix.
-- Done when the Wall shows 🐲 🌵 🛼 again.
+**Hope to hear:** Two cards can't tell you. Compare with the card where you split.
 
-**Do (A, at Lab 2, after the refusal):**
-**Ask:** "Suppose nobody else had the 🥸 card. Your note left it. How would you find it again?"
-**Hope to hear:** "Keep a list of every card our note was on."
-**Say:** "Open **Safety diary**. It lists every card main was on, 🥸 included. Moving your note deleted nothing." Then Lab 2 presses **Get & combine**.
-**Watch for:** The 🥸 card is not faded. The blue `wall/main` note still sits on it.
-**Watch for:** 🥸 back in Lab 2's cards with no fix card after it? Press **Undo this card** on it, then send.
+**If silent:** What did HAT look like before you split?
 
-**Pause.**
-**Ask:** "Why is adding a fix card safe, but moving back is not?"
-**Hope to hear:** "A fix card only adds, so every copy still fits. Moving back drops a card others already have."
-**If silent, ask:** "Lab 1's send worked. Lab 2's was refused. What did each do to the history?" (Lab 1 added a card. Lab 2 took one away.)
-**If they say "Lab 2 should force-send", ask:** "Labs 1 and 3 still have the 🥸 card. What happens at their next send?" **Hope to hear:** "The Wall takes it. The 🥸 card is back."
-**Ask (follow-up):** "When is moving the note back fine?"
-**Hope to hear:** "When the card never left your laptop."
-**Idea:** Don't rip out a shared card. Add a new card that undoes it.
+**Students:** On main, merge **fancy**: main's note slides forward, no new card. The mission then says: "Delete the fancy note (`git branch -d fancy`)." They press **Delete sticky note**. Then merge **sporty**. HAT 🎩 and SHOES 🥾 combine alone. TOP is red: the lab agrees on one, picks it, and presses **Finish merge**.
 
-**How Git does it.**
-- `git revert <id>` makes a new commit that undoes that commit's change. History only grows. It pushes like any new commit.
-- `git reset --hard <id>` moves your branch back, and your files with it. The Wall's newest commit is no longer in your history. So the push is refused.
-- `git reflog` logs where your branch has pointed. It stays on your laptop. Entries last at least 30 days by default. Pick an ID, `git reset --hard` to it, and you're back.
+**Watch for:** Delete fancy before merging it? Refused, like `git branch -d`: fancy has cards main doesn't.
 
-**Do:** Write on the board: "6. Shared mistake: add a fix card (revert). Move back (reset) only if nobody has the card."
+**Watch for:** A lab still in a conflict after a few minutes. Its tile says so.
+
+## 0:29 · Step 3 · How Git does it · `git merge`
+
+**Time:** 4 min.
+
+**Projector:** the `git merge` card.
+
+**Card:** `git merge`
+- **What it is:** combining two lines of work.
+- **What it does:** keeps a change made on one side. It stops for a person when both sides changed the same lines.
+- **How Git does it:** Git finds the merge base (the last common commit) and compares each side with it (a 3-way merge). Then it writes a merge commit with two parents. If one side is ahead, it fast-forwards: only the label moves, and no merge commit is made.
+
+**Say:** The first merge only slid the note: a fast-forward, no new card. Then Git compared each side with the card where you split. Only TOP changed on both sides, so only TOP needed you.
+
+**Do:** If asked: main's own safety diary still says "merge fancy: Fast-forward". It is local, it expires, and it never reaches the Wall.
+
+**Ask:** Which cards were made on fancy?
+
+**Hope to hear:** No way to tell. Git does not record the branch a commit was made on.
+
+**If silent:** Open any card. Press **Show what Git stored**. Which line names a sticky note?
+
+**If asked:** Edits on neighboring lines also conflict. That's why `outfit.txt` has a `---` line between parts. A conflict stops the merge; you fix the file, then `git add` and `git commit`. The merge card has two parents.
+
+**Board:** 3. Merge: compare both sides with the card they share.
 
 ---
 
-## 1:00 · Step 7 · The boss wants it clean · squash, `git push --force`, `git gc`
+## 0:33 · Break
 
-**Time:** 8 min (setup 2 · do 2 · pause 3 · reveal 1).
+**Time:** 4 min. Starts the 4-minute break. Labs can still finish Step 3.
 
-**Do:** Press **Audit**. The projector names who first set LEGS → 🐙 on the Wall.
-**Say:** "Who gave our monster tentacles? The Wall knows." Read the name aloud.
+**Say:** Break. Back in 4 minutes.
 
-**Problem.**
-**Say (as the boss, straight face):** "This history is a mess. Merges, conflicts, a mustache, an undo. I want one clean card."
-**Ask:** "Cards never change. How do you give me one clean card?"
-**Idea:** Make one new card with today's monster, right after Start. Point the Wall at it.
-**If silent, ask:** "Step 4: edit a card and its ID changes. Is the clean card old or new?"
-**Ask:** "Will the Wall accept it?"
-**Hope to hear:** "No. It isn't built on the Wall's newest card. You'd have to force it."
+**Do:** Write the return time on the board. Help any lab that is not done.
 
-**Do:** Next → Step 7. Leave the boss lab select on Lab 1.
-**Do (students):**
-- Lab 1 only: press **Get & combine**. Then **Replace the Wall with one card**. Confirm.
-- Labs 2 and 3: press nothing. The app pauses your sends. Watch the Wall.
-- Then Labs 2 and 3: find the first 🐙 card in your lab's cards. Write down its author.
+**Watch for (A):** Any lab whose Step 3 goals do not all tick. Finish the merge with them, or press **Rescue**.
+
+---
+
+## 0:37 · Step 4 · Put your outfit on the Wall
+
+**Time:** 8 min. Students hit the problem first.
+
+**Next does:** Sends [that lab]'s outfit to the Wall. Every lab becomes a copy of it. Back does not undo this. The practice lab, if there is one, sends its card to the Wall first. [that lab] is the first lab done with Step 3. To pick another, use "Whose outfit goes to the Wall:" under **Next**, before pressing.
+
+**Say:** The Wall is the class's shared copy, like GitHub. Your lab already has a full copy of it (that is git clone). It starts as [that lab]'s outfit. Put your outfit on the Wall. The first lab there wins.
+
+**Do:** Don't ask first: students hit the refusal themselves. Each refused lab gets its way in the app: Combine (merge) or Replay on top (rebase).
+
+**Students:** Lab 1: HAT → 👑. Lab 2: SHOES → 🛼. Lab 3: GLASSES → 🕶️. **Save card**, then **Send to Wall**. The first lab's send goes through. The first lab refused is told **Combine (merge)**: **Get & combine**, then send again. The next lab refused is told **Replay on top (rebase)**: **Replay on top**, then send again. More labs alternate.
+
+**Watch for:** Only one lab can be refused (two labs, or one lab and the practice lab)? It replays on top. Merge was already felt in Step 3.
+
+**Watch for:** Combining has no red: Labs 1–4 each change a different part. With 5 or 6 labs, HAT and SHOES repeat, so a later lab picks, like Step 3.
+
+**Watch for:** "Refused twice in a row" on a tile. A checks the lab used its way before sending again.
+
+**Watch for:** Done when the Wall shows every lab's change: 👑 🛼 🕶️ with 3 labs.
+
+## 0:45 · Step 4 · How Git does it · `git push / git pull`, `git rebase`
+
+**Time:** 5 min.
+
+**Projector:** the two cards. Under them, the Wall with one lab's path to main in bold, and one line per lab, in the order they reached the Wall: "made 10:21 → on the Wall 10:24 · 3 min". Under a replayed change: "Its original card is not on the Wall. The path starts at a copy." Under a combined one: "The path ends at its own merge card, with two parents."
+
+**Students:** the same cards. On their Wall, the merge card says "merge · 2 parents" and the copy says "copy · new ID".
+
+**Card:** `git push / git pull`
+- **What it is:** sharing commits with a copy elsewhere (the Wall).
+- **What it does:** push sends your new commits and moves the remote branch. pull brings theirs in.
+- **How Git does it:** copies exchange only the objects the other side lacks; IDs come from content, so copies agree without coordination. A push is accepted only if it is a fast-forward of the remote branch. Otherwise fetch first, then merge or rebase.
+
+**Card:** `git rebase`
+- **What it is:** replaying your commits on top of another branch.
+- **What it does:** gives a straight history with no merge commit.
+- **How Git does it:** for each of your commits, Git applies its change to the new base and writes a new commit. The new parent gives it a new ID. Author and author date are kept. The originals become unreachable and stay in your reflog for a while.
+
+**Say:** The Wall only moves forward, so a refused lab gets the Wall's cards first. Combine makes a merge card with two parents (Step 3 made one too). Replay on top makes a straight line: a copy of the card with the same change, author and author time, but a new parent, snapshot, committer time and ID.
+
+**Do:** Point at the marked path on the Wall: when the card was made, and when it reached the Wall. These are this class's times.
+
+**Ask:** The replayed card has the same change, author and author time. Why does it have a new ID?
+
+**Hope to hear:** Its parent is new, so its snapshot is too: it now includes the Wall's change. Its committer time is new. The ID is a hash of all of it.
+
+**If silent:** Open the replayed card and its original. Press **Show what Git stored**. Which lines differ?
+
+**If asked:** "Made" is the card's author time, which a replay keeps. "On the Wall" is when the lab's push succeeded; its reflog records it.
+
+**If asked:** With no `pull.rebase` or `pull.ff` setting, a plain `git pull` on diverged branches stops and asks you to choose. `git pull --no-rebase` merges; `git pull --rebase` replays.
+
+**If asked:** Git combined the labs with no red, but it compares lines, not meaning. A person or a test still checks the result.
+
+**Watch for:** The Sabotage button puts the 🥸 card on the Wall early, if you want. Otherwise the next Next does it.
+
+**Board:** 4. The Wall only moves forward. Behind? Combine (merge), or replay on top (rebase: new IDs).
+
+---
+
+## 0:50 · Step 5 · Oops: undo a shared mistake
+
+**Time:** 6 min.
+
+**Next does:** Puts the Intern's 🥸 card on the Wall, if you haven't yet. Each lab with nothing unsent gets it (a fast-forward). Message: "Tiny style fix".
+
+**Say:** The Intern pushed a "tiny style fix" to the Wall. Your lab has it too.
+
+**Do:** Ask first. Sort the answers into "go back to before it" and "add a card that removes it". Say: "We'll try both."
+
+**Ask:** How do you get rid of it?
+
+**Hope to hear:** Go back to before it, or save a new card that removes it.
+
+**Students:** The app splits the labs. Lab 2 tries **Move my note back here**, then **Send to Wall**. Labs 1 and 3 press **Undo this card** on 🥸, then send. (With more labs, even-numbered labs move back. With one real lab, it tries moving back first.)
+
+**Watch for:** Lab 2 is refused. That is the lesson. Of Labs 1 and 3, the second to send is refused. Its Get & combine has no red: both made the same fix.
+
+**Do (A, at Lab 2, after the refusal):** Ask: "Suppose nobody else had the 🥸 card. Your note left it. How would you find it again?" Then point them to **Safety diary**: it still lists 🥸. Moving the note deleted nothing.
+
+**Watch for:** Done when each lab undid 🥸 itself and the Wall shows no 🥸.
+
+## 0:56 · Step 5 · How Git does it · `git revert / git reset`
+
+**Time:** 3 min.
+
+**Projector:** the `git revert / git reset` card.
+
+**Card:** `git revert / git reset`
+- **What it is:** two kinds of undo.
+- **What it does:** revert adds a commit that undoes an old one, and is safe on shared history. reset moves your branch label back, and is only safe if nobody else has those commits.
+- **How Git does it:** revert applies the opposite of the commit's change and commits it on top, so history only grows. reset rewrites the branch file. The commits left behind are still listed in the reflog (a local log of where each label pointed) until they expire and gc removes them.
+
+**Say:** `git revert` adds a card that undoes the old one, so it sends like any card. `git reset` moves your note back, but the Wall still has the card.
+
+**Ask:** Why is adding a fix card safe, but moving back is not?
+
+**Hope to hear:** A fix card only adds. Moving back drops a shared card.
+
+**If silent:** Lab 1's send worked. Lab 2's was refused. What did each do to the history?
+
+**If asked:** "Why not force-send?" Labs 1 and 3 still have 🥸 under their fix; their next Get & combine and send bring it back. Reflog entries for unreachable commits last 30 days by default.
+
+**Board:** 5. Shared mistake: add a fix card (revert). Move back (reset) only if nobody has the card.
+
+---
+
+## 0:59 · Step 6 · The boss wants it clean
+
+**Time:** 4 min.
+
+**Next does:** Asks the Wall who added the 🥾 boots. Only [the boss lab] can replace the Wall. [the boss lab] is the first lab with someone online. To pick another, use "Boss lab:" under **Next**, before pressing.
+
+**Say:** Who gave our outfit boots? The Wall knows. Now, as the boss: "This history is a mess. I want one clean card."
+
+**Do:** Read the audit name aloud. Then ask.
+
+**Ask:** Cards never change. How do you give me one clean card?
+
+**Hope to hear:** Make one new card after Start. Force the Wall onto it.
+
+**If silent:** Step 1: change anything in a card and its ID changes. Is the clean card old or new?
+
+**Students:** The boss lab presses **Get & combine**, then **Replace the Wall with one card**. Other labs press nothing. They find the first 🥾 card in their own cards and its author.
 
 **Watch for:** The Wall now shows two cards: Start ← Clean history.
-**Watch for:** Lab 1's old cards turn dashed. Only its Safety diary reaches them.
 
-**Do:** Press **Audit** again. The Wall says "not found". Labs 2 and 3 still show the name.
-**Say:** "No note leads to the old cards now. The Wall still stores them, in a bin."
-**Do:** Press **Empty the Wall's bin**.
-**Say:** Read the bin count aloud. "Now they're deleted from the Wall."
-**Say:** "In real Git, Lab 2 could Get & combine, then send. The old cards would return. A force push lasts only if everyone goes along."
-**Watch for:** The clean monster still has 🐙 legs? Then Audit says "Only the clean card has it. The real author is gone." Say: "Now the clean card takes the credit."
+## 1:03 · Step 6 · How Git does it · Squash + `git push --force`
 
-**Pause.**
-**Ask:** "Who added the tentacles? Where does that answer still exist?"
-**Hope to hear:** "Not on the Wall anymore. Only on the labs' own laptops, until they clean up too."
-**If silent, ask:** "Ten minutes ago the Wall knew. Now it doesn't. What changed?"
-**Ask (follow-up):** "Was the boss wrong to want a clean history?"
-**Hope to hear:** "No. It reads better. The cost is the record of who did what."
+**Time:** 4 min.
 
-**How Git does it.**
-- Squash writes one new commit: today's snapshot, with Start as its parent. Same snapshot, new parent, so a new ID. (Terminal: `git reset --soft <start-id>`, then `git commit`.) `git rebase` replays your commits on top of a newer one. It too writes new commits, with new IDs.
-- That push is not a fast-forward, so Git refuses it. `git push --force` skips the check. Daily habit: `--force-with-lease`, which refuses if the Wall moved since your last fetch.
-- After the force push, nothing on the Wall reaches the old commits. `git gc --prune=now` deletes them. Until then, they sat in the Wall's bin.
+**Next does:** Finishes [the boss lab]'s clean-up if needed. Then asks the Wall about the boots again. The Wall no longer names the author. The other labs still do.
 
-**Do:** Write on the board: "7. Rewrite (squash, rebase): new cards. Force push + gc: the old ones are gone."
+**Projector:** the "Squash + git push --force" card, the audit after the clean-up, then the bin count.
+
+**Card:** Squash + `git push --force`
+- **What it is:** cleaning up history.
+- **What it does:** squash turns several commits into one. Force push makes the Wall accept it anyway.
+- **How Git does it:** squash writes one new commit whose tree is the final state. The originals, with their authors and times, become unreachable. `--force` skips the fast-forward check and moves the remote branch. `git gc` later deletes unreachable objects.
+
+**Say:** The Wall no longer knows who added the boots. The other labs still do. The old cards wait in the Wall's bin.
+
+**Do:** Press Empty the Wall's bin. Read the count aloud.
+
+**Ask:** Who added the boots? Where does that answer still exist?
+
+**Hope to hear:** Not on the Wall. Only in the labs that kept the old cards.
+
+**If silent:** Ten minutes ago the Wall knew. Now it doesn't. What changed?
+
+**If asked:** In real Git, another lab could Get & combine, then send, and the old cards would return. A force push lasts only if everyone goes along. Daily habit: `--force-with-lease`, which refuses if the Wall moved since your last fetch.
+
+**Board:** 6. Rewrite (squash, rebase): new cards. Force push + gc: the Wall loses the old ones.
 
 ---
 
-## 1:08 · The paper · "Switching to Git: the Good, the Bad, and the Ugly"
+## 1:07 · The paper
 
-**Time:** 4 min (say 1 · pairs 2 · close 1).
+**Time:** 5 min.
 
-**The one message:** **Flat history is data loss.** (The paper's own words, §3.1.)
+**Projector (students see the same card):** Just, Herzig, Czerwonka, Murphy · ISSRE 2016.
+- **Good:** Cheap branches. Local commits and reverts. Developers prefer a flat history.
+- **Bad:** Fast-forward forgets which branch a change came from. Rebase rewrites the commit; the patch can change too. Squash drops the cards, even who made them.
+- **Ugly:** Microsoft traces each change's route to main: its integration path. For Git, that tracing had to be redesigned from scratch. Some loss cannot be recovered.
+- **Flat history is data loss.**
+- What you lived:
+  - Step 3: after the fast-forward, you deleted fancy. No card says which cards were made on it.
+  - Step 4: Rebase rewrites the change and gives it a new ID. The original card is not on the Wall.
+  - Step 6: the squash dropped the cards, and who made them.
+  - Step 6: the 🥾 audit failed. The Wall no longer knows who added the boots.
+- Code velocity in this class: each lab's Step 4 line, as it was at the end of Step 4. Under it: "After the squash, the Wall has none of these cards."
 
-**Say:**
-- "You just lived this paper. Microsoft Research moved its teams to Git, ISSRE 2016."
-- "The good: cheap branches and local saves made developers faster."
-- "The bad: developers love a clean, flat history. The paper says: flat history is data loss."
-- "Fast-forward forgets which branch a change came from. Rebase rewrites the change. Squash drops the cards, even who made them."
-- "The ugly: Microsoft measures how fast a change reaches main. They had to rebuild that tracing from scratch for Git. Some losses could not be recovered."
+**Say:** You just lived this paper. Teams at Microsoft moved to Git. It measures code velocity: how long a change takes to reach main, along its integration path. After the squash, the Wall has no path left. The paper says: flat history is data loss.
 
-**Board line:** Flat history is data loss.
+**Do:** Pairs, 2 minutes. One answer per pair in the app. Then show two.
+
+**Ask:** You run your company's Wall. Give one rule: the boss gets a clean history, and the auditor still knows who added the boots.
+
+**Hope to hear:** No force push to main. Or: squash only your own branch, before you share it.
 
 **Watch for:** Use only facts from `tuesday_paper_notes.md`. Say "the paper estimates", never "proved".
 
-**Problem.** One person writes the history. A different person reads it later. They want different things.
-
-**Ask (pairs, 2 min):** "You run your company's Wall. Give one rule. The boss still gets a clean history. The auditor can still say who added the tentacles."
-**Hope to hear (any one):**
-- "No force push to main."
-- "Squash only your own branch, before you share it."
-- "Log every push somewhere nobody can rewrite."
-
-**Close (1 min), say:** "The paper's advice: choose which habits your team allows, on purpose. Keep merge cards (`--no-ff`). Revert whole cards, never parts."
-- "Keep the old cards on a hidden branch."
-
-**Ask:** "Who pays for your rule?"
-**Hope to hear:** "The developers. Less freedom, or a messier history."
-
-**How Git does it.** A server can refuse force pushes: `git config receive.denyNonFastForwards true`. GitHub's branch protection does the same.
-
-**Say:** "A tool must serve the writer and the reader. Bring that to Thursday."
+**If asked:** A server can refuse force pushes: `git config receive.denyNonFastForwards true`. GitHub's branch protection does the same.
 
 ---
 
 ## 1:12 · Exit question
 
-**Time:** 3 min (write 1 · discuss 2).
+**Time:** 3 min.
 
-**Do:** Write on the board: "A password reached the Wall. Two labs pulled. Does Undo this card (revert) remove it? If not, what would?"
-**Say:** Read it aloud. "Laptops closed. Two sentences on your index card."
+**Projector:** "On your own: two sentences in the app."
 
-**Hope to hear:** "No. Revert adds a card. The old card still holds the password. Every clone has it. So change the password first. Then rewrite, force push, and gc the Wall."
+**Say:** On your own. Two sentences, in the app.
 
-**Time:** After 1 minute, two students read theirs aloud. Then S gives the answer.
-**If most miss it, ask:** "Open your lab's cards. Is the 🥸 card still there, under its fix card?" (Yes.)
-**Watch for:** Someone asks about GitHub. Say: "You can't run gc there. Old commits stay viewable by ID until GitHub Support purges them."
-**Do (A):** Collect the cards at the door.
+**Do:** After a minute, show the answers. Read two aloud. Then give the answer.
+
+**Ask:** A password reached the Wall. Two labs pulled. Does Undo this card (revert) remove it? If not, what would?
+
+**Hope to hear:** No. Revert adds a card; the old one still holds the password, in every copy. Change the password. Then rewrite, force push and gc.
+
+**If silent:** Open your lab's cards. Is the 🥸 card still there, under its fix card? (Yes.)
+
+**If asked:** On GitHub you can't run gc. Old commits can stay viewable by ID until GitHub Support removes them.
 
 ---
 
-## 1:15 · Step 8 · What you built · closing line
+## 1:15 · What you built
 
 **Time:** 2 min.
 
-**Do:** Next → Step 8. The projector shows the wrap line and each lab's counts.
-**Say:** Read one lab's counts aloud. Point at the seven board lines. "That's the whole model."
-**Say:** "Cards never change. Sticky notes move. The Wall copies cards. That's Git."
-**Say:** "Thursday: how real developers use Git. Read Yang et al., Sections 3.2 to 3.5. For one finding, write down what they measured."
+**Projector:** "Cards never change. Sticky notes move. The Wall copies cards." Then a wall of takeaways, without names. Each student sees "My Git in 7 lines" and their lab's counts, with a Copy button.
+
+**Say:** Cards never change. Sticky notes move. The Wall copies cards. That's Git. Homework: Yang et al., Sections 3.2 to 3.5. For one finding, write down what they measured.
+
+**Do:** Read one lab's counts aloud. Point at the takeaway wall.
+
+**Watch for:** After class, **Export answers** (under Details) saves every answer and takeaway as Markdown.
 
 ---
 
@@ -445,15 +483,14 @@ Checked in: #1, the pauses in Steps 1, 2 and 4. #2, the pauses in Steps 3 and 5.
 **Time:** 3 min. Spend it wherever you ran over.
 
 **If behind, cut in this order:**
-1. Step 1: skip "3 saves ago". Ask only why arrows point back.
-2. Step 4 follow-up. Say the answer yourself.
-3. Step 5 follow-up (is the monster right?).
-4. Step 7 follow-up (was the boss wrong?).
-5. Paper: whole class, one answer, instead of pairs.
-6. Step 3 early-finisher line.
+1. "If asked" lines. Answer after class.
+2. Step 0 reveal: read the Say, skip the question.
+3. Step 2 reveal: say the answer yourself.
+4. Paper: whole class, one answer, instead of pairs.
+5. Exit: show the answers, read none aloud.
 
 **Never cut:**
 - the Step 3 conflict
-- the refused sends in Steps 5 and 6
-- both Audits in Step 7
+- the refused sends in Steps 4 and 5
+- the two Step 6 scenes (both audits)
 - the exit question

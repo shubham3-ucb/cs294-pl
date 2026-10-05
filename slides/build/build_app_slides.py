@@ -1,13 +1,21 @@
 #!/usr/bin/env python3
-"""Monster Lab deck for teaching with the app: one slide per Git step, huge type.
+"""Outfit Lab deck: the record of Tuesday's class, one technical card per Git tool.
 
-Builds slides/tuesday_app.pptx (16:9, Google Slides ready, speaker notes on every slide).
-Follows lesson/tuesday.md. Step titles and pause questions are the app's (server/steps.js).
-The paper slide uses only facts from lesson/tuesday_paper_notes.md.
+Builds slides/tuesday_app.pptx (16:9, Google Slides ready): the title, the join slide, one slide per
+tool (the command, big, then WHAT IT IS, WHAT IT DOES, HOW GIT DOES IT), the paper and the wrap.
+All text comes from the app itself (app/server/steps.js: SCENES, STEPS, PAPER, WRAP_LINE;
+app/public/monster.js: the start outfit), read through node, so the deck and the projector cannot drift
+apart. Speaker notes are the scene's Say, Ask and Hope to hear.
+Text is measured with the real fonts; the build stops if a slide would overflow.
 Run:  python3 build_app_slides.py
 """
+import functools
+import json
 import os
-from pptx.util import Inches, Pt
+import re
+import subprocess
+from PIL import ImageFont
+from pptx.util import Inches, Pt, Emu
 from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
 from pptx.enum.shapes import MSO_SHAPE
@@ -16,113 +24,130 @@ from pptx.oxml.ns import qn
 from build_simple import (FONT, MONO, INK, MUTED, PURPLE, LAVENDER, WHITE, GREEN, RED, LINE,
                           NAVY, W, H, M, OUT, new_deck, blank, text, box, chip, title_slide)
 
+APP = os.path.join(os.path.dirname(OUT), 'app')
 ORANGE = RGBColor(0xE0, 0x8A, 0x00)
+AMBER = RGBColor(0xF5, 0xA5, 0x24)
 PANEL = RGBColor(0xF6, 0xF6, 0xF8)
-LABS = [('Lab 1', PURPLE), ('Lab 2', RGBColor(0x0E, 0xA5, 0xE9)),
-        ('Lab 3', RGBColor(0xF9, 0x73, 0x16))]
 CONTENT_W = W - 2 * M
+BOTTOM = H - Inches(0.45)
+LABEL_SIZE = 14
+WJ = '\u2060'  # word joiner: no line break here
 
-# (app title, pause question, command, one plain sentence, behind the door, speaker notes)
-STEPS = [
-    ('Save every version',
-     'Why do arrows point back, never forward?',
-     'git commit',
-     'Each save makes a new card that never changes.',
-     'commit = tree + parent + author + time + message -> SHA-1 ID',
-     'Ask, then wait 10 seconds. Say: git commit saves the whole monster, the card before, '
-     'your name and the time; the ID is a hash of all of it, so any change makes a new card, '
-     'and git log follows the parents back. '
-     'Board: "1. Card (commit): a full snapshot + its parent. Never changes."'),
-    ('Try two ideas at once',
-     'Where is the original monster now? Did anything get copied?',
-     'git switch -c cat-robot',
-     'A sticky note is a label, not a copy.',
-     '.git/refs/heads/cat-robot holds one commit ID · HEAD points to it',
-     "Ask, then wait 10 seconds. Say: a branch is a tiny file holding one card's ID; your pin "
-     "(HEAD) says which note you're on, and saving moves only that note. "
-     'Board: "2. Sticky note (branch): a label on one card. Saving moves it."'),
-    ('Make one monster from both',
-     'Why did FACE and LEGS combine alone, but BODY needed you?',
-     'git merge superhero',
-     'Compare both sides with the card they share.',
-     '3-way merge vs merge-base · both changed, differently -> CONFLICT',
-     'First ask why the first merge only moved the note: main had nothing new, so it was a '
-     'fast-forward, no new card. Say: otherwise Git compares each side with the newest card both '
-     'share; changed on both, differently, is a conflict, and the merge card has two parents. '
-     'Board: "3. Merge: compare both sides with the card they share."'),
-    ('Meet the Wall',
-     'Two labs never made that card. Why does their copy have the same ID?',
-     'git clone',
-     'Every lab has a full copy with the same IDs.',
-     "ID = SHA-1 of the commit's bytes · same bytes -> same ID everywhere",
-     "Say: git clone copies every card, and a card's ID is a hash of everything on it, parent "
-     "included, so the same card has the same ID on every laptop. Blue wall/main is the Wall's "
-     'main at your last check. Board: "4. The Wall (remote): a full copy. Same card, same ID '
-     'everywhere."'),
-    ('Put your monster on the Wall',
-     'Why did the Wall refuse your card instead of adding it?',
-     'git push · git pull',
-     'The Wall only moves forward, so combine first.',
-     'push: fast-forward only, else ! [rejected] · pull = fetch + merge',
-     "Say: git push asks the Wall to move its main to yours, and it allows only a fast-forward: "
-     "the Wall's newest card must already be in your history. git pull is git fetch + git merge; "
-     'a push never merges, so you combine on your laptop and send again. '
-     'Board: "5. Send (push) only moves the Wall forward. Behind? Get & combine (pull) first."'),
-    ('Oops: undo a shared mistake',
-     'Why is adding a fix card safe, but moving back is not?',
-     'git revert',
-     "Don't rip out a shared card; add a fix card.",
-     'revert adds an inverse commit · reset moves the branch · reflog logs it',
-     "Say: git revert adds a card that undoes the old one, so history only grows and it sends "
-     "like any card. git reset --hard moves your note back, so the Wall's newest card leaves "
-     'your history and the send is refused; git reflog lists every card your note was on. '
-     'Board: "6. Shared mistake: add a fix card (revert). Move back (reset) only if nobody has '
-     'the card."'),
-    ('The boss wants it clean',
-     'Who added the tentacles? Where does that answer still exist?',
-     'git push --force',
-     'Force the Wall, and it forgets who did what.',
-     'squash: new ID · --force: no fast-forward check · gc: old commits gone',
-     'Say: squash writes one new card with Start as its parent, so it gets a new ID; '
-     'git push --force skips the fast-forward check, and git gc --prune=now deletes the old cards '
-     'from the Wall. The labs kept theirs, so they can still name who added the tentacles. '
-     'Board: "7. Rewrite (squash, rebase): new cards. Force push + gc: the old ones are gone."'),
-]
+# The static deck has no live session: name the placeholders session.js fills in.
+FILL = {'{boss}': 'the boss lab', '{wallLab}': 'the first lab'}
 
-# The paper, only from tuesday_paper_notes.md: (heading, color, [(lead, rest)]).
-PAPER = [
-    ('GOOD', GREEN, [('', 'Cheap branches.'),
-                     ('', 'Local commits and reverts.'),
-                     ('', 'Developers prefer flat history.')]),
-    ('BAD', ORANGE, [('Fast-forward: ', 'no merge commit, branch forgotten.'),
-                     ('Rebase: ', 'the change itself is rewritten.'),
-                     ('Squash: ', 'commits gone, even who made them.')]),
-    ('UGLY', RED, [('Integration path: ', "a change's route to main."),
-                   ('', 'Microsoft rebuilt its tracing for Git.'),
-                   ('', "Some loss can't be recovered.")]),
-]
+READ_APP = """
+const steps = await import('./server/steps.js');
+const outfit = await import('./public/monster.js');
+const pkg = JSON.parse((await import('node:fs')).readFileSync('package.json', 'utf8'));
+process.stdout.write(JSON.stringify({
+  tagline: pkg.description,
+  start: outfit.PARTS.map((part) => outfit.PALETTE[part][outfit.START[part]]),
+  scenes: steps.SCENES,
+  titles: steps.STEPS.map((s) => s.title),
+  paper: steps.PAPER,
+  wrap: steps.WRAP_LINE,
+}));
+"""
 
 
-def italic(tb):
-    for p in tb.text_frame.paragraphs:
-        for r in p.runs:
-            r.font.italic = True
-    return tb
+def read_app():
+    out = subprocess.run(['node', '--input-type=module', '-e', READ_APP], cwd=APP, check=True,
+                         capture_output=True, text=True).stdout
+    return json.loads(out)
 
 
-def bullets(s, x, y, w, h, items, size):
-    """items: [(bold lead, rest)], one paragraph each, a gap between them."""
-    tf = text(s, x, y, w, h, '', size=size).text_frame
-    tf.paragraphs[0].clear()
-    for i, (lead, rest) in enumerate(items):
-        p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
-        p.line_spacing = 1.1
-        p.space_before = Pt(0 if i == 0 else 12)
-        for t, bold in ((lead, True), (rest, False)):
-            if t:
-                r = p.add_run()
-                r.text = t
-                r.font.name, r.font.size, r.font.bold, r.font.color.rgb = FONT, Pt(size), bold, INK
+def fill(s):
+    for key, value in FILL.items():
+        if s.startswith(key):
+            s = value[:1].upper() + value[1:] + s[len(key):]
+        s = s.replace(key, value)
+    return s
+
+
+def plain(s):
+    """Drop the app's markdown (**bold**, `code`) for notes."""
+    return fill(re.sub(r'\*\*|`', '', s))
+
+
+def spans(s):
+    """(text, font) runs: the app's `code` spans in the mono font. A word joiner after each - and /
+    keeps LibreOffice from breaking inside one (`--force` would wrap as "--" and "force")."""
+    parts = fill(s).replace('**', '').split('`')
+    return [(part.replace('-', '-' + WJ).replace('/', '/' + WJ), MONO) if i % 2 else (part, FONT)
+            for i, part in enumerate(parts) if part]
+
+
+def sentences(s):
+    return re.split(r'(?<=\.) ', s)
+
+
+def notes(scene):
+    lines = [f'Say: {plain(scene["say"])}']
+    if scene.get('ask'):
+        lines += [f'Ask: {plain(scene["ask"]["q"])}', f'Hope to hear: {plain(scene["ask"]["a"])}']
+    return '\n\n'.join(lines)
+
+
+# ---------------------------------------------------------------- measuring text
+SPACING = 1.12
+LEADING = 1.21 * SPACING  # Inter's line height (ascender + descender) times the paragraph spacing
+
+
+@functools.lru_cache(None)
+def face(family, size, bold):
+    path = subprocess.run(['fc-match', '-f', '%{file}', f'{family}:{"bold" if bold else "regular"}'],
+                          check=True, capture_output=True, text=True).stdout
+    return ImageFont.truetype(path, size)
+
+
+def width_pt(s, family, size, bold=False):
+    return face(family, size, bold).getlength(s)
+
+
+def line_count(s, size, width, bold=False):
+    """Lines a greedy word wrap needs for s at size pt in width (EMU), measured with the real fonts."""
+    room, lines, used = Emu(width).pt * 0.99, 1, 0
+    for part, family in spans(s):
+        space = width_pt(' ', family, size, bold)
+        for word in part.split():
+            w = width_pt(word, family, size, bold)
+            if used and used + space + w > room:
+                lines, used = lines + 1, w
+            else:
+                used += (space if used else 0) + w
+    return lines
+
+
+def text_h(s, size, width, bold=False):
+    return Pt(line_count(s, size, width, bold) * size * LEADING)
+
+
+# ---------------------------------------------------------------- drawing
+def rich(s, x, y, w, h, line, size, bold=False):
+    """One paragraph; `code` spans in the mono font."""
+    p = text(s, x, y, w, h, '', size=size, spacing=SPACING).text_frame.paragraphs[0]
+    p.clear()
+    for part, family in spans(line):
+        r = p.add_run()
+        r.text = part
+        r.font.name, r.font.size, r.font.bold, r.font.color.rgb = family, Pt(size), bold, INK
+
+
+def stack(s, x, y, w, items, size, gap):
+    """One paragraph per item, gap between them. Returns the measured height."""
+    h = sum(text_h(item, size, w) for item in items) + gap * (len(items) - 1)
+    tf = text(s, x, y, w, h, items, size=size, spacing=SPACING).text_frame
+    for j, para in enumerate(tf.paragraphs):
+        para.space_before = Pt(0) if j == 0 else gap
+    return h
+
+
+def rule(s, x, y, w, h, color):
+    bar = s.shapes.add_shape(MSO_SHAPE.RECTANGLE, x, y, w, h)
+    bar.fill.solid()
+    bar.fill.fore_color.rgb = color
+    bar.line.fill.background()
 
 
 def emoji_panel(s, x, y, w, h, emoji, size):
@@ -130,85 +155,147 @@ def emoji_panel(s, x, y, w, h, emoji, size):
     text(s, x, y, w, h, emoji, size=size, align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
 
 
+def head(s, label, title):
+    """The projector's pill and title: "STEP 2  Try two ideas at once"."""
+    c = chip(s, M, Inches(0.55), label.upper())
+    text(s, M + c.width + Inches(0.3), Inches(0.55), Inches(9), Inches(0.5), title, size=24,
+         bold=True, anchor=MSO_ANCHOR.MIDDLE)
+
+
+# ---------------------------------------------------------------- the technical card
+# Like the projector's card: the command, then three rows, a label on the left. HOW GIT DOES IT sits
+# on lavender. Step 1 adds the trust line under it. One type size for every card: the largest at
+# which the longest card fits.
+ROWS = [('is', 'WHAT IT IS'), ('does', 'WHAT IT DOES'), ('how', 'HOW GIT DOES IT')]
+SIZES = [(28, 24), (26, 22), (24, 21), (22, 20), (21, 19), (20, 18)]  # (what it is / does, how)
+LABEL_W, INSET, GUTTER = Inches(1.8), Inches(0.25), Inches(0.35)
+TEXT_W = CONTENT_W - 2 * INSET - LABEL_W - GUTTER
+ROW_PAD, HOW_PAD, HOW_GAP = Inches(0.15), Inches(0.22), Inches(0.08)
+CMD_Y, CMD_H, CMD_MAX = Inches(1.25), Inches(1.0), 66
+ROWS_Y = CMD_Y + CMD_H + Inches(0.25)
+NOTE_SIZE, NOTE_GAP, NOTE_X = 22, Inches(0.22), Inches(0.4)
+
+
+def row_style(key, sizes):
+    """(type size, padding) of one row."""
+    return (sizes[1], HOW_PAD) if key == 'how' else (sizes[0], ROW_PAD)
+
+
+def row_h(card, key, sizes):
+    size, pad = row_style(key, sizes)
+    return text_h(card[key], size, TEXT_W) + 2 * pad
+
+
+def note_h(note):
+    return text_h(note, NOTE_SIZE, CONTENT_W - NOTE_X, bold=True)
+
+
+def card_h(card, note, sizes):
+    rows = sum(row_h(card, key, sizes) for key, _ in ROWS) + HOW_GAP
+    return rows + (NOTE_GAP + note_h(note) if note else 0)
+
+
+def card_sizes(scenes):
+    cards = [(card, scene['reveal']['note']) for scene in scenes if scene['kind'] == 'reveal'
+             for card in scene['reveal']['cards']]
+    for sizes in SIZES:
+        if all(card_h(card, note, sizes) <= BOTTOM - ROWS_Y for card, note in cards):
+            return sizes
+    raise SystemExit('A technical card does not fit: shorten CARDS in app/server/steps.js.')
+
+
+def tool_slide(prs, app, scene, card, notes_from, sizes):
+    s = blank(prs, notes=notes(notes_from))
+    head(s, f'Step {scene["step"]}', app['titles'][scene['step']])
+    command = card['command']
+    size = min(CMD_MAX, int(Emu(CONTENT_W).pt * 97 / width_pt(command, MONO, 100, bold=True)))
+    text(s, M, CMD_Y, CONTENT_W, CMD_H, command, size=size, bold=True, color=PURPLE, font=MONO,
+         anchor=MSO_ANCHOR.BOTTOM, spacing=1.0)
+    y = ROWS_Y
+    for key, label in ROWS:
+        size, pad = row_style(key, sizes)
+        h = row_h(card, key, sizes)
+        if key == 'how':
+            y += HOW_GAP
+            box(s, M, y, CONTENT_W, h, fill=LAVENDER, radius=0.12)
+        else:
+            rule(s, M, y, CONTENT_W, Pt(1), LINE)
+        # the label sits on the first line's baseline
+        drop = Pt((size - LABEL_SIZE) * 0.97)
+        text(s, M + INSET, y + pad + drop, LABEL_W, Inches(0.3), label, size=LABEL_SIZE, bold=True,
+             color=PURPLE if key == 'how' else MUTED)
+        rich(s, M + INSET + LABEL_W + GUTTER, y + pad, TEXT_W, h - 2 * pad, card[key], size)
+        y += h
+    note = scene['reveal']['note']
+    if note:
+        y += NOTE_GAP
+        rule(s, M, y, Inches(0.08), note_h(note), AMBER)
+        rich(s, M + NOTE_X, y, CONTENT_W - NOTE_X, note_h(note), note, NOTE_SIZE, bold=True)
+
+
 # ---------------------------------------------------------------- slides
-def cover(prs):
-    s = title_slide(prs, 'Monster Lab', 'Build Git, one problem at a time',
+def cover(prs, app):
+    s = title_slide(prs, 'Outfit Lab', sentences(app['tagline']),
                     'CS294 · Git Week · Tuesday · Shubham & Ananya',
-                    "No Git lecture today. You'll hit seven problems; your lab invents a fix for "
-                    'each, then we show how Git does the same thing. Every button runs real Git.')
-    # the start monster, as the app draws it: FACE, BODY, LEGS
-    pw, ph, x = Inches(1.9), Inches(1.0), W - M - Inches(1.9)
-    for i, e in enumerate(['🙂', '📦', '🦵']):
-        emoji_panel(s, x, Inches(1.75) + i * (ph + Inches(0.14)), pw, ph, e, 48)
+                    "In class the projector page runs the lesson, and the console's Next button moves "
+                    'through it. This deck is the record: one technical card per Git tool, the same text '
+                    'as the app.')
+    # the start outfit, as the app draws it: hat, glasses, top, shoes
+    pw, ph, gap = Inches(1.9), Inches(0.95), Inches(0.12)
+    y0 = (H - Inches(0.6) - 4 * ph - 3 * gap) / 2
+    for i, e in enumerate(app['start']):
+        emoji_panel(s, W - M - pw, y0 + i * (ph + gap), pw, ph, e, 44)
 
 
-def join(prs):
-    s = blank(prs, notes='Scan the QR or type the address, then your name, then Lab 1, 2 or 3. '
-                         'Labs can change only before Step 1, so wait until the count matches '
-                         'the room. Then Step 0: 90 seconds of chaos, then "Hands off."')
+def join(prs, scene):
+    s = blank(prs, notes=notes(scene))
     q = Inches(4.4)
     qx, qy = W - M - q, (H - q) / 2
     box(s, qx, qy, q, q, fill=WHITE, line=LINE, dash=True, radius=0.06)
     text(s, qx, qy, q, q, 'QR', size=32, color=MUTED, align=PP_ALIGN.CENTER,
          anchor=MSO_ANCHOR.MIDDLE)
     left = qx - M - Inches(0.4)
-    text(s, M, Inches(2.1), left, Inches(0.9), 'Open: ________', size=48, bold=True)
-    text(s, M, Inches(3.25), left, Inches(1.4), ['Type your name.', 'Pick your lab.'], size=36,
-         color=MUTED, spacing=1.25)
-    for i, (label, color) in enumerate(LABS):
-        chip(s, M + i * Inches(1.75), Inches(5.1), label, fill=color, size=22, w=Inches(1.5))
+    text(s, M, Inches(1.9), left, Inches(0.5), 'Outfit Lab', size=22, bold=True, color=PURPLE)
+    text(s, M, Inches(2.5), left, Inches(0.9), 'Open: ________', size=48, bold=True)
+    text(s, M, Inches(3.7), left, Inches(1.6), sentences(scene['line']), size=28, color=MUTED,
+         spacing=1.25)
 
 
-def step(prs, n, title, question, command, line, behind, notes):
-    s = blank(prs, notes=notes)
-    chip(s, M, Inches(0.65), f'STEP {n}')
-    text(s, M + Inches(1.75), Inches(0.65), Inches(9), Inches(0.5), title, size=24, bold=True,
-         anchor=MSO_ANCHOR.MIDDLE)
-    italic(text(s, M, Inches(1.4), CONTENT_W, Inches(0.9), question, size=24, color=MUTED))
-    size = min(96, int(CONTENT_W / Inches(1) * 72 / (0.62 * len(command))))
-    text(s, M, Inches(2.2), CONTENT_W, Inches(1.5), command, size=size, bold=True,
-         color=PURPLE, font=MONO, anchor=MSO_ANCHOR.MIDDLE)
-    text(s, M, Inches(4.2), CONTENT_W, Inches(0.7), line, size=34)
-    box(s, M, Inches(5.5), CONTENT_W, Inches(1.1), fill=LAVENDER, radius=0.2)
-    pad = Inches(0.4)
-    text(s, M + pad, Inches(5.68), CONTENT_W - 2 * pad, Inches(0.3), 'BEHIND THE DOOR', size=13,
-         bold=True, color=PURPLE)
-    text(s, M + pad, Inches(6.0), CONTENT_W - 2 * pad, Inches(0.4), behind, size=17, font=MONO)
+def reveal(prs, app, scene, sizes, task):
+    """One slide per card. Step 4 has two: the first takes the task's notes (the Wall, clone, push)."""
+    cards = scene['reveal']['cards']
+    for i, card in enumerate(cards):
+        tool_slide(prs, app, scene, card, scene if i == len(cards) - 1 else task, sizes)
 
 
-def paper(prs):
-    s = blank(prs, notes="Say: you just lived this paper. Microsoft moved its teams to Git, and "
-                         'the paper says flat history is data loss: fast-forward forgets the '
-                         'branch, rebase rewrites the change, squash drops the cards, even who made '
-                         "them, so Microsoft had to rebuild how it traces a change's path to main. "
-                         'Pairs, 2 min: one rule so the boss gets a clean history and the auditor '
-                         'can still say who added the tentacles.')
-    text(s, M, Inches(0.55), CONTENT_W, Inches(0.4),
-         "Tuesday's paper · Just, Herzig, Czerwonka, Murphy · ISSRE 2016", size=20, color=MUTED)
-    text(s, M, Inches(0.95), CONTENT_W, Inches(0.8), 'Switching to Git: Good, Bad, Ugly', size=40,
-         bold=True)
+def paper(prs, app, scene):
+    """Good / Bad / Ugly, then what they lived, then the one message. Each band starts below the last."""
+    s = blank(prs, notes=notes(scene))
+    p = app['paper']
+    text(s, M, Inches(0.45), CONTENT_W, Inches(0.4), f"Tuesday's paper · {p['source']}", size=18,
+         color=MUTED)
+    text(s, M, Inches(0.8), CONTENT_W, Inches(0.6), p['title'], size=32, bold=True)
     gap = Inches(0.4)
     cw = (CONTENT_W - 2 * gap) / 3
-    for i, (head, color, items) in enumerate(PAPER):
+    y = Inches(2.15)
+    col_h = 0
+    for i, (label, color) in enumerate([('GOOD', GREEN), ('BAD', ORANGE), ('UGLY', RED)]):
         x = M + i * (cw + gap)
-        bar = s.shapes.add_shape(MSO_SHAPE.RECTANGLE, x, Inches(2.0), cw, Inches(0.07))
-        bar.fill.solid()
-        bar.fill.fore_color.rgb = color
-        bar.line.fill.background()
-        text(s, x, Inches(2.2), cw, Inches(0.45), head, size=22, bold=True, color=color)
-        bullets(s, x, Inches(2.8), cw, Inches(2.4), items, size=20)
-    text(s, M, Inches(5.75), CONTENT_W, Inches(0.7), 'Flat history is data loss.', size=40,
-         bold=True, color=PURPLE)
-    text(s, M, Inches(6.5), CONTENT_W, Inches(0.4),
-         'You saw it in Step 7: squash, then force push. The Wall forgot who added 🐙.', size=20,
-         color=MUTED)
+        rule(s, x, Inches(1.6), cw, Inches(0.06), color)
+        text(s, x, Inches(1.75), cw, Inches(0.3), label, size=18, bold=True, color=color)
+        col_h = max(col_h, stack(s, x, y, cw, p[label.lower()], 16, Pt(8)))
+    y += col_h + Inches(0.3)
+    text(s, M, y, CONTENT_W, Inches(0.3), 'WHAT YOU LIVED', size=LABEL_SIZE, bold=True, color=MUTED)
+    y += Inches(0.3)
+    y += stack(s, M, y, CONTENT_W, [plain(l['text']) for l in p['lived']], 16, Pt(3)) + Inches(0.25)
+    message = Inches(0.6)
+    if y + message > BOTTOM:
+        raise SystemExit('The paper slide overflows: shorten PAPER in app/server/steps.js.')
+    text(s, M, y, CONTENT_W, message, p['message'], size=36, bold=True, color=PURPLE)
 
 
-def finale(prs):
-    s = blank(prs, NAVY, notes="Read one lab's counts. Point at the seven board lines and say: "
-                               "Cards never change. Sticky notes move. The Wall copies cards. "
-                               "That's Git. Homework: Yang et al., Sections 3.2 to 3.5; for one "
-                               'finding, write down what they measured.')
+def wrap(prs, app, scene):
+    s = blank(prs, NAVY, notes(scene))
     for x, y, d in [(1.2, 0.8, .05), (3.4, 1.6, .04), (5.9, .6, .06), (8.3, 1.3, .04),
                     (10.6, .7, .05), (12.1, 1.9, .04), (2.2, 6.4, .04), (11.4, 6.1, .05),
                     (7.2, 6.7, .04), (0.7, 3.9, .03), (12.6, 4.2, .03)]:
@@ -216,9 +303,8 @@ def finale(prs):
         star.fill.solid()
         star.fill.fore_color.rgb = WHITE
         star.line.fill.background()
-    text(s, M, Inches(2.1), CONTENT_W, Inches(3.3),
-         ['Cards never change.', 'Sticky notes move.', 'The Wall copies cards.'], size=60,
-         bold=True, color=WHITE, align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE, spacing=1.2)
+    text(s, M, Inches(2.1), CONTENT_W, Inches(3.3), sentences(app['wrap']), size=60, bold=True,
+         color=WHITE, align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE, spacing=1.2)
 
 
 def flatten(prs):
@@ -231,18 +317,29 @@ def flatten(prs):
 
 
 def build():
+    """Title, join, a slide per tool card (the reveals, Steps 1-6), the paper, the wrap."""
+    app = read_app()
+    scenes = app['scenes']
+    sizes = card_sizes(scenes)
+    tasks = {scene['step']: scene for scene in scenes if scene['kind'] == 'task'}
     prs = new_deck()
-    cover(prs)
-    join(prs)
-    for n, spec in enumerate(STEPS, 1):
-        step(prs, n, *spec)
-    paper(prs)
-    finale(prs)
+    cover(prs, app)
+    for scene in scenes:
+        kind = scene['kind']
+        if kind == 'join':
+            join(prs, scene)
+        elif kind == 'reveal':
+            reveal(prs, app, scene, sizes, tasks[scene['step']])
+        elif kind == 'paper':
+            paper(prs, app, scene)
+        elif kind == 'wrap':
+            wrap(prs, app, scene)
     flatten(prs)
-    return prs
+    return prs, sizes
 
 
 if __name__ == '__main__':
     path = os.path.join(OUT, 'tuesday_app.pptx')
-    build().save(path)
-    print('saved', path)
+    prs, sizes = build()
+    prs.save(path)
+    print('saved', path, f'({len(prs.slides)} slides, card type {sizes[0]}/{sizes[1]} pt)')

@@ -3,32 +3,22 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Monster Lab</title>
+  <title>Outfit Lab</title>
   <link rel="stylesheet" href="/admin.css">
   <script type="module" src="/screen.js"></script>
 </head>
 <body id="screen">
-  <header class="s-head">
-    <h1 id="s-title"></h1>
-    <span id="s-clock" class="s-clock"></span>
-  </header>
-  <p id="s-line" class="s-line"></p>
-
-  <main id="s-main" class="s-main">
-    <div id="s-join" class="s-join" hidden>
-      <p class="s-label">Scan to join</p>
-      <img id="s-qr" alt="QR code for the join link">
-      <p id="s-url" class="mono"></p>
-    </div>
-    <div id="s-stage" class="s-stage" hidden>
-      <div id="s-wall" class="s-wall" hidden>
-        <p class="s-label">The Wall</p>
-        <svg id="s-wall-graph" class="graph" preserveAspectRatio="xMidYMin meet"></svg>
+  <main id="slide" class="slide"></main>
+  <div id="qr" class="slide qr-overlay" hidden>
+    <div class="sl kind-join"><div class="sl-join">
+      <div class="sl-join-text">
+        <p class="sl-kicker">Outfit Lab</p>
+        <h1 class="sl-url"></h1>
+        <p class="sl-line">Open the link and type your name. The app picks your lab.</p>
       </div>
-      <div id="s-audits" class="s-audits" hidden></div>
-    </div>
-    <div id="s-wrap" class="s-wrap" hidden></div>
-    <section id="s-labs" class="s-labs"></section>
-  </main>
+      <img class="sl-qr" alt="QR code for the join link">
+    </div></div>
+  </div>
+  <p id="keys-hint" class="keys-hint">F full screen · → next · ← back</p>
 </body>
 </html>

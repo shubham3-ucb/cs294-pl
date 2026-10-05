@@ -2,17 +2,19 @@
 // DATA_DIR/wall.git (bare, "like GitHub") and DATA_DIR/labs/<id> (one repo per lab, no worktree).
 // Each operation returns { ...result, commands: [{cmd, out, code}], porcelain, explain }:
 // the plumbing it ran, what you would type in your own copy, and one plain explanation.
+// Reflog messages use Git's own wording, so the safety diary matches a real `git reflog`.
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { execFile } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import { PARTS, START, describeChange, isMonster, merge3, parse, serialize } from './monster.js';
+import { FILE, PARTS, START, describeChange, isMonster, merge3, parse, serialize } from './monster.js';
 
 const DATA_DIR = path.resolve(process.env.DATA_DIR || './data');
 const LABS = path.join(DATA_DIR, 'labs');
 const WALL_URL = '../../wall.git'; // relative to a lab repo, so DATA_DIR can move
 const START_TIME = Date.parse('2026-10-01T00:00:00Z'); // in the past: no card is older than its parent
-const SYSTEM = { pid: 'lab', name: 'Monster Lab' };
+const DOMAIN = 'outfit.lab';
+const SYSTEM = { pid: 'lab', name: 'Outfit Lab' };
 const INTERN = { pid: 'intern', name: 'The Intern' };
 const CLEAN = 'Clean history';
 const SABOTAGE = 'Tiny style fix';
@@ -33,10 +35,10 @@ const dirOf = (repo) => {
   return path.join(LABS, repo);
 };
 
-// Author and committer are always explicit: name, <pid>@monster.lab, and the time.
+// Author and committer are always explicit: name, <pid>@outfit.lab, and the time.
 function identity(who = SYSTEM, time = Date.now()) {
   const name = String(who.name).replace(/[\x00-\x1f\x7f<>]/g, ' ').trim() || 'Someone';
-  const email = `${/^[\w-]{1,40}$/.test(who.pid) ? who.pid : 'someone'}@monster.lab`;
+  const email = `${/^[\w-]{1,40}$/.test(who.pid) ? who.pid : 'someone'}@${DOMAIN}`;
   const date = `@${Math.floor(time / 1000)} +0000`;
   return {
     GIT_AUTHOR_NAME: name, GIT_AUTHOR_EMAIL: email, GIT_AUTHOR_DATE: date,
@@ -66,24 +68,25 @@ export function git(repo, args, { input, env, buffer = false } = {}) {
   });
 }
 
-// How a command reads in "Show the low-level steps": runnable in a shell, input included.
+// How a command reads in "Show the low-level steps": runnable in a shell, input and shown variables included.
 // "Merge branch 'superhero'" reads better in double quotes than as 'Merge branch '\''superhero'\'''.
 const quote = (a) => {
   if (/^[\w@%^{}:/.,=+-]+$/.test(a)) return a;
   if (a.includes("'") && !/["$`\\!]/.test(a)) return `"${a}"`;
   return `'${a.replace(/'/g, `'\\''`)}'`;
 };
-function shown(args, input) {
-  const cmd = `git ${args.map(quote).join(' ')}`;
+function shown(args, input, vars = {}) {
+  const cmd = [...Object.entries(vars).map(([k, val]) => `${k}=${quote(val)}`), 'git', ...args.map(quote)].join(' ');
   return input === undefined ? cmd : `printf ${quote(input.replace(/\t/g, '\\t').replace(/\n/g, '\\n'))} | ${cmd}`;
 }
 
 // Run one step of an operation: record it in ctx (when given) and throw on unexpected exit codes.
 // The error keeps git's stderr, so a stale lock reads as "Unable to create '...lock'" (the server says "Busy").
-async function run(ctx, repo, args, { ok = [0], ...opts } = {}) {
+// show: environment variables worth seeing in the recorded command (a replayed card's kept author).
+async function run(ctx, repo, args, { ok = [0], show, ...opts } = {}) {
   const r = await git(repo, args, opts);
   ctx?.commands.push({
-    cmd: shown(args, opts.input),
+    cmd: shown(args, opts.input, show),
     out: [String(r.out), r.err].map((s) => s.trim()).filter(Boolean).join('\n'),
     code: r.code,
   });
@@ -120,12 +123,6 @@ function labIds() {
   return fs.existsSync(LABS) ? fs.readdirSync(LABS).sort((a, b) => a.localeCompare(b, 'en', { numeric: true })) : [];
 }
 
-// Run fn while holding every lock (after running git ops finish).
-export function exclusive(fn) {
-  const labs = new Set([...labIds(), ...[...queues.keys()].filter((k) => k.startsWith('lab:')).map((k) => k.slice(4))]);
-  return locked([...[...labs].sort().map(labKey), 'wall'], fn);
-}
-
 // ---------- Small reads and writes ----------
 
 // Bumped by every git op that may move a ref; the graph cache checks it.
@@ -147,19 +144,26 @@ async function isAncestor(ctx, repo, a, b) {
 }
 
 async function monsterAt(ctx, repo, id) {
-  return parse((await run(ctx, repo, ['cat-file', '-p', `${id}:monster.txt`])).out);
+  return parse((await run(ctx, repo, ['cat-file', '-p', `${id}:${FILE}`])).out);
 }
 
-const commitTree = async (ctx, repo, tree, parents, message, who, time) => (await run(ctx, repo,
-  ['commit-tree', tree, ...parents.flatMap((p) => ['-p', p]), ...message.split('\n\n').flatMap((m) => ['-m', m])],
-  { env: identity(who, time) })).out.trim();
+const treeOf = async (ctx, repo, id) => (await run(ctx, repo, ['rev-parse', `${id}^{tree}`])).out.trim();
 
-// A card from scratch: monster.txt → blob → tree → commit.
-async function writeCard(ctx, repo, monster, parents, message, who, time) {
+// author: {name, email, date} kept from another card (a replay); otherwise who made it now is the author too.
+async function commitTree(ctx, repo, tree, parents, message, who, time, author = null) {
+  const kept = author ? { GIT_AUTHOR_NAME: author.name, GIT_AUTHOR_EMAIL: author.email, GIT_AUTHOR_DATE: author.date } : undefined;
+  const args = ['commit-tree', tree, ...parents.flatMap((p) => ['-p', p]), ...message.split('\n\n').flatMap((m) => ['-m', m])];
+  return (await run(ctx, repo, args, { env: { ...identity(who, time), ...kept }, show: kept })).out.trim();
+}
+
+// outfit.txt → blob → tree.
+async function writeTree(ctx, repo, monster) {
   const blob = (await run(ctx, repo, ['hash-object', '-w', '--stdin'], { input: serialize(monster) })).out.trim();
-  const tree = (await run(ctx, repo, ['mktree'], { input: `100644 blob ${blob}\tmonster.txt\n` })).out.trim();
-  return commitTree(ctx, repo, tree, parents, message, who, time);
+  return (await run(ctx, repo, ['mktree'], { input: `100644 blob ${blob}\t${FILE}\n` })).out.trim();
 }
+
+const writeCard = async (ctx, repo, monster, parents, message, who, time) =>
+  commitTree(ctx, repo, await writeTree(ctx, repo, monster), parents, message, who, time);
 
 // Compare-and-swap a ref (old = null: must not exist yet). The reason goes into the diary (reflog).
 // Returns false when the ref was not where we expected: someone moved it meanwhile.
@@ -274,6 +278,32 @@ export function createBranch(lab, name, author = SYSTEM) {
   });
 }
 
+// Delete a sticky note, as `git branch -d`: only when its card is already in the current note's history,
+// and never the note you are on. The cards stay; Git deletes the note's file and its reflog.
+export function deleteBranch(lab, note, current) {
+  return onLab(lab.id, async () => {
+    const ctx = op();
+    const porcelain = `git branch -d ${note}`;
+    if (note === current) return finish(ctx, { current: true }, porcelain, `You are on ${note}. Git never deletes the note you are on.`);
+    if (lab.merging[note]) return holding(ctx);
+    const ref = refOf(note);
+    const tip = await tipOf(ctx, lab.id, ref);
+    const head = await tipOf(ctx, lab.id, refOf(current));
+    if (!tip || !head) return moved(ctx);
+    if (!(await isAncestor(ctx, lab.id, tip, head))) {
+      return finish(ctx, { unmerged: true, id: tip }, porcelain, `${note} has cards ${current} doesn't. Git refuses: deleting it could lose them.`);
+    }
+    const r = await run(ctx, lab.id, ['update-ref', '-d', ref, tip], { ok: [0, 1] });
+    if (r.code !== 0) {
+      if (/but expected|unable to resolve reference/.test(r.err)) return moved(ctx);
+      throw new Error(`git update-ref failed: ${r.err.trim()}`);
+    }
+    touch(lab.id);
+    return finish(ctx, { deleted: note, id: tip }, porcelain,
+      `Deleted branch ${note} (was ${short(tip)}). Its cards stay, and no card records that it was made on ${note}.`);
+  });
+}
+
 // ---------- Merging ----------
 
 const nameOf = (note) => (note === 'wall/main' ? 'the Wall' : note);
@@ -285,21 +315,23 @@ function mergeMessage(into, from) {
 }
 
 // Open a merge on the lab (shared by everyone on the note) and say which parts need a person.
-async function openMerge(ctx, lab, note, { kind, from, intoTip, theirs, baseId, tree, message, who }) {
-  const conflictedText = (await run(ctx, lab.id, ['cat-file', '-p', `${tree}:monster.txt`])).out;
+// intoTip is where the note stays until someone finishes; oursId is the side being built on (a replay's new base).
+async function openMerge(ctx, lab, note, { kind, from, intoTip, oursId = intoTip, theirs, baseId, tree, message, who, more = {} }) {
+  const conflictedText = (await run(ctx, lab.id, ['cat-file', '-p', `${tree}:${FILE}`])).out;
   const base = await monsterAt(ctx, lab.id, baseId);
-  const ours = await monsterAt(ctx, lab.id, intoTip);
+  const ours = await monsterAt(ctx, lab.id, oursId);
   const theirsMonster = await monsterAt(ctx, lab.id, theirs);
   const { auto, conflicts } = merge3(base, ours, theirsMonster);
   lab.merging[note] = {
     kind, from, intoTip, theirs, base, ours, theirsMonster, auto, conflicts, conflictedText, message,
-    startedBy: who.name, t: Date.now(),
+    startedBy: who.name, t: Date.now(), ...more,
   };
   return { conflict: true, conflicts, auto, base: baseId };
 }
 
-// Merge `from` (a note or 'wall/main') into `into`. verb names the diary line: "merge <from>" or "pull".
-async function mergeIn(ctx, lab, into, from, who, verb = `merge ${from}`) {
+// Merge `from` (a note or 'wall/main') into `into`. The diary line is Git's: "merge <from>: ...".
+async function mergeIn(ctx, lab, into, from, who) {
+  const verb = `merge ${from}`;
   if (lab.merging[into]) return { merging: true };
   const ref = refOf(into);
   const intoTip = await tipOf(ctx, lab.id, ref);
@@ -310,7 +342,7 @@ async function mergeIn(ctx, lab, into, from, who, verb = `merge ${from}`) {
     if (!(await swap(ctx, lab.id, ref, fromTip, intoTip, `${verb}: Fast-forward`, who))) return { moved: true };
     return { fastForward: true, id: fromTip, from: intoTip };
   }
-  // Short names, so the conflict markers read "<<<<<<< main" and ">>>>>>> superhero".
+  // Short names, so the conflict markers read "<<<<<<< main" and ">>>>>>> sporty".
   const mt = await run(ctx, lab.id, ['merge-tree', '--write-tree', into, from], { ok: [0, 1] });
   const tree = lines(mt.out)[0];
   const message = mergeMessage(into, from);
@@ -342,13 +374,14 @@ export function merge(lab, into, from, author) {
   });
 }
 
-// Finish an open merge (or undo) with the monster people chose.
+// Finish an open merge (or undo, or replay) with the outfit people chose.
 export function resolve(lab, note, monster, author) {
   return onLab(lab.id, async () => {
     const ctx = op();
     const open = lab.merging[note];
     if (!open) return finish(ctx, { refused: 'There is no merge to finish.' }, '', '');
     if (!isMonster(monster)) return finish(ctx, { refused: 'Pick a value for every part.' }, '', '');
+    if (open.kind === 'rebase') return continueRebase(ctx, lab, note, open, monster, author);
     const merging = open.kind === 'merge';
     const parents = merging ? [open.intoTip, open.theirs] : [open.intoTip];
     const subject = open.message.split('\n')[0];
@@ -359,7 +392,7 @@ export function resolve(lab, note, monster, author) {
     const explain = merging
       ? `Git made merge card ${short(id)} with two parents: ${note} and ${nameOf(open.from)}.`
       : `Git made fix card ${short(id)}; the old card stays in the history.`;
-    return finish(ctx, { id, parents, monster }, merging ? 'git add monster.txt\ngit commit' : 'git add monster.txt\ngit revert --continue', explain);
+    return finish(ctx, { id, parents, monster }, `git add ${FILE}\n${merging ? 'git commit' : 'git revert --continue'}`, explain);
   });
 }
 
@@ -370,8 +403,7 @@ export function abort(lab, note) {
     const open = lab.merging[note];
     if (!open) return finish(ctx, { nothing: true }, '', 'There is no merge to cancel.');
     delete lab.merging[note];
-    return finish(ctx, { kind: open.kind }, open.kind === 'merge' ? 'git merge --abort' : 'git revert --abort',
-      `Cancelled. ${note} is where it was, at ${short(open.intoTip)}.`);
+    return finish(ctx, { kind: open.kind }, `git ${open.kind} --abort`, `Cancelled. ${note} is where it was, at ${short(open.intoTip)}.`);
   });
 }
 
@@ -393,7 +425,7 @@ async function pushIn(ctx, lab, force) {
 }
 
 function pushExplain(r) {
-  if (r.rejected) return "The Wall has cards you don't have. Git refuses, so nobody's card gets lost.";
+  if (r.rejected) return "The Wall's main has a card your main doesn't. Moving the Wall would drop it, so Git refuses.";
   if (r.already) return `The Wall already has card ${short(r.id)}. Nothing to send.`;
   if (r.forced) return `The Wall's main was forced to ${short(r.id)}. Its old cards have no sticky note now.`;
   return `Git sent the cards the Wall was missing. The Wall's main moved to ${short(r.id)}.`;
@@ -413,7 +445,7 @@ export function pull(lab, author) {
     const ctx = op();
     await onWall(() => run(ctx, lab.id, ['fetch', 'wall']));
     touch(lab.id);
-    const r = await mergeIn(ctx, lab, 'main', 'wall/main', author, 'pull');
+    const r = await mergeIn(ctx, lab, 'main', 'wall/main', author);
     return finish(ctx, r, 'git fetch wall\ngit merge wall/main', pullExplain(r));
   });
 }
@@ -424,6 +456,100 @@ function pullExplain(r) {
   if (r.fastForward) return `Git fetched the Wall's cards, then slid main forward to ${short(r.id)}.`;
   if (r.conflict) return `Git fetched the Wall's cards; ${list(r.conflicts)} changed on both sides, so you pick.`;
   return mergeExplain(r, 'main', 'wall/main');
+}
+
+// ---------- Replay on top: git pull --rebase ----------
+
+// What a replay needs from a card: its first parent, its author as Git stored it, its message.
+async function cardOf(ctx, repo, id) {
+  const out = (await run(ctx, repo, ['log', '-1', '--date=raw', '--format=%P%x00%an%x00%ae%x00%ad%x00%B', id])).out;
+  const [parents, name, email, date, message] = out.split('\0');
+  return { parent: parents.split(' ')[0], author: { name, email, date }, message: message.replace(/\n+$/, '') };
+}
+
+const shortName = async (ctx, repo, id) => (await run(ctx, repo, ['rev-parse', '--short', id])).out.trim();
+
+// Like `git rebase`: apply each card's change (a 3-way merge against its parent, as cherry-pick does) on top
+// of onto, and write a new card with the same author, author date and message, committed by who, now.
+// A change that is already there is dropped. main moves once, at the end; a conflict stops the replay and
+// waits for a person (resolve continues it). The reflog line is Git's: "<verb> (finish): refs/heads/main onto <id>".
+async function replay(ctx, lab, { intoTip, upstream, onto, todo, replaced, dropped }, who, verb) {
+  for (const [i, id] of todo.entries()) {
+    const card = await cardOf(ctx, lab.id, id);
+    const ours = onto === upstream ? 'wall/main' : await shortName(ctx, lab.id, onto);
+    const mt = await run(ctx, lab.id, ['merge-tree', '--write-tree', `--merge-base=${card.parent}`, ours, await shortName(ctx, lab.id, id)], { ok: [0, 1] });
+    const tree = lines(mt.out)[0];
+    if (mt.code === 1) {
+      return openMerge(ctx, lab, 'main', {
+        kind: 'rebase', from: 'wall/main', intoTip, oursId: onto, theirs: id, baseId: card.parent, tree, message: card.message, who,
+        more: { upstream, onto, todo: todo.slice(i + 1), replaced, dropped, author: card.author },
+      });
+    }
+    if (tree === await treeOf(ctx, lab.id, onto)) {
+      dropped.push(id);
+      continue;
+    }
+    const next = await commitTree(ctx, lab.id, tree, [onto], card.message, who, undefined, card.author);
+    replaced.push({ from: id, to: next });
+    onto = next;
+  }
+  if (!(await swap(ctx, lab.id, 'refs/heads/main', onto, intoTip, `${verb} (finish): refs/heads/main onto ${upstream}`, who))) return { moved: true };
+  return { rebased: true, id: onto, replaced, dropped };
+}
+
+// Replay on top: fetch the Wall's cards, then copy main's own cards onto wall/main. As `git rebase` does,
+// merge cards are left out, and so is a card whose change (patch) the Wall already has.
+// Behind: a fast-forward. Nothing new: nothing.
+export function rebase(lab, author) {
+  return onLab(lab.id, async () => {
+    const ctx = op();
+    if (lab.merging.main) return holding(ctx);
+    await onWall(() => run(ctx, lab.id, ['fetch', 'wall']));
+    touch(lab.id);
+    const intoTip = await tipOf(ctx, lab.id, 'refs/heads/main');
+    const upstream = await tipOf(ctx, lab.id, 'refs/remotes/wall/main');
+    const done = (r) => finish(ctx, r, 'git pull --rebase', rebaseExplain(r));
+    if (await isAncestor(ctx, lab.id, upstream, intoTip)) return done({ nothing: true, id: intoTip });
+    if (await isAncestor(ctx, lab.id, intoTip, upstream)) {
+      if (!(await swap(ctx, lab.id, 'refs/heads/main', upstream, intoTip, 'pull --rebase: Fast-forward', author))) return moved(ctx);
+      return done({ fastForward: true, id: upstream, from: intoTip });
+    }
+    const list = async (...args) => lines((await run(ctx, lab.id, ['rev-list', '--reverse', '--topo-order', '--no-merges', ...args])).out);
+    const mine = await list(`${upstream}..${intoTip}`);
+    const todo = await list('--right-only', '--cherry-pick', `${upstream}...${intoTip}`);
+    const dropped = mine.filter((id) => !todo.includes(id));
+    const r = await replay(ctx, lab, { intoTip, upstream, onto: upstream, todo, replaced: [], dropped }, author, 'pull --rebase');
+    return r.moved ? moved(ctx) : done(r);
+  });
+}
+
+// Finish the card a replay stopped at, with the outfit people chose, then replay the rest (`git rebase --continue`).
+async function continueRebase(ctx, lab, note, open, monster, who) {
+  const { intoTip, upstream, onto, todo } = open;
+  const replaced = [...open.replaced];
+  const dropped = [...open.dropped];
+  const tree = await writeTree(ctx, lab.id, monster);
+  let next = onto;
+  if (tree === await treeOf(ctx, lab.id, onto)) dropped.push(open.theirs);
+  else {
+    next = await commitTree(ctx, lab.id, tree, [onto], open.message, who, undefined, open.author);
+    replaced.push({ from: open.theirs, to: next });
+  }
+  delete lab.merging[note];
+  const r = await replay(ctx, lab, { intoTip, upstream, onto: next, todo, replaced, dropped }, who, 'rebase');
+  if (r.moved) return moved(ctx);
+  return finish(ctx, r, `git add ${FILE}\ngit rebase --continue`, rebaseExplain(r));
+}
+
+function rebaseExplain(r) {
+  if (r.nothing) return 'Git fetched from the Wall. Nothing new: main has every card already.';
+  if (r.fastForward) return `Git fetched the Wall's cards, then slid main forward to ${short(r.id)}. Nothing to replay.`;
+  if (r.conflict) return `${list(r.conflicts)} changed on the Wall too, so you pick. Then Git replays the rest.`;
+  const copies = r.replaced.map(({ from, to }) => `${short(from)} is now ${short(to)}`);
+  const gone = r.dropped.length ? ` ${r.dropped.map(short).join(', ')}: already on the Wall, so dropped.` : '';
+  if (!copies.length) return `Git fetched the Wall's cards. Your changes were already there.${gone}`;
+  return `Git copied your ${copies.length === 1 ? 'card' : 'cards'} on top of the Wall's: ${copies.join(', ')}. `
+    + `Same author and author time; a new parent (so a new snapshot) and committer time, so a new ID. The old ${copies.length === 1 ? 'card is' : 'cards are'} only in your safety diary (reflog).${gone}`;
 }
 
 // ---------- Undo ----------
@@ -451,7 +577,7 @@ export function revert(lab, note, commit, author) {
       const r = await openMerge(ctx, lab, note, { kind: 'revert', from: commit, intoTip: tip, theirs: parent, baseId: commit, tree, message, who: author });
       return finish(ctx, r, porcelain, `${list(r.conflicts)} changed again after ${short(commit)}. Pick what to keep.`);
     }
-    if (tree === (await run(ctx, lab.id, ['rev-parse', `${tip}^{tree}`])).out.trim()) {
+    if (tree === await treeOf(ctx, lab.id, tip)) {
       return finish(ctx, { nothing: true }, porcelain, `Nothing to undo: ${note} already looks like the card before ${short(commit)}.`);
     }
     const id = await commitTree(ctx, lab.id, tree, [tip], message, author);
@@ -493,7 +619,7 @@ export function reflog(lab, note) {
 
 // ---------- Rewriting history ----------
 
-// One new card with main's monster after Start, then force the Wall onto it.
+// One new card with main's outfit after Start, then force the Wall onto it.
 export function squashForcePush(lab, author) {
   return onLabAndWall(lab.id, async () => {
     const ctx = op();
@@ -506,8 +632,7 @@ export function squashForcePush(lab, author) {
     if (parents.join() === start && (await tipOf(ctx, 'wall', ref)) === tip) {
       return finish(ctx, { already: true, id: tip }, 'git push --force', 'The Wall already has one clean card. Nothing to replace.');
     }
-    const tree = (await run(ctx, lab.id, ['rev-parse', `${tip}^{tree}`])).out.trim();
-    const id = await commitTree(ctx, lab.id, tree, [start], CLEAN, author);
+    const id = await commitTree(ctx, lab.id, await treeOf(ctx, lab.id, tip), [start], CLEAN, author);
     // Like `git reset --soft <Start>` then `git commit`: two lines in the diary.
     if (!(await swap(ctx, lab.id, ref, start, tip, `reset: moving to ${short(start)}`, author))) return moved(ctx);
     if (!(await swap(ctx, lab.id, ref, id, start, `commit: ${CLEAN}`, author))) return moved(ctx);
@@ -517,21 +642,21 @@ export function squashForcePush(lab, author) {
   });
 }
 
-// The Intern's "tiny style fix" lands on the Wall: FACE → mustache. Once.
-export function wallSabotage() {
+// The Intern's "tiny style fix" lands on the Wall: one part changes. Once.
+export function wallSabotage({ part, value }) {
   return onWall(async () => {
     const ctx = op();
     const tip = await tipOf(ctx, 'wall', 'refs/heads/main');
     const monster = await monsterAt(ctx, 'wall', tip);
-    if (monster.face === 'mustache') return finish(ctx, { nothing: true }, '', 'The mustache is already on the Wall.');
-    const id = await writeCard(ctx, 'wall', { ...monster, face: 'mustache' }, [tip], SABOTAGE, INTERN);
+    if (monster[part] === value) return finish(ctx, { nothing: true }, '', `The Wall already has ${P(part)}: ${value}.`);
+    const id = await writeCard(ctx, 'wall', { ...monster, [part]: value }, [tip], SABOTAGE, INTERN);
     if (!(await swap(ctx, 'wall', 'refs/heads/main', id, tip, null, INTERN))) return moved(ctx);
     return finish(ctx, { id }, `git commit -am "${SABOTAGE}"\ngit push`,
-      `The Intern added card ${short(id)} to the Wall: FACE → mustache.`);
+      `The Intern added card ${short(id)} to the Wall: ${P(part)} → ${value}.`);
   });
 }
 
-// Empty the Wall's bin: cards no note points to are deleted for good. The bare Wall keeps no reflog.
+// Empty the Wall's bin: cards no note leads to are deleted for good. The bare Wall keeps no reflog.
 export function gcWall() {
   return onWall(async () => {
     const ctx = op();
@@ -542,15 +667,15 @@ export function gcWall() {
     const after = await bin();
     touch('wall');
     return finish(ctx, { before, after }, 'git gc --prune=now',
-      `\`git gc\` deleted ${before} ${before === 1 ? 'card' : 'cards'} that no sticky note pointed to.`);
+      `\`git gc --prune=now\` deleted ${before} ${before === 1 ? 'card' : 'cards'} that no sticky note leads to.`);
   });
 }
 
 // ---------- Reading ----------
 
-// Each commit's monster in one call: `git cat-file --batch` with "<id>:monster.txt" lines.
+// Each commit's outfit in one call: `git cat-file --batch` with "<id>:outfit.txt" lines.
 async function monstersOf(repo, ids) {
-  const input = ids.map((id) => `${id}:monster.txt\n`).join('');
+  const input = ids.map((id) => `${id}:${FILE}\n`).join('');
   const r = await git(repo, ['cat-file', '--batch'], { input, buffer: true });
   if (r.code !== 0) throw new Error(`git cat-file failed: ${r.err.trim()}`);
   const monsters = new Map();
@@ -559,7 +684,7 @@ async function monstersOf(repo, ids) {
     const nl = r.out.indexOf(10, at);
     const [, type, size] = r.out.toString('utf8', at, nl).split(' ');
     at = nl + 1;
-    if (type !== 'blob') continue; // "<id>:monster.txt missing"
+    if (type !== 'blob') continue; // "<id>:outfit.txt missing"
     monsters.set(id, parse(r.out.toString('utf8', at, at + Number(size))));
     at += Number(size) + 1;
   }
@@ -572,10 +697,10 @@ async function readGraph(repo) {
   const refsOut = await run(null, repo, ['for-each-ref', '--format=%(refname)%00%(objectname)', 'refs/heads', 'refs/remotes/wall/main']);
   const refs = Object.fromEntries(lines(refsOut.out).map((l) => l.split('\0')));
   const scope = repo === 'wall' ? ['--all'] : ['--all', '--reflog'];
-  const log = await run(null, repo, ['log', ...scope, '--topo-order', '--format=%H%x00%P%x00%an%x00%at%x00%s']);
+  const log = await run(null, repo, ['log', ...scope, '--topo-order', '--format=%H%x00%P%x00%an%x00%at%x00%cn%x00%ct%x00%s']);
   const commits = lines(log.out).map((line) => {
-    const [id, parents, author, at, message] = line.split('\0');
-    return { id, parents: parents ? parents.split(' ') : [], author, time: Number(at), message };
+    const [id, parents, author, at, committer, ct, message] = line.split('\0');
+    return { id, parents: parents ? parents.split(' ') : [], author, time: Number(at), committer, committerTime: Number(ct), message };
   });
   const monsters = await monstersOf(repo, commits.map((c) => c.id));
   const byId = new Map(commits.map((c) => [c.id, c]));
@@ -592,6 +717,7 @@ async function readGraph(repo) {
 }
 
 // The cards and sticky notes of a repo ('wall' or a lab id): {refs: {refname: id}, commits: [...]}.
+// A commit: {id, parents, author, time (author date), committer, committerTime, message, monster, reachable}.
 // Labs include diary-only cards (reachable: false). Cached until a git op moves a ref.
 export async function graph(repo) {
   const hit = cache.get(repo);
@@ -603,7 +729,19 @@ export async function graph(repo) {
   });
 }
 
-// What Git stored for a card: the commit object and its monster.txt.
+// When this lab's sends moved the Wall: the "update by push" lines of its wall/main reflog, oldest first.
+// Git writes them when a push succeeds, with the time; the bare Wall itself keeps no reflog.
+export function pushes(labId) {
+  return onLab(labId, async () => {
+    const r = await run(null, labId, ['reflog', 'show', '--date=unix', '--format=%H%x00%gd%x00%gs', 'refs/remotes/wall/main']);
+    return lines(r.out).map((line) => line.split('\0'))
+      .filter(([, , message]) => message === 'update by push')
+      .map(([id, selector]) => ({ id, time: Number(/@\{(\d+)\}/.exec(selector)[1]) }))
+      .reverse();
+  });
+}
+
+// What Git stored for a card: the commit object and its outfit.txt.
 export function inspect(repo, commit) {
   return onRepo(repo, async () => {
     const ctx = op();
@@ -611,9 +749,9 @@ export function inspect(repo, commit) {
       return finish(ctx, { refused: repo === 'wall' ? "That card isn't on the Wall." : "That card isn't in your lab's cards." }, '', '');
     }
     const raw = (await run(ctx, repo, ['cat-file', '-p', commit])).out;
-    const text = (await run(ctx, repo, ['cat-file', '-p', `${commit}:monster.txt`])).out;
+    const text = (await run(ctx, repo, ['cat-file', '-p', `${commit}:${FILE}`])).out;
     return finish(ctx, { id: commit, raw, text, monster: parse(text) }, `git cat-file -p ${short(commit)}`,
-      'The card as Git stored it: the tree (the monster), the parent card(s), the author and the time.');
+      'The card as Git stored it: the tree (the outfit), the parent card(s), the author and the time.');
   });
 }
 
@@ -629,7 +767,7 @@ async function firstWith(ctx, repo, part, value) {
   const has = (id) => monsters.get(id)?.[part] === value;
   const card = cards.find((c) => has(c.id) && !c.parents.some(has));
   if (!card) return null;
-  const pid = card.email.endsWith('@monster.lab') ? card.email.slice(0, -'@monster.lab'.length) : null;
+  const pid = card.email.endsWith(`@${DOMAIN}`) ? card.email.slice(0, -DOMAIN.length - 1) : null;
   return { id: card.id, short: short(card.id), author: card.author, pid, clean: card.message === CLEAN };
 }
 

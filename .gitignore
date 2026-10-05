@@ -1,7 +1,7 @@
 # dependencies and runtime data
 node_modules/
-app/data/
 app/bin/
+data/
 *.log
 __pycache__/
 
@@ -9,9 +9,7 @@ __pycache__/
 papers/*.pdf
 papers/*.txt
 
-# generated images (keep the PDFs and pptx)
+# generated images (the PDFs, pptx, demo and docs/ images are kept)
+app/e2e/shots/
 slides/renders/
 story/page-*.png
-app/e2e/shots/
-slides/build/style_sample.pptx
-slides/build/visual_system_sampler.pptx

@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import express from 'express';
 import QRCode from 'qrcode';
 import * as session from './session.js';
+import * as bots from './bots.js';
 
 const PORT = Number(process.env.PORT) || 3000;
 const PUBLIC = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'public');
@@ -15,7 +16,7 @@ app.set('trust proxy', true); // the join URL keeps https behind a proxy
 app.disable('x-powered-by');
 app.use(express.json({ limit: '16kb' }));
 
-// Client fields are plain values; only Finish merge sends an object (the monster).
+// Client fields are plain values; only Finish merge sends an object (the outfit, as `monster`).
 // Dropping the rest means String() and Number() on client input never throw.
 const fields = (input) => Object.fromEntries(Object.entries(input)
   .map(([k, val]) => [k, val !== null && typeof val === 'object' && k !== 'monster' ? undefined : val]));
@@ -54,6 +55,7 @@ function openStream(req, res, client) {
   });
   res.flushHeaders();
   res.write('retry: 2000\n\n');
+  res.write(`:${' '.repeat(2048)}\n\n`); // padding: pushes the stream through buffering proxies
   client.res = res;
   clients.add(client);
   send(client);
@@ -86,19 +88,26 @@ app.post('/api/join', handle((b) => session.join(b)));
 app.get('/api/state', handle((q) => session.state(q.pid)));
 
 for (const action of ['pair', 'chaos', 'draft', 'commit', 'branch', 'switch', 'merge', 'resolve', 'abort',
-  'push', 'pull', 'revert', 'reset']) {
+  'push', 'pull', 'rebase', 'revert', 'reset', 'answer', 'takeaway']) {
   app.post(`/api/${action}`, handle((b) => session.act(action, b)));
 }
+app.post('/api/delete-note', handle((b) => session.act('deleteNote', b)));
 app.post('/api/squash-force', handle((b) => session.act('squash', b)));
 app.get('/api/reflog', handle((q) => session.act('reflog', q)));
 app.get('/api/inspect', handle((q) => session.act('inspect', q)));
 
 // ---------- Admin API (header x-admin-key or ?key=) ----------
 
-app.get('/api/admin/state', adminOnly, handle((q, req) => session.adminState(joinUrl(req))));
-for (const action of ['step', 'labs', 'move', 'rescue', 'ask', 'break', 'timer', 'sabotage', 'audit', 'gc', 'reset']) {
+app.get('/api/admin/state', adminOnly, handle(async (q, req) => ({ ...await session.adminState(joinUrl(req)), rehearsal: bots.status() })));
+for (const action of ['next', 'back', 'labs', 'move', 'rescue', 'ask', 'answers', 'timer', 'sabotage', 'audit', 'gc', 'reset']) {
   app.post(`/api/admin/${action}`, adminOnly, handle((b) => session.admin(action, b)));
 }
+// Rehearse with bots: {on, count, speed}.
+app.post('/api/admin/rehearse', adminOnly, handle((b) => bots.rehearse(b)));
+// Every answer and takeaway, per question and per person, as a Markdown file.
+app.get('/api/admin/export', adminOnly, async (req, res) => {
+  res.attachment('outfit-lab-answers.md').type('text/markdown; charset=utf-8').send(await session.exportMarkdown());
+});
 
 app.get('/api/qr.svg', async (req, res) => {
   const text = String(req.query.text || '').slice(0, 512);
@@ -122,7 +131,7 @@ app.use((err, req, res, next) => res.status(err.status || 400).json({ ok: false,
 
 await session.boot();
 const server = app.listen(PORT, process.env.HOST, () => {
-  console.log(`Monster Lab on http://localhost:${PORT}/`);
+  console.log(`Outfit Lab on http://localhost:${PORT}/`);
   console.log(`Teacher page: http://localhost:${PORT}/admin?key=${session.adminKey()}`);
 });
 

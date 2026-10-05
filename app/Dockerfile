@@ -1,5 +1,5 @@
-# docker build -t monster-lab .
-# docker run -d -p 3000:3000 -v monster-lab-data:/data monster-lab   (teacher link: docker logs <id>)
+# docker build -t outfit-lab .
+# docker run -d -p 3000:3000 -v outfit-lab-data:/data outfit-lab   (teacher link: docker logs <id>)
 FROM node:22-alpine
 
 # tini reaps the git processes the server spawns and passes Ctrl-C/SIGTERM on to Node.

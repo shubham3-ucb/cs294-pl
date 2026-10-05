@@ -3,86 +3,115 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Monster Lab · Teacher</title>
+  <title>Outfit Lab · Teacher</title>
   <link rel="stylesheet" href="/admin.css">
   <script type="module" src="/admin.js"></script>
 </head>
 <body id="admin">
   <header class="bar">
-    <h1>Monster Lab <span class="muted">· Teacher</span></h1>
+    <h1>Outfit Lab <span class="muted">· Teacher</span></h1>
+    <span id="people" class="people"></span>
+    <span id="rehearsing" class="rehearsing" hidden></span>
     <span id="conn" class="conn" title="Reconnecting"></span>
+    <button id="join-qr" class="small">Join QR</button>
+    <button id="present" title="Opens the projector window. Drag it to the projector, then press F for full screen.">Start presenting</button>
   </header>
 
-  <main>
-    <section class="top">
-      <div class="stepper">
-        <div class="step-head">
-          <h2 id="step-title"></h2>
-          <div class="timer">
-            <span id="timer"></span>
-            <button id="timer-restart" class="small">Restart timer</button>
-          </div>
-        </div>
-        <!-- This step, in lesson order. Empty rows hide. -->
-        <div class="flow">
-          <div class="row"><p class="label">Notes</p><p id="facilitator"></p></div>
-          <div class="row"><p class="label">Problem</p><p id="problem"></p></div>
-          <div class="row"><p class="label">Pause · ask</p>
-            <div><p id="check" class="check"></p><button id="ask"></button></div></div>
-          <div class="row"><p class="label">Hope to hear</p><p id="hope"></p></div>
-          <div class="row"><p class="label">Idea</p><p id="idea"></p></div>
-          <div class="row"><p class="label">How Git does it</p><p id="how"></p></div>
-        </div>
-
-        <!-- Before pressing Next: name the next problem and ask for the idea. -->
-        <div class="coming">
-          <p class="label" id="coming-title"></p>
-          <div class="flow">
-            <div class="row"><p class="label">Problem</p><p id="next-problem"></p></div>
-            <div class="row"><p class="label">Ask first</p><p id="next-ask"></p></div>
-            <div class="row"><p class="label">Idea</p><p id="next-idea"></p></div>
-          </div>
-          <div class="step-nav">
-            <button id="prev">Prev</button>
-            <button id="next" class="primary"></button>
-            <button id="break" hidden></button>
-            <label id="step-lab" class="step-lab" hidden><span id="step-lab-label"></span> <select id="step-lab-select"></select></label>
-          </div>
-          <p id="next-note" class="muted small"></p>
-        </div>
+  <main class="console">
+    <!-- What to say and do in this scene. Empty rows hide. -->
+    <section class="card">
+      <div class="card-head">
+        <p id="scene-pos" class="label"></p>
+        <h2 id="scene-title"></h2>
+        <p id="timer" class="timer"></p>
       </div>
 
-      <div id="join" class="join">
-        <img id="qr" alt="QR code for the join link">
-        <p id="join-url" class="mono"></p>
-        <p id="people"></p>
-        <label class="labs-count">Labs <select id="lab-count"></select></label>
+      <div class="script">
+        <div class="row"><p class="label">Say</p><p id="say"></p></div>
+        <div class="row"><p class="label">Do</p><p id="do"></p></div>
+        <div class="row"><p class="label">Ask</p>
+          <div class="ask">
+            <p id="ask-q" class="ask-q"></p>
+            <div class="ask-tools">
+              <button id="ask-show" class="small"></button>
+              <details id="ask-fold"><summary>Answer</summary><p id="ask-a"></p></details>
+            </div>
+            <div id="answers" class="answers">
+              <div class="answers-head">
+                <p id="answers-count"></p>
+                <button id="answers-show" class="small"></button>
+                <label class="names"><input id="answers-names" type="checkbox"> with names</label>
+              </div>
+              <ol id="answers-list" class="answers-list"></ol>
+            </div>
+            <p id="takeaways" class="muted small"></p>
+          </div>
+        </div>
+        <div class="row"><p class="label">Board</p><p id="board"></p></div>
+        <div class="row"><p class="label">Paths</p><ul id="paths" class="paths"></ul></div>
       </div>
-    </section>
 
-    <section class="tools">
-      <button id="sabotage">Sabotage 🥸</button>
-      <button id="audit">Audit: who added 🐙?</button>
-      <button id="gc">Empty the Wall's bin <code>git gc</code></button>
-      <button id="reset" class="danger">Reset session</button>
-      <a id="projector" class="button" target="_blank" rel="noopener">Open projector</a>
+      <div id="tools" class="tools"></div>
+      <div id="audits" class="audits"></div>
       <p id="tool-result" class="tool-result" aria-live="polite"></p>
-    </section>
 
-    <section id="audits" class="audits" hidden></section>
-
-    <section id="labs" class="labs"></section>
-
-    <section class="bottom">
-      <div class="panel" id="wall-panel" hidden>
-        <h3>The Wall <code>wall.git</code></h3>
-        <svg id="wall-graph" class="graph"></svg>
-      </div>
-      <div class="panel">
-        <h3>Feed <button id="feed-all" class="small" hidden>Show all labs</button></h3>
-        <ol id="feed" class="feed"></ol>
+      <p id="ready" class="ready"></p>
+      <div class="nav">
+        <button id="next" class="next"></button>
+        <button id="back">Back</button>
       </div>
     </section>
+
+    <!-- Presenter view: what the room sees now, and what Next brings. -->
+    <aside class="presenter">
+      <p class="label">On the projector now</p>
+      <div id="preview" class="slide preview" aria-hidden="true"></div>
+      <p class="label">Next</p>
+      <div class="coming">
+        <p id="coming-title" class="coming-title"></p>
+        <p id="coming-line"></p>
+        <p id="coming-note" class="muted"></p>
+        <label id="pick" class="pick" hidden><span id="pick-label"></span> <select id="pick-lab"></select></label>
+      </div>
+    </aside>
+
+    <section id="labs" class="tiles"></section>
+
+    <details id="details" class="details">
+      <summary>Details</summary>
+      <div class="details-body">
+        <div class="details-bar">
+          <label>Labs <select id="lab-count"></select></label>
+          <span class="muted small">Set before Step 1. The app balances the labs.</span>
+          <a id="export" class="button" download>Export answers</a>
+          <button id="reset" class="danger">Reset session</button>
+        </div>
+        <div class="details-bar">
+          <b>Rehearse with bots</b>
+          <label>Bots <select id="bot-count"></select></label>
+          <label>Speed <select id="bot-speed"></select></label>
+          <button id="bot-toggle"></button>
+          <span class="muted small">Bot students join and do every step. Open the student link to join too.</span>
+        </div>
+        <div id="rosters" class="rosters"></div>
+        <div id="wall-panel" class="panel">
+          <h3>The Wall <code>wall.git</code></h3>
+          <svg id="wall-graph" class="graph"></svg>
+        </div>
+        <div id="lab-graphs" class="lab-graphs"></div>
+        <div class="panel">
+          <h3>Feed</h3>
+          <ol id="feed" class="feed"></ol>
+        </div>
+      </div>
+    </details>
   </main>
+
+  <dialog id="qr-dialog" class="qr-dialog">
+    <img id="qr-img" alt="QR code for the join link">
+    <p id="qr-url" class="qr-url"></p>
+    <p class="muted">Type your name. The app picks your lab.</p>
+    <form method="dialog"><button>Close</button></form>
+  </dialog>
 </body>
 </html>

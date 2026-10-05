@@ -77,7 +77,7 @@ Checked in: #1, each claim card's "Measured" line and weaker sentence. #2, the S
 - "It has over 22,000 votes and 9 million views." (p.3)
 
 **Pause.**
-**Ask:** "Think of Tuesday's mustache. Why would 'undo' confuse people?"
+**Ask:** "Think of Tuesday's 🥸 disguise. Why would 'undo' confuse people?"
 **Hope to hear:** "The right undo depends on where the card is. Only on my laptop: move back. Already shared: add a fix card. To pick, you must know Git's model."
 **If silent, ask:** "What happened when Lab 2 moved its note back and sent?" (The Wall refused.)
 **Say:** "One goal: undo. Several commands, one per place. That's a design problem."
@@ -249,7 +249,7 @@ Checked in: #1, each claim card's "Measured" line and weaker sentence. #2, the S
 
 **Problem.** `git checkout` did several jobs with one verb.
 - `git checkout main` changes branch.
-- `git checkout -- face.txt` throws away that file's edits not yet added with `git add`. No undo.
+- `git checkout -- outfit.txt` throws away that file's edits not yet added with `git add`. No undo.
 - `git checkout a1b2c3` jumps to an old commit and leaves you on no branch.
 - Same verb. One use moves you. Another destroys work.
 - A user with years of Git asked: "What exactly does git checkout [file] do?" (p.13)

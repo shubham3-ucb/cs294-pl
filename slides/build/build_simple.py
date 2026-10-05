@@ -22,9 +22,7 @@ PURPLE = RGBColor(0x8B, 0x3D, 0xFF)
 LAVENDER = RGBColor(0xF4, 0xEC, 0xFB)
 WHITE = RGBColor(0xFF, 0xFF, 0xFF)
 GREEN = RGBColor(0x16, 0xA3, 0x4A)
-GREEN_BG = RGBColor(0xE8, 0xF7, 0xEE)
 RED = RGBColor(0xDC, 0x26, 0x26)
-RED_BG = RGBColor(0xFD, 0xEC, 0xEC)
 LINE = RGBColor(0xD9, 0xD9, 0xDE)
 NAVY = RGBColor(0x0B, 0x16, 0x30)
 YELLOW = RGBColor(0xFF, 0xE0, 0x66)
@@ -140,19 +138,6 @@ def task_slide(prs, step, timer, line1, line2, notes):
     return s
 
 
-def reveal_slide(prs, command, line, notes, show_kicker=True):
-    """White: 'You just invented' + giant command + one plain line."""
-    s = blank(prs, notes=notes)
-    if show_kicker:
-        text(s, M, Inches(1.7), W - 2 * M, Inches(0.6), 'You just invented', size=30,
-             color=MUTED)
-    size = min(88, int(11.0 * 72 / (0.64 * len(command))))
-    text(s, M, Inches(2.4), W - 2 * M, Inches(1.5), command, size=size, bold=True,
-         color=PURPLE, font=MONO, anchor=MSO_ANCHOR.MIDDLE)
-    text(s, M, Inches(4.3), W - 2 * M, Inches(1.4), line, size=40)
-    return s
-
-
 def big_slide(prs, lines, notes, bg=WHITE, color=INK, size=60, kicker=None,
               kcolor=MUTED):
     s = blank(prs, bg, notes)
@@ -228,100 +213,6 @@ def final_slide(prs, lines, notes):
     return s
 
 
-# ---------------------------------------------------------------- the merge picture
-def card(s, x, y, label, emojis, states, foot):
-    """A monster card: label above, 3 emoji panels, 'came from' footer.
-    states per panel: 'same' | 'new' | 'keep' | 'conflict'."""
-    cw, ph = Inches(1.9), Inches(0.82)
-    text(s, x, y - Inches(0.6), cw, Inches(0.5), label, size=20, bold=True, color=MUTED,
-         align=PP_ALIGN.CENTER)
-    box(s, x, y, cw, Inches(3.25), fill=WHITE, line=INK, radius=0.08, lw=2)
-    py = y + Inches(0.18)
-    for e, st in zip(emojis, states):
-        fill, line, dash = {
-            'same': (RGBColor(0xF6, 0xF6, 0xF8), None, False),
-            'new': (RGBColor(0xFF, 0xF4, 0xC7), None, False),
-            'keep': (GREEN_BG, GREEN, False),
-            'conflict': (RED_BG, RED, True),
-        }[st]
-        box(s, x + Inches(0.15), py, cw - Inches(0.3), ph, fill=fill, line=line,
-            radius=0.12, dash=dash, lw=2)
-        text(s, x + Inches(0.15), py, cw - Inches(0.3), ph, e, size=34,
-             color=RED if st == 'conflict' else INK, bold=st == 'conflict',
-             align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
-        py += ph + Inches(0.12)
-    text(s, x, y + Inches(3.3), cw, Inches(0.45), foot, size=16, color=MUTED,
-         align=PP_ALIGN.CENTER)
-
-
-def merge_slide(prs, notes):
-    s = blank(prs, notes=notes)
-    text(s, M, Inches(0.35), Inches(3), Inches(0.5), 'You just invented', size=26,
-         color=MUTED)
-    text(s, M, Inches(0.75), Inches(6), Inches(1.0), 'git merge', size=56, bold=True,
-         color=PURPLE, font=MONO)
-    y = Inches(2.65)
-    xs = [Inches(1.0), Inches(4.0), Inches(6.7), Inches(9.9)]
-    card(s, xs[0], y, 'START', ['🙂', '📦', '🦵'], ['same'] * 3, '')
-    card(s, xs[1], y, 'PAIR A', ['🐱', '🤖', '🦵'], ['new', 'new', 'same'], '← start')
-    card(s, xs[2], y, 'PAIR B', ['🙂', '🦸', '🐙'], ['same', 'new', 'new'], '← start')
-    card(s, xs[3], y, 'MERGED', ['🐱', '❓', '🐙'], ['keep', 'conflict', 'keep'],
-         '← A + B')
-    text(s, Inches(5.95), y + Inches(1.2), Inches(0.7), Inches(0.8), '+', size=48,
-         color=MUTED, align=PP_ALIGN.CENTER)
-    text(s, Inches(8.85), y + Inches(1.2), Inches(0.9), Inches(0.8), '=', size=48,
-         color=MUTED, align=PP_ALIGN.CENTER)
-    # the rule, one line at the bottom
-    tb = text(s, M, Inches(6.6), W - 2 * M, Inches(0.6), '', size=28, bold=True,
-              align=PP_ALIGN.CENTER)
-    p = tb.text_frame.paragraphs[0]
-    for t, c in [('One changed it → keep it', GREEN), ('      ·      ', MUTED),
-                 ('Both changed it → you decide', RED)]:
-        r = p.add_run(); r.text = t
-        r.font.name, r.font.size, r.font.bold, r.font.color.rgb = FONT, Pt(28), True, c
-    return s
-
-
-def paper_slide(prs, notes):
-    s = blank(prs, notes=notes)
-    text(s, M, Inches(0.8), W - 2 * M, Inches(0.6), "That's the paper", size=28,
-         color=MUTED)
-    text(s, M, Inches(1.35), W - 2 * M, Inches(1.0),
-         'Switching to Git: Good, Bad, Ugly', size=48, bold=True)
-    text(s, M, Inches(2.25), W - 2 * M, Inches(0.5), 'Microsoft Research · ISSRE 2016',
-         size=22, color=MUTED)
-    cols = [('GOOD', GREEN, 'Cheap branches.\nWork offline.'),
-            ('BAD', RGBColor(0xE0, 0x8A, 0x00), 'Many paths to main.\nHard to trace.'),
-            ('UGLY', RED, 'Rebase + force\nerase history.')]
-    cw = (W - 2 * M - Inches(0.8)) / 3
-    for i, (h, c, body) in enumerate(cols):
-        x = M + i * (cw + Inches(0.4))
-        bar = s.shapes.add_shape(MSO_SHAPE.RECTANGLE, x, Inches(3.4), cw, Inches(0.08))
-        bar.fill.solid(); bar.fill.fore_color.rgb = c; bar.line.fill.background()
-        text(s, x, Inches(3.65), cw, Inches(0.6), h, size=26, bold=True, color=c)
-        text(s, x, Inches(4.35), cw, Inches(1.6), body.split('\n'), size=32)
-    return s
-
-
-def terminal_slide(prs, title, lines, notes):
-    s = blank(prs, notes=notes)
-    text(s, M, Inches(0.8), W - 2 * M, Inches(1.0), title, size=48, bold=True)
-    panel = box(s, M, Inches(2.1), W - 2 * M, Inches(4.4), fill=RGBColor(0x14, 0x16, 0x22),
-                radius=0.05)
-    rich = []
-    for ln in lines:
-        col = RGBColor(0xE6, 0xE8, 0xF0)
-        if ln.startswith('CONFLICT') or ln.startswith('<<<') or ln.startswith('>>>') \
-                or ln.startswith('==='):
-            col = RGBColor(0xFF, 0x6B, 0x6B)
-        if ln.startswith('$'):
-            col = RGBColor(0x9E, 0xE6, 0x9E)
-        rich.append((ln, {'color': col}))
-    text(s, M + Inches(0.5), Inches(2.45), W - 2 * M - Inches(1.0), Inches(3.8), rich,
-         size=26, font=MONO, spacing=1.2)
-    return s
-
-
 # ================================================================= THURSDAY
 def thursday():
     prs = new_deck()
@@ -335,7 +226,7 @@ def thursday():
                 'Let everyone vote, then reveal.')
     big_slide(prs, ['#1 is git revert.', '4 of the top 5 are about going back.'],
               'Top 5 by average views: revert, reflog, stash, clean, reset. You felt this on '
-              'Tuesday with the mustache.', kicker='The answer')
+              "Tuesday with the Intern's 🥸 card.", kicker='The answer')
 
     big_slide(prs, ['80,370 Stack Overflow questions.', '+ a survey of 92 developers.'],
               'They kept every git-tagged question that contains a real Git command. Then they '

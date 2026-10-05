@@ -1,27 +1,31 @@
-// monster.txt: the only file in every card. The palette lives in public/monster.js (one source).
+// outfit.txt: the only file in every card. The palette lives in public/monster.js (one source).
 import { PARTS, PALETTE, START, palette } from '../public/monster.js';
 
 export { PARTS, START, palette };
 
-// A monster is valid when every part is a slug from the palette.
+export const FILE = 'outfit.txt';
+
+// An outfit is valid when every part is a slug from the palette.
 export const isMonster = (m) => PARTS.every((part) => Object.hasOwn(PALETTE[part], m?.[part] ?? ''));
 
 // The `---` lines keep parts apart, so Git merges each part on its own.
 export function serialize(monster) {
-  if (!isMonster(monster)) throw new Error(`Not a monster: ${JSON.stringify(monster)}`);
+  if (!isMonster(monster)) throw new Error(`Not an outfit: ${JSON.stringify(monster)}`);
   return `${PARTS.map((part) => `${part}: ${monster[part]}`).join('\n---\n')}\n`;
 }
+
+const LINE = new RegExp(`^(${PARTS.join('|')}): ([a-z]+)$`);
 
 export function parse(text) {
   const monster = {};
   for (const line of String(text).split('\n')) {
-    const m = /^(face|body|legs): ([a-z]+)$/.exec(line);
+    const m = LINE.exec(line);
     if (m) monster[m[1]] = m[2];
   }
   return monster;
 }
 
-// Commit message for a save: "FACE: smiley → cat, BODY: box → robot".
+// Commit message for a save: "HAT: cap → tophat, TOP: tshirt → tie".
 export function describeChange(before, after) {
   return PARTS.filter((part) => before[part] !== after[part])
     .map((part) => `${part.toUpperCase()}: ${before[part]} → ${after[part]}`)

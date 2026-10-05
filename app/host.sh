@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run Monster Lab on this computer and share it with the class through a temporary
+# Run Outfit Lab on this computer and share it with the class through a temporary
 # Cloudflare link (a "quick tunnel": no account needed). Ctrl-C stops both.
 #
 #   ./host.sh          optional: PORT=3000 DATA_DIR=./data ADMIN_KEY=...
@@ -12,7 +12,7 @@ cd "$(dirname "$0")"
 export PORT="${PORT:-3000}" DATA_DIR="${DATA_DIR:-./data}"
 export HOST=127.0.0.1 # only the tunnel reaches the app, not the local network
 CLOUDFLARED=bin/cloudflared
-LOGS=$(mktemp -d "${TMPDIR:-/tmp}/monster-lab.XXXXXX")
+LOGS=$(mktemp -d "${TMPDIR:-/tmp}/outfit-lab.XXXXXX")
 APP='' TUNNEL=''
 
 fail() { echo "$*" >&2; exit 1; }
@@ -54,11 +54,11 @@ fi
 # ---------- The app ----------
 
 curl -s -o /dev/null "http://127.0.0.1:$PORT/" && fail "Port $PORT is busy. Try: PORT=3001 ./host.sh"
-echo "Starting Monster Lab..."
+echo "Starting Outfit Lab..."
 node server/index.js >"$LOGS/app.log" 2>&1 &
 APP=$!
 until curl -s -o /dev/null "http://127.0.0.1:$PORT/"; do
-  kill -0 "$APP" 2>/dev/null || { cat "$LOGS/app.log" >&2; fail "Monster Lab did not start."; }
+  kill -0 "$APP" 2>/dev/null || { cat "$LOGS/app.log" >&2; fail "Outfit Lab did not start."; }
   sleep 0.3
 done
 KEY=${ADMIN_KEY:-$(cat "$DATA_DIR/admin.key")}
@@ -77,7 +77,7 @@ done
 
 cat <<EOF
 
-  Monster Lab is live. Keep this window open; Ctrl-C stops it.
+  Outfit Lab is live. Keep this window open; Ctrl-C stops it.
 
   Students   $URL/
   Teacher    $URL/admin?key=$KEY
@@ -92,4 +92,4 @@ while kill -0 "$APP" 2>/dev/null && kill -0 "$TUNNEL" 2>/dev/null; do sleep 1; d
 if kill -0 "$APP" 2>/dev/null; then
   fail "The link closed. Run ./host.sh again: the session is kept, the link changes. Log: $LOGS/tunnel.log"
 fi
-fail "Monster Lab stopped. Log: $LOGS/app.log"
+fail "Outfit Lab stopped. Log: $LOGS/app.log"

@@ -1,11 +1,15 @@
 // The table graph: cards left→right in time order, each arrow points to the card before,
 // sticky notes on the cards they point at.
-//   renderGraph(svgEl, {commits, refs}, {labels, you, onCardClick, compact, width, maxCols, all, onOlder, pillFont})
+//   renderGraph(svgEl, {commits, refs}, {labels, you, onCardClick, compact, width, maxCols, all, onOlder, pillFont,
+//     path, badges, diaryLabel})
 // commits: [{id, parents, author, time, message, monster, reachable}] · refs: {name: id}
 // compact: true for small cards, 'auto' for small cards only when the full ones don't all fit in `width` px.
 // Cards that don't fit in `width` (or past maxCols) fold into pills "← 8 older cards", so no card is ever
 // cut in half; cards with a sticky note are never folded. all: draw every card, to scroll.
 // onOlder makes the pills buttons.
+// path: card ids [first, …, last], each the parent of the next (an integration path): drawn bold, never folded.
+// badges: {card id: words}, a caption over a card, above its sticky notes and clear of its neighbours' notes and badges.
+// diaryLabel: a caption over the row of cards that are only in the diary.
 import { PARTS, emoji, EMOJI_FONT } from './monster.js';
 
 const NS = 'http://www.w3.org/2000/svg';
@@ -14,8 +18,13 @@ const FONT = 'Inter, system-ui, sans-serif';
 const MONO = 'ui-monospace, "JetBrains Mono", "Noto Sans Mono", monospace';
 
 const SIZES = {
-  full: { w: 180, h: 92, gap: 36, pad: 12, label: 25, laneGap: 18, note: 13, radius: 14, pill: 13 },
-  compact: { w: 66, h: 80, gap: 16, pad: 10, label: 21, laneGap: 14, note: 10, radius: 11, pill: 12 },
+  full: { w: 180, h: 100, gap: 36, pad: 12, label: 25, laneGap: 18, note: 13, radius: 14, pill: 13 },
+  compact: { w: 66, h: 96, gap: 16, pad: 10, label: 21, laneGap: 14, note: 10, radius: 11, pill: 12 },
+};
+// The mini figure on each card, top to bottom in PARTS order (hat, glasses, top, shoes): emoji size and y.
+const FIGURE = {
+  full: { x: 27, sizes: [19, 15, 22, 16], ys: [19, 40, 61, 83] },
+  compact: { x: 33, sizes: [15, 12, 17, 13], ys: [13, 29, 45, 62] },
 };
 
 let svgCount = 0;
@@ -27,17 +36,18 @@ const pillText = (n) => `← ${n} older ${n === 1 ? 'card' : 'cards'}`;
 
 export function renderGraph(svg, graph, {
   labels = false, you = null, onCardClick = null, compact = false, width = Infinity, maxCols = Infinity, all = false,
-  onOlder = null, pillFont,
+  onOlder = null, pillFont, path = [], badges = null, diaryLabel = null,
 } = {}) {
   const refs = Object.fromEntries(Object.entries(graph?.refs ?? {}).map(([name, id]) => [shortRef(name), id]));
   const order = timeOrder(graph?.commits ?? []);
   const lanes = assignLanes(order, refs);
   const fontOf = (size) => pillFont ?? size.pill;
   let S = compact === true ? SIZES.compact : SIZES.full;
-  if (compact === 'auto' && arrange(order, refs, S, Infinity, maxCols, fontOf(S)).width > width) S = SIZES.compact;
+  if (compact === 'auto' && arrange(order, refs, S, Infinity, maxCols, fontOf(S), path).width > width) S = SIZES.compact;
   const small = S === SIZES.compact;
   const font = fontOf(S);
-  const { history: live, diary } = arrange(order, refs, S, all ? Infinity : width, maxCols, font);
+  const { history: live, diary } = arrange(order, refs, S, all ? Infinity : width, maxCols, font, path);
+  const onPath = new Set(path);
 
   const shown = [...live.shown, ...diary.shown];
   const rows = [...new Set(shown.map((c) => lanes.get(c.id)))].sort((a, b) => a - b);
@@ -51,25 +61,44 @@ export function renderGraph(svg, graph, {
     }
   }
 
-  // Each row is tall enough for the most sticky notes stacked on one of its cards.
-  const stack = rows.map(() => 0);
+  // A badge sits one level above its card's sticky notes, higher still where a note or an earlier badge on the row
+  // would overlap it (a badge is wider than a small card).
+  const xOf = new Map([live, diary].flatMap(({ shown: cards, xs }) => cards.map((c, i) => [c.id, xs[i]])));
+  const rowOfCard = (c) => rowOf.get(lanes.get(c.id));
+  const taken = shown.flatMap((c) => (notesOn.get(c.id) ?? []).map((name, k) =>
+    ({ row: rowOfCard(c), level: k, from: xOf.get(c.id), to: xOf.get(c.id) + noteWidth(name, name === you, S) })));
+  const badgeAt = new Map(); // card id → level
+  for (const c of shown.filter((x) => badges && Object.hasOwn(badges, x.id)).sort((a, b) => xOf.get(a.id) - xOf.get(b.id))) {
+    const spot = { row: rowOfCard(c), level: notesOn.get(c.id)?.length ?? 0, from: xOf.get(c.id), to: xOf.get(c.id) + labelWidth(badges[c.id], S) };
+    while (taken.some((t) => t.row === spot.row && t.level === spot.level && t.from < spot.to && spot.from < t.to)) spot.level += 1;
+    taken.push(spot);
+    badgeAt.set(c.id, spot.level);
+  }
+
+  // Each row is tall enough for the most sticky notes and badges stacked on one of its cards (the diary row: its caption).
+  const diaryRow = rowOf.get(lanes.get(diary.shown[0]?.id));
+  const stack = rows.map((_, row) => (diaryLabel && row === diaryRow ? 1 : 0));
   for (const c of shown) {
-    const row = rowOf.get(lanes.get(c.id));
-    stack[row] = Math.max(stack[row], notesOn.get(c.id)?.length ?? 0);
+    const row = rowOfCard(c);
+    stack[row] = Math.max(stack[row], notesOn.get(c.id)?.length ?? 0, badgeAt.has(c.id) ? badgeAt.get(c.id) + 1 : 0);
   }
   const rowTop = [];
   let y = S.pad;
   rows.forEach((_, row) => { rowTop[row] = y + stack[row] * S.label; y = rowTop[row] + S.h + S.laneGap; });
   const height = shown.length ? y - S.laneGap + S.pad : 0;
-  const pos = new Map([live, diary].flatMap(({ shown: cards, xs }) => cards.map((c, i) => {
-    const row = rowOf.get(lanes.get(c.id));
-    return [c.id, { x: xs[i], y: rowTop[row], row }];
-  })));
+  const pos = new Map(shown.map((c) => [c.id, { x: xOf.get(c.id), y: rowTop[rowOfCard(c)], row: rowOfCard(c) }]));
   // The history's pills sit on the top row, the diary's on the diary row.
-  const diaryRow = rowOf.get(lanes.get(diary.shown[0]?.id));
   const pills = [...live.pills.map((p) => ({ ...p, row: 0 })), ...diary.pills.map((p) => ({ ...p, row: diaryRow }))]
     .map((p) => ({ ...p, y: rowTop[p.row] }));
-  const drawnWidth = Math.max(1, ...[...pos.values()].map((p) => p.x + S.w), ...pills.map((p) => p.x + p.w)) + S.pad;
+  // Sticky notes may stick out past their card (a long name, the YOU pin): the drawing is wide enough for them.
+  const noteEnds = shown.flatMap((c) => (notesOn.get(c.id) ?? []).map((name) => pos.get(c.id).x + noteWidth(name, name === you, S)));
+  const caption = (text, x, y) => ({ text, x, y, end: x + labelWidth(text, S) });
+  const captions = [
+    ...(diaryLabel && diary.shown.length ? [caption(diaryLabel, diary.xs[0], rowTop[diaryRow] - S.label / 2 + 2)] : []),
+    ...[...badgeAt].map(([id, level]) => caption(badges[id], pos.get(id).x, pos.get(id).y - (level + 0.5) * S.label + 2)),
+  ];
+  const drawnWidth = Math.max(1, ...[...pos.values()].map((p) => p.x + S.w), ...pills.map((p) => p.x + p.w), ...noteEnds,
+    ...captions.map((c) => c.end)) + S.pad;
 
   svg.setAttribute('viewBox', `0 0 ${drawnWidth} ${Math.max(height, 1)}`);
   svg.setAttribute('width', drawnWidth);
@@ -78,9 +107,10 @@ export function renderGraph(svg, graph, {
 
   if (!svg.dataset.uid) {
     svg.dataset.uid = String(++svgCount);
-    svg.innerHTML = `<defs><marker id="arrow-${svg.dataset.uid}" viewBox="0 0 10 10" refX="8" refY="5"
-        markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto">
-        <path d="M0,1 L9,5 L0,9 z" fill="${C.arrow}"/></marker>
+    const marker = (id, fill, size) => `<marker id="${id}-${svg.dataset.uid}" viewBox="0 0 10 10" refX="8" refY="5"
+        markerWidth="${size}" markerHeight="${size}" markerUnits="userSpaceOnUse" orient="auto">
+        <path d="M0,1 L9,5 L0,9 z" fill="${fill}"/></marker>`;
+    svg.innerHTML = `<defs>${marker('arrow', C.arrow, 9)}${marker('path', C.ink, 11)}
         <style>.clickable .g-card { cursor: pointer; } .g-card g:focus { outline: none; }
           .clickable .g-card:hover rect, .g-card g:focus-visible rect { stroke: ${C.purple}; stroke-width: 2; }</style></defs>
       <g class="g-edges"></g><g class="g-older"></g><g class="g-cards"></g><g class="g-labels"></g>`;
@@ -90,7 +120,8 @@ export function renderGraph(svg, graph, {
 
   const moved = sync(cards, shown.map((c) => {
     const p = pos.get(c.id);
-    return { key: c.id, x: p.x, y: p.y, sig: `${c.reachable !== false} ${small}`, html: cardHtml(c, S, small) };
+    const on = onPath.has(c.id);
+    return { key: c.id, x: p.x, y: p.y, sig: `${c.reachable !== false} ${small} ${on}`, html: cardHtml(c, S, small, on) };
   }), animate);
 
   sync(notes, shown.flatMap((c) => (notesOn.get(c.id) ?? []).map((name, k) => {
@@ -100,18 +131,18 @@ export function renderGraph(svg, graph, {
   })), animate);
 
   // An arrow to a card that isn't drawn ends at its pill, as if the pill were that card;
-  // a pill points on to where its hidden cards came from.
-  const marker = `url(#arrow-${svg.dataset.uid})`;
-  const arrow = (child, parent) =>
-    `<path d="${edgePath(child, parent, S)}" fill="none" stroke="${C.arrow}" stroke-width="1.75" marker-end="${marker}"/>`;
+  // a pill points on to where its hidden cards came from. The path's arrows go on top.
+  const hot = new Set(path.slice(1).map((id, i) => `${id}>${path[i]}`));
+  const arrow = (child, parent, on) => `<path d="${edgePath(child, parent, S)}" fill="none" stroke="${on ? C.ink : C.arrow}"
+    stroke-width="${on ? 2.5 : 1.75}" marker-end="url(#${on ? 'path' : 'arrow'}-${svg.dataset.uid})"/>`;
   const pillOf = new Map(pills.flatMap((p) => p.hidden.map((c) => [c.id, p])));
   const asCard = (p) => ({ ...p, x: p.x + p.w - S.w });
-  const targets = (ids, self) => [...new Set(ids.map((id) => (pos.has(id) ? id : pillOf.get(id))).filter((t) => t && t !== self))]
-    .map((t) => (typeof t === 'string' ? pos.get(t) : asCard(t)));
+  const targets = (ids, self) => [...new Set(ids.map((id) => (pos.has(id) ? id : pillOf.get(id))).filter((t) => t && t !== self))];
+  const at = (t) => (typeof t === 'string' ? pos.get(t) : asCard(t));
   edges.innerHTML = [
-    ...shown.flatMap((c) => targets(c.parents).map((parent) => arrow(pos.get(c.id), parent))),
-    ...pills.flatMap((p) => targets(p.hidden.flatMap((c) => c.parents), p).map((parent) => arrow(p, parent))),
-  ].join('');
+    ...shown.flatMap((c) => targets(c.parents).map((t) => ({ from: pos.get(c.id), to: at(t), on: hot.has(`${c.id}>${t}`) }))),
+    ...pills.flatMap((p) => targets(p.hidden.flatMap((c) => c.parents), p).map((t) => ({ from: p, to: at(t), on: false }))),
+  ].sort((a, b) => a.on - b.on).map((e) => arrow(e.from, e.to, e.on)).join('');
   if (moved && animate) edges.animate([{ opacity: 0 }, { opacity: 0, offset: 0.6 }, { opacity: 1 }], 380);
 
   const pillH = Math.round(font * 2.1);
@@ -119,7 +150,9 @@ export function renderGraph(svg, graph, {
       ${onOlder ? '<title>Show all cards</title>' : ''}
       <rect x="${p.x}" y="${p.y + (S.h - pillH) / 2}" width="${p.w}" height="${pillH}" rx="${pillH / 2}" fill="${C.pill}"/>
       <text x="${p.x + p.w / 2}" y="${p.y + S.h / 2}" text-anchor="middle" dominant-baseline="central" font-size="${font}"
-        fill="${C.muted}">${pillText(p.hidden.length)}</text></g>`).join('');
+        fill="${C.muted}">${pillText(p.hidden.length)}</text></g>`).join('')
+    + captions.map((c) => `<text x="${c.x}" y="${c.y}" dominant-baseline="central" font-size="${S.note}"
+        fill="${C.muted}">${esc(c.text)}</text>`).join('');
 
   const byId = new Map(order.map((c) => [c.id, c]));
   const cardAt = (target) => byId.get(target.closest?.('.g-card')?.dataset.key);
@@ -137,11 +170,11 @@ export function renderGraph(svg, graph, {
 }
 
 // Where each drawn card and pill goes, left to right, for cards of size S in `width` px.
-// The history: Start, the newest card and every card with a sticky note are always drawn; then the cards
-// right before them, then the newest of the rest, while they fit. Each run of cards left out becomes one
-// pill. Cards only in the diary get their own row, starting right after the card they came from: a
+// The history: Start, the newest card and every card with a sticky note or on the path are always drawn;
+// then the cards right before them, then the newest of the rest, while they fit. Each run of cards left out
+// becomes one pill. Cards only in the diary get their own row, starting right after the card they came from: a
 // replaced history (Start ← Clean history) stays side by side above the old cards.
-function arrange(order, refs, S, width, maxCols, font) {
+function arrange(order, refs, S, width, maxCols, font, path) {
   const step = S.w + S.gap;
   const pillW = (n) => Math.round(pillText(n).length * font * 0.52 + font * 1.4);
   const runs = (cards, show) => cards.reduce((out, c) => {
@@ -171,7 +204,7 @@ function arrange(order, refs, S, width, maxCols, font) {
   const byId = new Map(order.map((c) => [c.id, c]));
   const live = order.filter((c) => c.reachable !== false);
   const noted = new Set(Object.values(refs));
-  const must = [live[0], live.at(-1), ...live.filter((c) => noted.has(c.id))].filter(Boolean).map((c) => c.id);
+  const must = [live[0], live.at(-1), ...live.filter((c) => noted.has(c.id) || path.includes(c.id))].filter(Boolean).map((c) => c.id);
   const rank = [...must.flatMap((id) => byId.get(id).parents), ...live.map((c) => c.id).reverse()];
   const history = place(live, S.pad, width - 2 * S.pad, maxCols, must, rank);
 
@@ -262,20 +295,21 @@ function edgePath(child, parent, S) {
     : `M${x1},${y1} C${x1 - k},${y1} ${bendAt + k},${y2} ${bendAt},${y2} H${x2}`;
 }
 
-function cardHtml(c, S, small) {
+function cardHtml(c, S, small, on) {
   const diary = c.reachable === false;
-  const title = `${short(c.id)} · ${c.author} · ${c.message}${diary ? ' · only in the diary' : ''}`;
+  const title = `${short(c.id)} · ${c.author} · ${c.message}${diary ? ' · only in the safety diary (reflog)' : ''}`;
   const frame = `<title>${esc(title)}</title>
-    <rect width="${S.w}" height="${S.h}" rx="${S.radius}" fill="#fff" stroke="${diary ? C.muted : C.line}"
-      stroke-width="1.5" ${diary ? 'stroke-dasharray="5 4"' : ''}/>`;
-  const parts = (x, size, ys) => PARTS.map((part, i) =>
-    `<text x="${x}" y="${ys[i]}" font-size="${size}" font-family='${EMOJI_FONT}' text-anchor="middle"
+    <rect width="${S.w}" height="${S.h}" rx="${S.radius}" fill="#fff" stroke="${on ? C.ink : diary ? C.muted : C.line}"
+      stroke-width="${on ? 2.5 : 1.5}" ${diary ? 'stroke-dasharray="5 4"' : ''}/>`;
+  const fig = small ? FIGURE.compact : FIGURE.full;
+  const figure = PARTS.map((part, i) =>
+    `<text x="${fig.x}" y="${fig.ys[i]}" font-size="${fig.sizes[i]}" font-family='${EMOJI_FONT}' text-anchor="middle"
       dominant-baseline="central">${emoji(part, c.monster?.[part])}</text>`).join('');
   const body = small
-    ? `${parts(S.w / 2, 16, [14, 31, 48])}
+    ? `${figure}
        <text x="${S.w / 2}" y="${S.h - 9}" text-anchor="middle" font-family='${MONO}' font-size="14"
          fill="${C.ink}">${short(c.id)}</text>`
-    : `${parts(27, 20, [22, 46, 70])}
+    : `${figure}
        <text x="52" y="25" font-family='${MONO}' font-size="14" font-weight="600" fill="${C.ink}">${short(c.id)}</text>
        <text x="52" y="45" font-size="14" font-weight="600" fill="${C.ink}">${esc(clip(c.author, 14))}</text>
        ${wrap(plainMessage(c.message), 17).map((line, i) =>
@@ -284,18 +318,43 @@ function cardHtml(c, S, small) {
     aria-label="Card ${short(c.id)} by ${esc(c.author)}: ${esc(c.message)}">${frame}${body}</g>`;
 }
 
+// A note's label, and the YOU pin after it.
+const labelWidth = (name, S) => Math.round(name.length * S.note * 0.6 + S.note * 1.4);
+const PIN = 3.3; // the pin's width, in note-font sizes
+const noteWidth = (name, isYou, S) => labelWidth(name, S) + (isYou ? 5 + S.note * PIN : 0);
+
 function noteHtml(name, isYou, S) {
   const wall = name.includes('/');
   const h = S.label - 7;
-  const w = Math.round(name.length * S.note * 0.6 + S.note * 1.4);
+  const w = labelWidth(name, S);
   const pin = isYou
-    ? `<rect x="${w + 5}" width="${S.note * 3.3}" height="${h}" rx="${h / 2}" fill="${C.pink}"/>
-       <text x="${w + 5 + S.note * 1.65}" y="${h / 2}" dominant-baseline="central" text-anchor="middle"
+    ? `<rect x="${w + 5}" width="${S.note * PIN}" height="${h}" rx="${h / 2}" fill="${C.pink}"/>
+       <text x="${w + 5 + S.note * PIN / 2}" y="${h / 2}" dominant-baseline="central" text-anchor="middle"
          font-size="${S.note - 1}" font-weight="700" fill="#fff" letter-spacing="0.06em">YOU</text>`
     : '';
   return `<rect width="${w}" height="${h}" rx="5" fill="${wall ? C.blue : C.yellow}"/>
     <text x="${S.note * 0.7}" y="${h / 2}" dominant-baseline="central" font-family='${MONO}' font-size="${S.note}"
       font-weight="600" fill="${wall ? '#fff' : C.ink}">${esc(name)}</text>${pin}`;
+}
+
+// An integration path's times, from Git (seconds) on this clock: "made 10:21 → on the Wall 10:24 · 3 min 20 s".
+const pad = (n) => String(n).padStart(2, '0');
+export const clockOf = (sec, seconds = false) => {
+  const d = new Date(sec * 1000);
+  return `${d.getHours() % 12 || 12}:${pad(d.getMinutes())}${seconds ? `:${pad(d.getSeconds())}` : ''}`;
+};
+const took = (sec) => (sec < 60 ? `${sec} s` : `${Math.floor(sec / 60)} min${sec % 60 ? ` ${sec % 60} s` : ''}`);
+export const velocity = (p) => `made ${clockOf(p.made)} → on the Wall ${clockOf(p.onWall)} · ${took(p.onWall - p.made)}`;
+
+// Step 4's reveal: on the Wall, a merge card with 2 parents on a lab's path, and the copy a replay starts at.
+export function pathBadges(graph, paths) {
+  const byId = new Map((graph?.commits ?? []).map((c) => [c.id, c]));
+  const badges = {};
+  for (const p of paths) {
+    for (const id of p.cards) if (byId.get(id)?.parents.length === 2) badges[id] = 'merge · 2 parents';
+    if (p.copy) badges[p.cards[0]] = 'copy · new ID';
+  }
+  return badges;
 }
 
 // Git's merge messages, shorter: "Merge remote-tracking branch 'wall/main'" → "Merge wall/main".

@@ -1,8 +1,8 @@
 {
-  "name": "monster-lab",
+  "name": "outfit-lab",
   "version": "1.0.0",
   "private": true,
-  "description": "Learn Git by building a monster together. Every button runs real Git.",
+  "description": "Dress one character together. Every button runs real Git.",
   "type": "module",
   "engines": {
     "node": ">=22"
@@ -10,8 +10,8 @@
   "scripts": {
     "start": "node server/index.js",
     "test": "node --test \"test/**/*.test.js\"",
-    "e2e": "node e2e/sim.mjs",
-    "stress": "node e2e/stress.mjs"
+    "e2e": "node e2e/sim.mjs && node e2e/rehearsal.mjs",
+    "rehearsal": "node e2e/rehearsal.mjs"
   },
   "dependencies": {
     "express": "^5.2.1",

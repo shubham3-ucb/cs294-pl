@@ -58,11 +58,11 @@ Estimated over 9 open-source repos (Table 1: Android, Apache, BuildBot, CoreCLR,
 - Teams that need exact event timing or must **prove code origin** have to weigh the benefits against the costs of history-altering patterns. They should educate developers, configure tools, or set policy. Git might one day need to store more by default.
 
 ## How the app shows each point (true by construction)
-- **Step 1:** a card = tree + parent + author + time, and its ID = a SHA-1 (shown with `git cat-file -p`). Git takes your name and your laptop's clock on trust (§5.6–5.7).
-- **Step 3:** the first merge is a **fast-forward**: the main note slides, and no merge card says the cards came from cat-robot (§5.1). The second merge makes an **explicit merge card** with two parents, which is what analysts want (§3.1).
-- **Step 5:** each card's trip from a lab to the Wall is an **integration path**. "How long did it take?" is code velocity (§6.1).
-- **Step 6:** a whole-card revert keeps "Undo …" in the message, so analysts can trace it (§5.5).
-- **Step 7:** **squash** makes one new card with a new ID, so the individual cards and their authors are gone (§5.4). Force push makes the Wall forget them, and gc deletes them. The audit "who added the tentacles?" fails on the Wall but works in labs that kept their history (§8: some loss cannot be recovered).
+- **Step 1:** a card = tree + parent + author + committer + message, and its ID = a SHA-1 (shown with `git cat-file -p`). Git takes your name and your laptop's clock on trust (§5.6–5.7).
+- **Step 3:** the first merge is a **fast-forward**: main's note slides, and no merge card is made. Then the lab deletes the fancy note (`git branch -d fancy`), and no card says which cards were made on fancy (§5.1). The second merge makes an **explicit merge card** with two parents, which is what analysts want (§3.1).
+- **Step 4:** a refused lab either combines (a merge card) or replays on top: **rebase** writes a new card with a new ID, and the original is only in that lab's reflog (§5.2). The reveal marks each change's **integration path**, from its card to the card its lab's send made main, with this class's own times: "how long did it take?" is code velocity (§6).
+- **Step 5:** a whole-card revert keeps "This reverts commit …" in the message, so analysts can trace it (§5.5).
+- **Step 6:** **squash** makes one new card with a new ID, so the individual cards and their authors are gone (§5.4). Force push makes the Wall forget them, and gc deletes them. The audit "who first added the 🥾 boots?" fails on the Wall but works in labs that kept their history (§8: some loss cannot be recovered).
 
 ## Safe one-liners for slides
 - "Git made developers faster. It also made history easier to lose."

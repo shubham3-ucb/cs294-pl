@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Monster Lab</title>
+  <title>Outfit Lab</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="/app.css">
   <script type="module" src="/app.js"></script>
@@ -11,30 +11,33 @@
 <body>
   <section id="join" class="join" hidden>
     <form id="join-form" class="join-card" novalidate>
-      <h1>Monster Lab</h1>
-      <p class="lede">Your lab builds one monster. Every button runs real Git.</p>
+      <h1>Outfit Lab</h1>
+      <p class="lede">Dress one character together. Every button runs real Git.</p>
       <label class="field">
         <span>Your name</span>
         <input id="join-name" name="name" maxlength="24" autocomplete="given-name" spellcheck="false">
       </label>
-      <fieldset class="field">
-        <legend>Pick your lab</legend>
-        <div id="join-labs" class="lab-picks"></div>
-      </fieldset>
       <button class="primary big" type="submit">Join</button>
       <p id="join-error" class="form-error" role="alert"></p>
+      <p class="join-note">The app puts you in a lab.</p>
     </form>
   </section>
 
   <div id="main" hidden>
     <header class="top">
-      <span class="brand">Monster Lab</span>
+      <span class="brand">Outfit Lab</span>
       <span id="crumbs" class="crumbs"></span>
+      <button id="tour-again" class="tour-again" type="button" aria-label="Show the tour again" title="Show the tour again">?</button>
     </header>
 
     <main id="layout" class="layout">
-      <aside id="panel" class="mission" aria-label="Mission">
+      <aside id="panel" class="mission" aria-label="What to do">
         <div id="mission"></div>
+        <div id="qa" class="qa"></div>
+        <details id="again" class="again">
+          <summary></summary>
+          <div id="again-body"></div>
+        </details>
         <details id="behind" class="behind">
           <summary><b>Behind the door</b><span>what Git did</span></summary>
           <div id="behind-body"></div>
@@ -46,6 +49,7 @@
       </aside>
 
       <div id="stage" class="stage">
+        <section id="reveal" class="reveal" aria-label="How Git does it" hidden></section>
         <div id="banner" class="banner" role="status" hidden></div>
 
         <section id="work" class="work" aria-label="Shared draft">
@@ -58,8 +62,6 @@
         </section>
 
         <section id="actions" class="actions" aria-label="Buttons"></section>
-
-        <section id="wrap" class="wrap" hidden></section>
 
         <section id="table" class="table" aria-label="Your lab's cards">
           <div class="table-head">
@@ -74,13 +76,27 @@
               <span class="muted">the class's shared copy</span>
             </div>
             <div id="wall-scroll" class="graph-scroll"><svg id="wall-graph" class="graph"></svg></div>
+            <div id="paths" class="paths" hidden></div>
           </div>
         </section>
       </div>
     </main>
+
+    <main id="scene" class="scene" hidden>
+      <article id="scene-body" class="scene-body"></article>
+      <div id="scene-foot" class="scene-foot"></div>
+    </main>
   </div>
 
   <div id="popover" class="popover" hidden></div>
+
+  <div id="coach" class="coach" hidden>
+    <div class="spot"></div>
+    <div class="bubble" role="status">
+      <p class="bubble-text"></p>
+      <div class="bubble-foot"></div>
+    </div>
+  </div>
 
   <dialog id="card-dialog" class="dialog" aria-label="Card details">
     <button class="close" data-close aria-label="Close">×</button>
