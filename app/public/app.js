@@ -1,19 +1,20 @@
 // Monster Lab: the student page.
 // One state object from /api/state, refetched whenever the server's {v, boot} changes.
 import { PARTS, emoji, palette, renderMonsterCard } from '/monster.js';
-import { renderGraph } from '/graph.js';
+import { renderGraph, plainMessage } from '/graph.js';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 const short = (id) => String(id ?? '').slice(0, 7);
-// Step copy uses **bold** and `code`.
-const rich = (s) => esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/`(.+?)`/g, '<code>$1</code>');
+// Step copy uses **bold** and `code`. "BODY → 🤖" never breaks.
+const rich = (s) => esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>').replace(/`(.+?)`/g, '<code>$1</code>')
+  .replaceAll(' → ', '&nbsp;→&nbsp;');
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 const fromName = (from) => (from === 'wall/main' ? 'the Wall' : from);
 
 const PID_KEY = 'monsterLab.pid';
 const NAME_KEY = 'monsterLab.name';
-const MAIN_LOCKED = 'main is the approved monster. Make or switch to a sticky note first.';
+const CHANGED_KEY = 'monsterLab.changed'; // this student has changed a part once: the "click a part" hint goes
 const MERGE_OPEN = 'Finish or cancel the merge first.';
 
 // The action row, in step order. Each unlocks at the step whose `unlocks` lists its id.
@@ -25,28 +26,29 @@ const ACTIONS = [
   { id: 'push', words: 'Send to Wall', cmd: 'git push', mainOnly: true },
   { id: 'pull', words: 'Get & combine', cmd: 'git fetch\ngit merge', mainOnly: true },
   { id: 'reflog', words: 'Safety diary', cmd: 'git reflog' },
-  { id: 'squash', words: 'Replace the Wall with one card', cmd: 'git push --force', danger: true, mainOnly: true },
+  { id: 'squash', words: 'Replace the Wall with one card', cmd: 'squash + git push --force', danger: true, mainOnly: true },
 ];
 
 const LEGEND = [
   ['commit', '<span>← points to the card before</span>'],
-  ['commit', '<span><i class="sw note"></i>sticky note</span>'],
-  ['commit', '<span><i class="sw you">YOU</i>where you are</span>'],
+  ['branch', '<span><i class="sw note"></i>sticky note</span>'],
+  ['branch', '<span><i class="sw you">YOU</i>your pin: the note you\'re on</span>'],
   ['wall', '<span><i class="sw wall"></i>the Wall, last time you checked</span>'],
   ['reflog', '<span><i class="sw diary"></i>only in the diary</span>'],
 ];
 
+// Step 8: [concept, one, many]. Merges count merge cards only; fast-forwards made none.
 const SUMMARY = [
-  [(c) => c.save, 'cards saved'], [(c) => (c.merge || 0) + (c.fastforward || 0), 'merges'],
-  [(c) => c.conflict, 'conflicts solved'], [(c) => c.push, 'pushes'],
-  [(c) => c.rejected, 'refused pushes'], [(c) => c.revert, 'reverts'],
+  ['save', 'card saved', 'cards saved'], ['merge', 'merge', 'merges'], ['conflict', 'conflict solved', 'conflicts solved'],
+  ['push', 'push', 'pushes'], ['rejected', 'refused push', 'refused pushes'], ['revert', 'revert', 'reverts'],
 ];
 
+// [concept, plain words, the command its button showed]
 const IDEAS = [
-  ['save', 'Save a card', 'git commit'], ['branch', 'Make a sticky note', 'git branch'],
-  ['switch', 'Switch notes', 'git switch'], ['fastforward', 'Slide a note forward', 'fast-forward'],
-  ['merge', 'Combine two ideas', 'git merge'], ['conflict', 'Solve a conflict', 'merge conflict'],
-  ['push', 'Send to the Wall', 'git push'], ['rejected', 'Get refused', 'rejected push'],
+  ['save', 'Save a card', 'git commit'], ['branch', 'Make a sticky note', 'git switch -c'],
+  ['switch', 'Switch notes', 'git switch'], ['fastforward', 'Slide a note forward', 'git merge'],
+  ['merge', 'Combine two ideas', 'git merge'], ['conflict', 'Solve a conflict', 'git merge + git commit'],
+  ['push', 'Send to the Wall', 'git push'], ['rejected', 'Get refused', 'git push'],
   ['pull', 'Get & combine', 'git pull'], ['revert', 'Undo with a fix card', 'git revert'],
   ['reset', 'Move a note back', 'git reset'], ['diary', 'Read the diary', 'git reflog'],
   ['force', 'Replace the Wall', 'git push --force'],
@@ -62,11 +64,13 @@ const edits = new Map(); // part → value I just picked, shown until the server
 const busy = new Set(); // actions waiting for the server
 const picked = {}; // action → note chosen in its dropdown
 const drawn = new Map(); // svg → what it last drew
+const expanded = new Set(); // graphs opened in full with "← N older cards", until the step changes
 let followUntil = 0; // right after my own action, show the newest cards even if I scrolled back
 let cardOpen = null; // {id, repo}
 let seenOp; // the last operation the student saw behind the door
 let resolver = { key: '', choices: {}, another: null };
 let breakTimer = null; // redraws the mission panel when the break ends
+let changed = localStorage.getItem(CHANGED_KEY) === '1';
 
 // ---------- Server ----------
 
@@ -128,8 +132,9 @@ async function act(path, body = {}, key = path) {
     delete picked[key];
     const { message, nothing, already } = res.result || {};
     if (message) toast(message, nothing || already ? 'info' : 'good');
+    else clearBadToast();
   } else {
-    toast(res.error || 'Busy, press again.', 'bad');
+    toast(res.error || 'Busy, press again.', res.tone || 'bad');
   }
   await refresh();
   if (res.result?.conflict) openResolver();
@@ -169,7 +174,7 @@ function derive() {
   return {
     n: session.step, s, chaos, wrap: s.id === 'wrap', byId, tip, mine, others,
     note: me.branch,
-    locked: !chaos && me.branch === 'main' && (session.step === 2 || session.step === 3),
+    locked: !chaos && me.branch === 'main' && Boolean(s.mainLocked),
     monster: chaos ? { ...lab.chaos, ...draft } : { ...card, ...draft },
     unsaved: chaos ? [] : Object.keys(draft),
     merging: lab.merging?.[me.branch] || null,
@@ -198,22 +203,33 @@ function hydrate(root) {
 // t in seconds (Git's author time).
 function ago(t) {
   const s = Math.max(0, Date.now() / 1000 - t);
-  if (s < 45) return 'just now';
+  if (s < 45) return 'a moment ago';
   if (s < 3600) return `${Math.round(s / 60)} min ago`;
   if (s < 86400) return `${Math.round(s / 3600)} h ago`;
   return `${plural(Math.round(s / 86400), 'day', 'days')} ago`;
 }
 
+// One toast at a time; the newest wins. A bad one (refused, errors) stays until closed or the next success.
+// While a dialog is open, the toast shows at the dialog's foot, so it never covers the dialog.
 function toast(text, tone = 'info') {
-  const box = $('toasts');
   const el = document.createElement('div');
   el.className = `toast ${tone}`;
-  el.textContent = text;
-  box.append(el);
-  while (box.children.length > 3) box.firstChild.remove();
-  setTimeout(() => el.classList.add('out'), 4200);
-  setTimeout(() => el.remove(), 4450);
+  el.append(text);
+  if (tone === 'bad') {
+    const close = document.createElement('button');
+    Object.assign(close, { className: 'toast-close', textContent: '×', onclick: () => el.remove() });
+    close.setAttribute('aria-label', 'Close');
+    el.append(close);
+  } else {
+    setTimeout(() => el.classList.add('out'), 4000);
+    setTimeout(() => el.remove(), 4250);
+  }
+  const box = $('toasts');
+  (document.querySelector('dialog[open]') ?? document.body).append(box);
+  box.replaceChildren(el);
 }
+
+const clearBadToast = () => $('toasts').querySelector('.toast.bad')?.remove();
 
 // ---------- Render ----------
 
@@ -224,7 +240,9 @@ function render() {
   if (!joined) { V = null; renderJoin(); return; }
 
   if (state.session.step !== shownStep) {
+    $('toasts').replaceChildren();
     edits.clear();
+    expanded.clear();
     closePopover();
     for (const d of document.querySelectorAll('dialog[open]')) d.close();
   }
@@ -232,6 +250,7 @@ function render() {
   renderTop();
   renderMission();
   renderBehind();
+  fitMission();
   renderWork();
   renderTable();
   if ($('resolver-dialog').open) V.merging ? renderResolver() : $('resolver-dialog').close();
@@ -273,7 +292,7 @@ function renderMission() {
       ${goals.length ? `<ul class="goals">${goals.map((g, i) =>
         `<li class="${g.done ? 'done' : i === next ? 'next' : ''}">${esc(g.text)}</li>`).join('')}</ul>` : ''}
       ${goals.length && next === -1 && s.bonus ? `<p class="bonus"><b>Bonus</b> · ${rich(s.bonus)}</p>` : ''}
-      ${s.check ? `<p class="ask ${state.session.ask ? 'on' : ''}">We'll ask: <i>${esc(s.check)}</i></p>` : ''}`);
+      ${s.check && state.session.ask ? `<p class="ask on">Discuss: <i>${esc(s.check)}</i></p>` : ''}`);
   const box = $('mission');
   patch(box, html);
   if (shownStep !== null && n !== shownStep) {
@@ -283,15 +302,20 @@ function renderMission() {
   }
 }
 
+const nameList = new Intl.ListFormat('en', { type: 'conjunction' });
+
 function missionBox() {
-  const { me } = state;
+  const { me, lab } = state;
+  const partners = lab.members.filter((m) => m.pair === me.pair && m.pid !== me.pid && m.online).map((m) => m.name);
   const pair = V.n === 2 && me.pair
-    ? `<p class="pair">You're in Pair ${esc(me.pair)} (<button class="linkish" data-pair>change</button>)</p>` : '';
+    ? `<p class="pair">You're in Pair ${esc(me.pair)}${partners.length ? ` with ${esc(nameList.format(partners))}` : ', on your own'}
+        (<button class="linkish" data-pair>change</button>)</p>` : '';
   if (!me.mission && !pair) return '';
   return `<div class="mission-box"><p class="label">Your mission</p>${me.mission ? `<p>${rich(me.mission)}</p>` : ''}${pair}</div>`;
 }
 
-// Behind the door: Problem → Idea → Git for this step, then what Git did last in this lab.
+// Behind the door: the step's rule for how Git does it, always. Then what Git did last in this lab this
+// step (who pressed what, its command, one plain sentence); the plumbing waits behind "Show the low-level steps".
 function renderBehind() {
   const behind = V.s.behind;
   $('behind').hidden = !behind;
@@ -300,28 +324,34 @@ function renderBehind() {
   if (seenOp === undefined || $('behind').open) seenOp = op?.t ?? null;
   $('behind').classList.toggle('fresh', Boolean(op) && op.t !== seenOp);
   const code = (cmds) => cmds.map((c) => `<code>${esc(c)}</code>`).join(' ');
-  const lines = [['Problem', behind.problem], ['Idea', behind.idea], ['Git', behind.text]].filter(([, text]) => text);
+  const cmds = op?.porcelain ? op.porcelain.split('\n') : [];
   patch($('behind-body'), `
-    <dl class="pig">${lines.map(([label, text]) => `<dt>${label}</dt><dd>${rich(text)}</dd>`).join('')}</dl>
-    ${behind.cmds?.length ? `<p class="type">You'd type: ${code(behind.cmds)}</p>` : ''}
-    ${op ? `<div class="last">
-      <p class="who">Last · ${esc(op.who)}</p>
-      <p>${esc(op.action)}${op.outcome ? ` → ${esc(op.outcome)}` : ''}</p>
-      ${op.porcelain ? `<p>${code(op.porcelain.split('\n'))}</p>` : ''}
-      ${op.explain ? `<p class="explain">${rich(op.explain)}</p>` : ''}
-    </div>` : ''}`);
-  const commands = op?.commands || [];
-  $('plumbing').hidden = !commands.length;
-  patch($('plumbing-list'), commands.map((c) => `
-    <li class="${c.code ? 'bad' : ''}"><div class="cmd">${esc([].concat(c.cmd).join(' '))}</div>${
-      c.out?.trim() ? `<div class="out">${esc(c.out.trim())}</div>` : ''}</li>`).join(''));
+    <p>${rich(behind.text)}</p>
+    ${op ? `<div class="last-op">
+        <p class="last"><span class="muted">Last:</span> <b>${esc(op.who)}</b> · ${esc(op.action)}${op.outcome ? ` → ${esc(op.outcome)}` : ''}</p>
+        ${cmds.length ? `<p class="cmds">${code(cmds)}</p>` : ''}
+        ${op.explain ? `<p>${rich(op.explain)}</p>` : ''}
+      </div>` : `<p class="cmds">You'd type: ${code(behind.cmds)}</p>`}`);
+  $('plumbing').hidden = !op?.commands?.length;
+  // A command that printed nothing still says how it ended (e.g. merge-base --is-ancestor: exit 1 = no).
+  patch($('plumbing-list'), (op?.commands || []).map((c) => {
+    const out = c.out?.trim();
+    return `<li class="${c.code && out ? 'bad' : ''}"><div class="cmd">${esc([].concat(c.cmd).join(' '))}</div>${
+      out ? `<div class="out">${esc(out)}</div>` : c.code ? `<div class="out">exit ${c.code}</div>` : ''}</li>`;
+  }).join(''));
+}
+
+// The mission panel sticks while it fits on screen; a taller one scrolls with the page.
+function fitMission() {
+  const panel = $('panel');
+  panel.classList.toggle('tall', panel.scrollHeight > innerHeight - 120);
 }
 
 function renderWork() {
   const { chaos, wrap } = V;
   $('layout').classList.toggle('chaos', chaos);
-  $('draft-title').textContent = chaos ? "Your lab's monster" : 'Your draft';
-  $('on-note').hidden = chaos;
+  $('draft-title').textContent = chaos ? "Your lab's monster" : 'Shared draft';
+  $('on-note').hidden = !V.unlocked('branch');
   patch($('on-note'), `You're on: <span class="note-chip">${esc(V.note)}</span>`);
   $('work').hidden = wrap;
   $('actions').hidden = wrap || chaos;
@@ -347,7 +377,10 @@ function renderBanner() {
     <button class="primary" data-open-resolver>Open</button>`);
 }
 
+// Everyone on a note shares its draft, so each unsaved part says who changed it.
 function renderDraft() {
+  const by = state.lab.draftBy?.[V.note] ?? {};
+  const nameOf = (pid) => (pid === state.me.pid ? 'you' : state.lab.members.find((m) => m.pid === pid)?.name);
   for (const part of PARTS) {
     const btn = $('draft').querySelector(`[data-part="${part}"]`);
     const value = V.monster[part];
@@ -360,16 +393,19 @@ function renderDraft() {
       if (changed) { face.classList.remove('pop'); void face.offsetWidth; face.classList.add('pop'); }
     }
     btn.querySelector('.part-value').textContent = value ?? '';
+    const who = unsaved && (edits.has(part) ? 'you' : nameOf(by[part]));
+    btn.querySelector('.part-by').textContent = who ? `changed by ${who}` : '';
     btn.querySelector('.tag').hidden = !unsaved;
     btn.classList.toggle('unsaved', unsaved);
-    btn.setAttribute('aria-label', `${part.toUpperCase()}: ${value}${unsaved ? ', not saved' : ''}. Change it`);
+    btn.setAttribute('aria-label', `${part.toUpperCase()}: ${value}${unsaved ? `, not saved${who ? `, changed by ${who}` : ''}` : ''}. Change it`);
   }
   $('draft').classList.toggle('locked', V.locked);
   const count = V.unsaved.length;
   const status = $('draft-status');
-  status.hidden = V.chaos;
+  status.hidden = V.chaos && changed;
   status.classList.toggle('unsaved', count > 0);
-  status.textContent = V.locked ? MAIN_LOCKED : count ? `${plural(count, 'part', 'parts')} not saved yet` : 'All saved';
+  status.textContent = V.locked ? V.s.mainLocked
+    : count ? `${plural(count, 'part', 'parts')} not saved yet` : changed ? 'All saved' : 'Click a part to change it.';
 }
 
 function renderActions() {
@@ -383,12 +419,18 @@ function renderActions() {
   const fresh = shown.filter((a) => V.isNew(a.id));
   const old = shown.filter((a) => !V.isNew(a.id) && !(offMain(a) && fresh.some(offMain)));
   const row = (list, isNew) => [...new Set(list.map((a) => actionHTML(a, isNew)))].join('');
+  // Step 6's new tools live in the card details; say where.
+  const hint = V.isNew('revert') ? '<p class="actions-hint">New: click a card to undo it or move your note back.</p>' : '';
   patch(box, `
     ${fresh.length ? `<div class="actions-new">${row(fresh, true)}</div>` : ''}
+    ${hint}
     ${old.length ? `<div class="actions-old">${row(old, false)}</div>` : ''}`);
 }
 
-const pickFor = (id) => (V.others.includes(picked[id]) ? picked[id] : V.others[0]);
+// A dropdown's note: the one picked, else in Step 2 your pair's note for Switch (main once you're on it),
+// else the first.
+const pickFor = (id) => [picked[id], id === 'switch' && V.n === 2 && (V.note === state.me.pairNote ? 'main' : state.me.pairNote),
+  V.others[0]].find((n) => V.others.includes(n));
 
 function actionHTML(a, isNew) {
   const offMain = a.mainOnly && V.note !== 'main';
@@ -416,29 +458,38 @@ function wrapHTML() {
   if (!c) return '';
   return `
     <h2>What your lab did</h2>
-    <div class="stats">${SUMMARY.map(([count, label]) => `<div><b>${count(c) || 0}</b><span>${label}</span></div>`).join('')}</div>
+    <div class="stats">${SUMMARY.map(([k, one, many]) => `<div><b>${c[k] || 0}</b><span>${c[k] === 1 ? one : many}</span></div>`).join('')}</div>
     <div><h3>Git ideas you used</h3><ul class="concepts">${IDEAS.map(([k, words, term]) =>
-      `<li class="${c[k] ? 'on' : ''}">${words} <code>${term}</code></li>`).join('')}</ul></div>`;
+      `<li class="${c[k] ? 'on' : ''}">${words} <span>${term.split(' + ').map((t) => `<code>${t}</code>`).join(' + ')}</span></li>`).join('')}</ul></div>`;
 }
 
+// Sticky notes show from Step 2, where they are taught.
 function renderTable() {
   if (V.chaos) return;
-  draw($('graph'), $('graph-scroll'), state.lab.graph, { labels: true, you: V.note, onCardClick: (c) => openCard(c.id, 'lab') });
+  draw($('graph'), $('graph-scroll'), state.lab.graph, {
+    labels: V.unlocked('branch'), you: V.note, onCardClick: (c) => openCard(c.id, 'lab'),
+  });
   patch($('legend'), LEGEND.filter(([id]) => V.unlocked(id)).map(([, html]) => html).join(''));
   const wall = state.wall?.graph;
   $('wall-block').hidden = !wall;
-  if (wall) draw($('wall-graph'), $('wall-scroll'), wall, { compact: true, labels: true, onCardClick: (c) => openCard(c.id, 'wall') });
+  if (wall) draw($('wall-graph'), $('wall-scroll'), wall, { labels: true, onCardClick: (c) => openCard(c.id, 'wall') });
 }
 
-// Draw only when something changed. Keep the newest cards in view unless the student scrolled back;
-// right after my own action (or on first draw), show where my sticky note is.
+// Draw only when something changed. Full cards while they all fit, else small ones; cards that still
+// don't fit fold into pills "← N older cards" (never one with a sticky note). Pressing a pill draws them
+// all, to scroll, and shows your sticky note. Then keep the newest cards in view unless the student
+// scrolled back; right after my own action (or on first draw), show where my sticky note is.
 function draw(svg, scroller, graph, opts) {
-  const key = JSON.stringify([graph, opts.you]);
+  const pad = getComputedStyle(scroller);
+  const width = scroller.clientWidth - parseFloat(pad.paddingLeft) - parseFloat(pad.paddingRight);
+  const all = expanded.has(svg);
+  const key = JSON.stringify([graph, opts.you, opts.labels, width, all]);
   if (drawn.get(svg) === key) return;
   const mine = Date.now() < followUntil || !drawn.has(svg);
   const atEnd = scroller.scrollLeft + scroller.clientWidth >= scroller.scrollWidth - 48;
   drawn.set(svg, key);
-  renderGraph(svg, graph, opts);
+  const onOlder = () => { expanded.add(svg); drawn.delete(svg); renderTable(); };
+  renderGraph(svg, graph, { ...opts, compact: 'auto', width, all, onOlder });
   const pin = mine && [...svg.querySelectorAll('.g-note')].find((n) => n.dataset.key === opts.you);
   const x = pin ? Number(pin.dataset.x) : Infinity;
   if (x < scroller.scrollWidth - scroller.clientWidth) scroller.scrollLeft = x - scroller.clientWidth / 3;
@@ -499,7 +550,11 @@ async function pickPart(part, value) {
   edits.set(part, value);
   render();
   const res = await call(V.chaos ? '/api/chaos' : '/api/draft', { part, value });
-  if (!res.ok) toast(res.error, 'bad');
+  if (res.ok) {
+    changed = true;
+    localStorage.setItem(CHANGED_KEY, '1');
+    clearBadToast();
+  } else toast(res.error, 'bad');
   await refresh();
   if (edits.get(part) === value) edits.delete(part);
   if (V) render();
@@ -555,15 +610,17 @@ function renderCard(fresh = false) {
   const { id, repo } = cardOpen;
   const c = (repo === 'wall' ? V.wallById : V.byId).get(id);
   if (!c) { $('card-dialog').close(); return; }
-  const parents = c.parents.map((p) => `<button class="id-chip" data-goto="${p}">${short(p)}</button>`).join('')
+  const names = mergedNotes(c.message);
+  const parents = c.parents.map((p, i) => `<span><button class="id-chip" data-goto="${p}">${short(p)}</button>${
+    names[i] ? ` <span class="muted">${esc(names[i])}</span>` : ''}</span>`).join('')
     || '<span class="muted">None. This is the Start card.</span>';
   const where = repo === 'wall' ? 'On the Wall' : c.reachable === false ? 'Only in the safety diary' : '';
   const html = `
     <div class="card-top">
       <div class="card-monster">${slot(c.monster, 'large')}</div>
       <div class="card-meta">
-        <p class="card-id">${short(c.id)}<small>${c.id}</small></p>
-        <p class="card-msg">${esc(c.message)}</p>
+        <p class="card-id"><span class="label">Card ID</span>${short(c.id)}<small>${c.id}</small></p>
+        <p class="card-msg">${esc(plainMessage(c.message))}</p>
         <dl class="facts">
           <dt>Made by</dt><dd>${esc(c.author)}${c.time ? ` · ${ago(c.time)}` : ''}</dd>
           <dt>${c.parents.length > 1 ? 'Parents' : 'Parent'}</dt><dd>${parents}</dd>
@@ -579,6 +636,12 @@ function renderCard(fresh = false) {
   const keep = !fresh && stored?.open ? stored.querySelector('.stored-body').innerHTML : null;
   patch(body, html);
   if (keep) { body.querySelector('.stored').open = true; body.querySelector('.stored-body').innerHTML = keep; }
+}
+
+// A merge card's parents, by the sticky notes they came from: "Merge branch 'superhero'" → main, superhero.
+function mergedNotes(message) {
+  const m = /^Merge (?:remote-tracking )?branch '(.+?)'(?: into (\S+))?/.exec(message);
+  return m ? [m[2] ?? 'main', fromName(m[1])] : [];
 }
 
 function cardActions(c) {
@@ -602,8 +665,34 @@ async function loadStored(details) {
   const res = await get('/api/inspect', { commit: cardOpen.id, repo: cardOpen.repo });
   if (!res.ok) { box.innerHTML = `<p class="muted">${esc(res.error)}</p>`; return; }
   box.innerHTML = (res.op?.commands || []).map((c) =>
-    `<div class="cmd">${esc([].concat(c.cmd).join(' '))}</div><pre>${esc(c.out?.trim())}</pre>`).join('');
+    `<div class="cmd">${esc([].concat(c.cmd).join(' '))}</div><pre>${glossed(c.out?.trim() ?? '')}</pre>`).join('');
 }
+
+// What each line of a stored card means, in a muted line under it. The message follows the first blank line.
+const STORED = [
+  [/^tree /, 'the snapshot of the files (monster.txt), by its ID'],
+  [/^parent /, 'the card before'],
+  [/^author /, 'who made it, and when (seconds since 1970)'],
+  [/^committer /, 'who saved it (here, the same)'],
+];
+function glossed(text) {
+  const lines = text.split('\n');
+  const blank = lines.indexOf('');
+  return lines.map((line, i) => {
+    const words = blank > 0 && i === blank + 1 ? 'the message'
+      : (blank < 0 || i < blank) && STORED.find(([re]) => re.test(line))?.[1];
+    return `<div>${esc(line) || ' '}${words ? `<span class="gloss">↳ ${words}</span>` : ''}</div>`;
+  }).join('');
+}
+
+// Safety diary lines in plain words; Git's own line stays underneath.
+const DIARY = [
+  [/^commit \(merge\)/, 'Merged'], [/^commit/, 'Saved a card'], [/^branch/, 'Made this note'],
+  [/^merge .*Fast-forward/, 'Slid forward (merge)'], [/^merge/, 'Merged'],
+  [/^pull: Fast-forward/, "Got the Wall's cards"], [/^pull/, 'Got & combined'],
+  [/^revert/, 'Undid a card'], [/^reset/, 'Moved back'], [/^clone/, 'Copied from the Wall'],
+];
+const diaryWords = (message) => DIARY.find(([re]) => re.test(message))?.[1] ?? message;
 
 // Safety diary.
 async function openDiary() {
@@ -616,12 +705,12 @@ async function openDiary() {
   const entries = res.result?.entries || [];
   patch(body, `
     <h2>Safety diary <code class="muted">git reflog</code></h2>
-    <p class="muted">Every place ${esc(note)} has been. Newest first.</p>
+    <p class="muted">Every place ${esc(note)} has been. Newest first. Moving a note deletes nothing. Click a line to open that card.</p>
     <ol class="diary">${entries.map((e) => `
       <li><button data-goto="${e.id}">
         <span class="when">${new Date(e.time * 1000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
         ${slot(V.byId.get(e.id)?.monster, 'tiny')}
-        <span class="what"><code>${short(e.id)}</code><span>${esc(e.message)}</span></span>
+        <span class="what"><span>${esc(diaryWords(e.message))} · <code>${short(e.id)}</code></span><code class="git">${esc(e.message)}</code></span>
       </button></li>`).join('')}</ol>`);
 }
 
@@ -644,9 +733,11 @@ function renderResolver() {
   const { choices, another } = resolver;
   const ready = m.conflicts.every((p) => choices[p]);
 
-  const option = (part, value, label) => `
+  // Each button says what it keeps: "Keep main's 🤖 robot", "Keep before 5c36f17: 🐲 dragon".
+  const keep = revert ? ['Keep now:', `Keep before ${short(m.from)}:`] : [`Keep ${ours}'s`, `Keep ${theirs}'s`];
+  const option = (part, value, words) => `
     <button class="opt${choices[part] === value ? ' chosen' : ''}" data-choose="${part}" data-slug="${esc(value)}">
-      <span class="e">${emoji(part, value)}</span>${esc(value)}${label ? ` <small>(${esc(label)})</small>` : ''}</button>`;
+      ${esc(words)} <span class="e">${emoji(part, value)}</span>${esc(value)}</button>`;
   const rows = PARTS.map((part) => {
     if (!m.conflicts.includes(part)) {
       const value = m.auto?.[part] ?? m.ours[part];
@@ -656,8 +747,8 @@ function renderResolver() {
     const own = choices[part] && !sideValues.includes(choices[part]);
     return `<div class="rrow conflict"><span class="pname">${part.toUpperCase()}</span>
       <div class="opts">
-        ${option(part, m.ours[part], ours)}${option(part, m.theirsMonster[part], theirs)}
-        ${own ? option(part, choices[part], 'your pick') : ''}
+        ${option(part, m.ours[part], keep[0])}${option(part, m.theirsMonster[part], keep[1])}
+        ${own ? option(part, choices[part], 'Your pick:') : ''}
         <button class="opt" data-another="${part}" aria-expanded="${another === part}">Pick another…</button>
       </div>
       ${another === part ? `<div class="choices">${palette(V.n)[part].map((slug) => `
@@ -672,12 +763,12 @@ function renderResolver() {
   const behindOpen = body.querySelector('.resolver-behind')?.open;
   patch(body, `
     <h2>${revert ? `Undoing card ${short(m.from)}` : `Merging ${esc(theirs)} into ${esc(V.note)}`}</h2>
-    <p>Both sides changed these parts since the start. Pick one for each.</p>
+    <p>${revert ? 'Red parts changed since that card.' : 'Red parts changed on both sides since you split.'} Pick one. Git kept the ✓ parts.</p>
     <div class="resolver-sides">${sides.map(([label, monster]) => `<div class="side">${slot(monster, 'small')}<span>${esc(label)}</span></div>`).join('')}</div>
     <div class="resolver-rows">${rows}</div>
     <div class="resolver-foot">
-      <button class="primary big" data-finish ${ready ? '' : 'disabled'}>Finish merge</button>
-      <button class="quiet" data-abort>Cancel merge<code>git ${revert ? 'revert' : 'merge'} --abort</code></button>
+      <button class="primary big" data-finish ${ready ? '' : 'disabled'}>Finish ${revert ? 'undo' : 'merge'}</button>
+      <button class="quiet" data-abort>Cancel ${revert ? 'undo' : 'merge'}<code>git ${revert ? 'revert' : 'merge'} --abort</code></button>
     </div>
     <details class="resolver-behind"${behindOpen ? ' open' : ''}>
       <summary>Behind the door · the file Git wrote</summary>
@@ -699,8 +790,8 @@ function wire() {
   $('draft').innerHTML = PARTS.map((part) => `
     <button class="part" data-part="${part}">
       <span class="part-emoji" aria-hidden="true"></span>
-      <span class="part-text"><span class="part-name">${part.toUpperCase()}</span><span class="part-value"></span></span>
-      <span class="tag" hidden>not saved</span>
+      <span class="part-text"><span class="part-name">${part.toUpperCase()}</span><span class="part-value"></span><span class="part-by"></span></span>
+      <span class="part-end"><span class="tag" hidden>not saved</span><span class="cue" aria-hidden="true">change ›</span></span>
     </button>`).join('');
 
   $('join-labs').addEventListener('click', (e) => {
@@ -720,6 +811,8 @@ function wire() {
     const res = await call('/api/join', { name, labId: joinLab });
     if (!res.ok) { $('join-error').textContent = res.error; return; }
     pid = res.pid;
+    changed = false;
+    localStorage.removeItem(CHANGED_KEY);
     localStorage.setItem(PID_KEY, pid);
     localStorage.setItem(NAME_KEY, name);
     listen();
@@ -734,12 +827,13 @@ function wire() {
     const btn = e.target.closest('[data-part]');
     if (!btn || !V) return;
     if (popAnchor === btn) { closePopover(); return; }
-    if (V.locked) { toast(MAIN_LOCKED); return; }
+    if (V.locked) { toast(V.s.mainLocked); return; }
     if (!V.chaos && V.merging) { toast(MERGE_OPEN); return; }
     openPalette(btn, btn.dataset.part);
   });
 
   $('behind').addEventListener('toggle', () => { if ($('behind').open && V) renderBehind(); });
+  $('panel').addEventListener('toggle', fitMission, true); // opening Behind the door makes the panel taller
 
   $('banner').addEventListener('click', (e) => { if (e.target.closest('[data-open-resolver]')) openResolver(); });
 
@@ -805,6 +899,7 @@ function wire() {
       const outside = e.target === d && (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom);
       if (outside || e.target.closest('[data-close]')) d.close();
     });
+    d.addEventListener('close', () => document.body.append($('toasts')));
   }
 
   document.addEventListener('pointerdown', (e) => {
@@ -813,7 +908,13 @@ function wire() {
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && popAnchor) { const a = popAnchor; closePopover(); a.focus(); }
   });
-  addEventListener('resize', closePopover);
+  // The graphs draw as many cards as fit. Wait until the size settles (a full-page screenshot resizes to 1×1 and back).
+  let settle = null;
+  addEventListener('resize', () => {
+    closePopover();
+    clearTimeout(settle);
+    settle = setTimeout(() => { if (V) { fitMission(); renderTable(); } }, 150);
+  });
 }
 
 wire();

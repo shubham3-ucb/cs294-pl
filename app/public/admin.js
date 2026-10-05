@@ -43,10 +43,10 @@ export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => `&#${c.char
 // Step copy uses **bold** and `code`.
 export const md = (s) => esc(s).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/`(.+?)`/g, '<code>$1</code>');
 
-// Teacher notes read like the lesson script: labels in bold, and Board / If behind on their own line.
+// Teacher notes read like the lesson script: labels in bold, each but the first on its own line.
 const notesHtml = (s) => md(s)
-  .replace(/ (Board|If behind):/g, '<br>$1:')
-  .replace(/\b(Say|Do|Ask|Watch for|Board|If behind)( \([^)]*\))?:/g, '<b>$&</b>');
+  .replace(/ (Board|If behind|Pause|Say|Ask):/g, '<br>$1:')
+  .replace(/\b(Say|Do|Ask|Pause|Watch for|Board|If behind)( \([^)]*\))?:/g, '<b>$&</b>');
 
 export const clock = (ms) => {
   const s = Math.max(0, Math.round(ms / 1000));
@@ -61,8 +61,9 @@ export const qrSrc = (url) => `/api/qr.svg?text=${encodeURIComponent(url)}`;
 
 export const isWrap = (session) => session.step === session.steps.length - 1;
 
-export const goalsHtml = (goals) =>
-  `<ul class="goals">${goals.map((g) => `<li class="${g.done ? 'done' : ''}">${esc(g.text)}</li>`).join('')}</ul>`;
+// "🐱 + 🤖" never breaks across lines.
+export const goalsHtml = (goals) => `<ul class="goals">${goals.map((g) =>
+  `<li class="${g.done ? 'done' : ''}">${esc(g.text).replaceAll(' + ', '&nbsp;+&nbsp;')}</li>`).join('')}</ul>`;
 
 // SPEC §4 concept chips: [concept id, label, step that introduces it].
 const CHIPS = [
@@ -79,23 +80,11 @@ export const chipsHtml = (counts = {}, to, from = 1) =>
 // Refused, conflict and error lines are red in the feed.
 export const isRedLine = (entry) => /refused|conflict|error/i.test(entry.outcome ?? '');
 
-// Refused sends in this step since this lab's last successful send (the feed is newest first).
-function refusedInARow(lab, feed, since) {
-  let n = 0;
-  for (const f of feed) {
-    if (f.t < since) break;
-    if (f.labId !== lab.id || f.action !== 'Send to Wall') continue;
-    if (!/^refused/i.test(f.outcome)) break;
-    n++;
-  }
-  return n;
-}
-
 const HANDS_ON = [1, 2, 3, 5, 6]; // steps where every lab should be clicking
 
 // The one status line per lab: {text, alert}, or null when there is nothing to say.
 // alert = red on the teacher page and a "needs help" dot on the projector.
-export function labStatus(lab, { session, feed }, now) {
+export function labStatus(lab, { session }, now) {
   const { step } = session;
   if (step === 0 || isWrap(session)) return null;
   const online = lab.members.filter((m) => m.online);
@@ -109,17 +98,19 @@ export function labStatus(lab, { session, feed }, now) {
     lines.push({ text: 'In a conflict', alert: false });
   }
 
-  const refused = [5, 6].includes(step) ? refusedInARow(lab, feed, session.timer.startedAt) : 0;
+  // The server counts refused sends in a row this step; a send or a Get & combine that works resets it.
+  const refused = lab.refusedInARow ?? 0;
   if (refused >= 2) lines.push({ text: `Refused ${refused === 2 ? 'twice' : `${refused} times`} in a row`, alert: true });
 
   // Everyone starts the step where the last one left them, so give them a minute to switch.
-  const offMain = [3, 5, 6].includes(step) ? online.filter((m) => m.branch !== 'main') : [];
+  // A lab that is done may look around on other notes.
+  const done = lab.goals.length > 0 && lab.goals.every((g) => g.done);
+  const offMain = [3, 5, 6].includes(step) && !done ? online.filter((m) => m.branch !== 'main') : [];
   if (offMain.length) {
     lines.push({ text: `Not on main: ${offMain.map((m) => m.name).join(', ')}`, alert: now - session.timer.startedAt > 60e3 });
   }
 
   const acting = HANDS_ON.includes(step) || (step === 7 && session.stepLab?.[7] === lab.id);
-  const done = lab.goals.length > 0 && lab.goals.every((g) => g.done);
   const quiet = now - Math.max(lab.lastClickAt ?? 0, lab.lastOp?.t ?? 0, session.timer.startedAt);
   if (acting && online.length && !done && quiet > 120e3) lines.push({ text: `No clicks for ${clock(quiet)}`, alert: true });
 
@@ -135,21 +126,25 @@ export function auditCards(session) {
   if (at && audits.every((a) => Number.isFinite(a.t))) {
     const before = audits.filter((a) => a.t < at).at(-1);
     const after = audits.filter((a) => a.t >= at).at(-1);
-    return [before && { label: 'Before the clean-up', audit: before }, after && { label: 'After the clean-up', audit: after }]
+    return [before && { label: 'Before the clean-up', audit: before }, after && { label: 'After the clean-up', audit: after, after: true }]
       .filter(Boolean);
   }
   const shown = audits.slice(-2);
   return shown.map((audit, i) => ({ label: shown.length < 2 ? 'Audit' : i ? 'Latest audit' : 'Earlier audit', audit }));
 }
 
-// The Wall's answer is the headline (the server lists it first); the labs' answers follow on one line.
+// The Wall's answer is the headline (the server lists it first); then one line per lab.
 export function auditHtml({ label, audit }, cls) {
   const [wall, ...labs] = audit.lines;
   return `<div class="${cls}">
     <p class="label">${esc(label)} · who first added ${esc(audit.part?.toUpperCase())} ${emoji(audit.part, audit.value)}?</p>
     <p class="audit-wall">${esc(wall)}</p>
-    <p class="audit-labs">${labs.map(esc).join(' · ')}</p></div>`;
+    <p class="audit-labs">${labs.map(esc).join('<br>')}</p></div>`;
 }
+
+// Step 7's paper moment, once the audit after the clean-up exists.
+export const PAPER_LINE = 'The Tuesday paper: flat history is data loss.';
+const auditPaperHtml = (cards, cls) => (cards.some((c) => c.after) ? `<p class="${cls}">${PAPER_LINE}</p>` : '');
 
 // Replace an element's content only when it changed, and never under a focused menu.
 // `sig` also covers data drawn after the HTML (monsters, graphs).
@@ -268,7 +263,7 @@ function startAdmin() {
     row('check', md(s.check ?? ''));
     row('hope', md(s.hope ?? ''));
     row('idea', md(s.behind?.idea ?? ''));
-    row('how', md(s.behind?.text ?? ''));
+    row('how', md(s.behind?.text ?? '') + (s.paper ? `<span class="paper">${esc(s.paper)}</span>` : ''));
     $('ask').textContent = session.ask ? 'Stop asking' : 'Ask on the projector';
     $('ask').classList.toggle('on', session.ask);
 
@@ -330,7 +325,7 @@ function startAdmin() {
   function renderAudits() {
     const cards = step() >= 6 ? auditCards(state.session) : [];
     $('audits').hidden = !cards.length;
-    patch($('audits'), cards.map((c) => auditHtml(c, 'audit-card')).join(''));
+    patch($('audits'), cards.map((c) => auditHtml(c, 'audit-card')).join('') + auditPaperHtml(cards, 'audit-paper'));
   }
 
   // Each lab column keeps its graph and monster nodes, so sticky notes glide when they move.
@@ -340,7 +335,7 @@ function startAdmin() {
     if (box.dataset.ids !== ids) {
       box.innerHTML = state.labs.map((l) => `<article class="lab" style="--lab:${esc(l.color)}">
         <div class="lab-top"></div><p class="status"></p><ul class="members"></ul>
-        <div class="now"><div class="monster"></div><div class="scroll"><svg class="graph"></svg></div></div>
+        <div class="now"><div class="monster"></div><div class="mini"><svg class="graph"></svg></div></div>
         <div class="lab-more"></div></article>`).join('');
       box.dataset.ids = ids;
     }
@@ -358,11 +353,9 @@ function startAdmin() {
         monster.dataset.sig = JSON.stringify(lab.monster);
         renderMonsterCard(monster, lab.monster, { size: 'small' });
       }
-      const mini = el.querySelector('.scroll');
+      const mini = el.querySelector('.mini');
       mini.hidden = !lab.graph;
-      if (lab.graph && drawGraph(mini.querySelector('svg'), lab.graph, { compact: true, labels: true })) {
-        mini.scrollLeft = mini.scrollWidth;
-      }
+      if (lab.graph) drawGraph(mini.querySelector('svg'), lab.graph, { compact: true, labels: true, maxCols: 4 });
       patch(el.querySelector('.lab-more'), moreHtml(lab));
     });
   }
@@ -389,13 +382,14 @@ function startAdmin() {
       ${canRescue ? `<button class="small" data-rescue="${esc(lab.id)}">Rescue</button>` : ''}`.trim();
   }
 
+  // The newest cards that fit the panel; a pill stands for the older ones.
   function renderWall() {
     const wall = state.wall?.graph;
     $('wall-panel').hidden = !wall;
-    if (wall && drawGraph($('wall-scroll').querySelector('svg'), wall, { labels: true })) {
-      $('wall-scroll').scrollLeft = $('wall-scroll').scrollWidth;
-    }
+    if (wall) drawGraph($('wall-graph'), wall, { labels: true, width: $('wall-panel').clientWidth });
   }
+
+  const ago = (ms) => (ms < 10e3 ? 'just now' : ms < 60e3 ? `${Math.floor(ms / 1e3)} s ago` : `${Math.floor(ms / 60e3)} min ago`);
 
   function renderFeed() {
     const time = (t) => new Date(t).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
@@ -403,8 +397,8 @@ function startAdmin() {
     $('feed-all').hidden = !feedLab;
     patch($('feed'), rows.map((f) => `
       <li class="${isRedLine(f) ? 'bad' : ''}"><time>${time(f.t)}</time>
-        ${f.labId ? `${esc(labById(f.labId)?.name ?? `Lab ${f.labId}`)} · ` : ''}${esc(f.who)} — ${esc(f.action)}${f.outcome ? ` → ${esc(f.outcome)}` : ''}
-        ${f.porcelain ? `<code>${esc(f.porcelain)}</code>` : ''}</li>`).join('') || '<li class="muted">Nothing yet.</li>');
+        <p>${f.labId ? `${esc(labById(f.labId)?.name ?? `Lab ${f.labId}`)} · ` : ''}${esc(f.who)} — ${esc(f.action)}${f.outcome ? ` → ${esc(f.outcome)}` : ''}
+        ${f.porcelain ? `<code>${esc(f.porcelain)}</code>` : ''}</p></li>`).join('') || '<li class="muted">Nothing yet.</li>');
   }
 
   // Time-based text (timer, status lines, "ago") updates every second without a refetch.
@@ -426,6 +420,7 @@ function startAdmin() {
     }
     $('timer').textContent = text;
     const resting = onBreak(session, now);
+    $('break').hidden = session.step !== 3 && !resting; // the lesson's one break comes after Step 3
     $('break').textContent = resting ? `End break (back at ${backAt(session)})` : 'Break · 4 min';
     $('break').classList.toggle('on', resting);
     $('timer').parentElement.classList.toggle('warn', elapsed >= 0.75 * work && elapsed < work);
@@ -438,9 +433,11 @@ function startAdmin() {
       el.textContent = status?.text ?? '';
       el.classList.toggle('alert', Boolean(status?.alert));
     });
-    for (const el of document.querySelectorAll('[data-ago]')) el.textContent = `${clock(now - Number(el.dataset.ago))} ago`;
+    for (const el of document.querySelectorAll('[data-ago]')) el.textContent = ago(now - Number(el.dataset.ago));
   }
 
   live(render, (on) => $('conn').classList.toggle('off', !on));
   setInterval(tick, 1000);
+  let settle = null; // redraw the Wall once the size settles
+  addEventListener('resize', () => { clearTimeout(settle); settle = setTimeout(() => state && renderWall(), 150); });
 }

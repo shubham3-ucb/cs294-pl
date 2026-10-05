@@ -1,8 +1,8 @@
-// Robustness probe: a whole class hammering one real server over HTTP and SSE (no browser).
+// Robustness probe: a whole class hammering one real server over HTTP and SSE.
 // Two students in one lab pressing Save / Merge / Finish / Send at the same moment, double clicks,
 // a refresh and a restart in the middle of a conflict, a late joiner, the teacher going back a step,
-// Reset mid-class, crashes that leave stale lock files, invalid input, and 40 live clients for
-// SSE_SECONDS (default 120) while memory and CPU are sampled.
+// Reset mid-class, crashes mid-save and mid-merge, stale lock files, a half-cloned lab, invalid input,
+// and 40 live clients for SSE_SECONDS (default 120) while memory and CPU are sampled.
 // Then two students in real browsers double-click Save, Merge and Finish and reload mid-conflict.
 // Starts its own server on 127.0.0.1:3103 with a fresh DATA_DIR=/tmp/ml_stress and ADMIN_KEY=test,
 // and always stops it. Any 5xx, server error output, unexplained message or corrupt repo fails the run.
@@ -30,14 +30,15 @@ const SAVED_BY = /^Already saved by .+: card [0-9a-f]{7}\.$/;
 const CLOSED = 'Someone already finished or cancelled this merge.';
 const MERGING = 'Finish or cancel the merge first.';
 const UNSAVED = "Save your changes first. Git won't overwrite unsaved work.";
-const MAIN_LOCKED = 'main is the approved monster. Make or switch to a sticky note first.';
+const MAIN_LOCKED = 'main keeps the monster you have. Make or switch to a sticky note to edit.'; // Step 2
 const BAD_NAME = 'Use a–z, 0–9 and dashes, up to 20.';
 const NOT_A_CARD = "That card isn't in your lab's cards.";
 const notYet = (n) => `Not yet — this unlocks in Step ${n}.`;
 
 // Every error a student or teacher can see must be one of the app's own sentences.
 const KNOWN = [
-  UNSAVED, MERGING, MAIN_LOCKED, REFUSED, BAD_NAME, NOT_A_CARD, 'Switch to main first.',
+  UNSAVED, MERGING, MAIN_LOCKED, 'In this step, main changes only by merging.', REFUSED, BAD_NAME, NOT_A_CARD, 'Switch to main first.',
+  'Look only in this step. You change main in Step 5.',
   'The boss is cleaning the Wall. Watch.', 'Someone in your lab changed this note meanwhile. Press again.',
   'Busy, press again.', 'Please join again.', 'Pick a part from the list.', 'Pairs are set in Step 2.',
   'That round is over. Use your draft.', '"wall" is the Wall\'s name. Pick another.', 'That sticky note does not exist.',
@@ -166,6 +167,23 @@ function checkClean(where) {
   log(`ok  ${where}`);
 }
 
+// The session must agree with Git: no saved part shows as "not saved", and an open merge
+// still starts from its note's card (else Finish could never land).
+async function checkSessionMatchesGit(people) {
+  for (const labId of new Set(people.map((w) => w.labId))) {
+    const { lab } = await stateOf(people.find((w) => w.labId === labId));
+    for (const [note, draft] of Object.entries(lab.drafts)) {
+      const card = lab.graph.commits.find((x) => x.id === lab.branches[note])?.monster ?? {};
+      for (const [part, value] of Object.entries(draft)) {
+        if (card[part] === value) problems.push(`Lab ${labId}: ${note}'s draft shows ${part}=${value} as not saved, but the card has it`);
+      }
+    }
+    for (const [note, open] of Object.entries(lab.merging)) {
+      if (open.intoTip !== lab.branches[note]) problems.push(`Lab ${labId}: the open merge on ${note} starts from a card ${note} left`);
+    }
+  }
+}
+
 // ---------- People ----------
 
 async function joinAs(name, labId) {
@@ -248,11 +266,10 @@ async function labCounts(labs) {
 
 async function chaos(lab) {
   const choices = { face: ['frog', 'ghost', 'lion'], body: ['coat', 'donut', 'shell'], legs: ['wheels', 'duck', 'paws'] };
-  const clicks = lab.flatMap((who, i) => Array.from({ length: 10 }, (_, k) => {
+  const rs = await Promise.all(lab.flatMap((who, i) => Array.from({ length: 10 }, (_, k) => {
     const part = ['face', 'body', 'legs'][(i + k) % 3];
-    return () => act(who, 'chaos', { part, value: choices[part][k % 3] });
-  }));
-  const rs = await Promise.all(clicks.map((f) => f()));
+    return act(who, 'chaos', { part, value: choices[part][k % 3] });
+  })));
   assert.ok(rs.every((r) => r.ok), JSON.stringify(tally(rs)));
   const s = await stateOf(lab[0]);
   for (const part of ['face', 'body', 'legs']) assert.ok(choices[part].includes(s.lab.chaos[part]), `chaos ${part}`);
@@ -302,7 +319,7 @@ async function branchRaces(labs) {
   // Three people make the same note at once: one note, two "already exists".
   const rs = await together([a, c, d], (w) => act(w, 'branch', { name: 'cat-robot' }));
   const t = tally(rs);
-  assert.equal(t.ok, 1, JSON.stringify(t));
+  assert.equal(count(rs, /^You're on cat-robot now\./), 1, JSON.stringify(t));
   assert.equal(t['cat-robot already exists. Press Switch to join it.'], 2);
   const names = ['', ' ', 'Cat Robot', '-x', 'a/b', '../x', 'a.lock', 'x'.repeat(21), 'HEAD~1', 'é', 'a b', null, {}, 'refs/heads/x'];
   for (const name of names) assert.equal((await act(b, 'branch', { name })).error, BAD_NAME, `branch ${JSON.stringify(name)}`);
@@ -322,7 +339,8 @@ async function branchRaces(labs) {
   assert.deepEqual([count(saves, SAVED), count(saves, SAVED_BY)], [1, 1], JSON.stringify(tally(saves)));
   await Promise.all([act(b, 'draft', { part: 'body', value: 'superhero' }), act(d, 'draft', { part: 'legs', value: 'tentacles' })]);
   await Promise.all([act(b, 'commit'), act(d, 'commit')]);
-  assert.deepEqual([monsterIn('1', tipIn('1', 'cat-robot'))].map((m) => [m.face, m.body])[0], ['cat', 'robot'], 'both partners\' parts');
+  const catRobot = monsterIn('1', tipIn('1', 'cat-robot'));
+  assert.deepEqual([catRobot.face, catRobot.body], ['cat', 'robot'], "both partners' parts are saved");
   assert.equal(monsterIn('1', tipIn('1', 'superhero')).body, 'superhero');
   for (const labId of ['2', '3']) okay(await admin('rescue', { labId }), `rescue Lab ${labId}`);
 }
@@ -331,8 +349,9 @@ async function branchRaces(labs) {
 async function mergeRaces(labs) {
   const [a, b, c] = labs[1];
   for (const w of labs[1]) okay(await act(w, 'switch', { branch: 'main' }), 'switch to main');
-  const ff = tally(await Promise.all([act(a, 'merge', { from: 'cat-robot' }), act(b, 'merge', { from: 'cat-robot' })]));
-  assert.deepEqual(ff, { ok: 1, 'main already has cat-robot. Nothing to merge.': 1 }, 'two fast-forwards at once');
+  const ff = await Promise.all([act(a, 'merge', { from: 'cat-robot' }), act(b, 'merge', { from: 'cat-robot' })]);
+  assert.deepEqual([count(ff, /^main slid forward to [0-9a-f]{7}\. No new card\.$/), count(ff, /^main already has cat-robot\. Nothing to merge\.$/)],
+    [1, 1], `two fast-forwards at once: ${JSON.stringify(tally(ff))}`);
 
   const main = tipIn('1');
   const merges = await Promise.all([act(a, 'merge', { from: 'superhero' }), act(b, 'merge', { from: 'superhero' })]);
@@ -438,7 +457,7 @@ async function sendRaces(labs) {
   labs[2].push(zoe);
   const z = await stateOf(zoe);
   assert.equal(z.me.branch, 'main');
-  assert.equal(z.me.mission, 'LEGS → 🛼');
+  assert.equal(z.me.mission, 'LEGS → 🛼. Change nothing else.');
   assert.ok(z.wall.graph && z.lab.graph.commits.length > 3, 'the late joiner sees the cards and the Wall');
 
   // Each lab: two people make the change and save at once.
@@ -475,7 +494,7 @@ async function sendRaces(labs) {
   assert.deepEqual(goals, [true, true, true], 'every lab matches the Wall');
 }
 
-// A clean stop flushes the session; a crash (SIGKILL) mid-update-ref leaves lock files behind.
+// A clean stop flushes the session. A crash (SIGKILL) can leave lock files and a half-cloned lab behind.
 async function restarts(labs) {
   const [a] = labs[1];
   const [p] = labs[2];
@@ -491,30 +510,17 @@ async function restarts(labs) {
   const wallLock = path.join(DATA_DIR, 'wall.git', 'refs', 'heads', 'main.lock');
   fs.writeFileSync(labLock, '');
   fs.writeFileSync(wallLock, '');
+  const lab3 = path.join(DATA_DIR, 'labs', '3');
+  fs.rmSync(path.join(lab3, '.git', 'HEAD')); // a kill in the middle of Lab 3's clone
   await startServer();
   assert.ok(!fs.existsSync(labLock) && !fs.existsSync(wallLock), 'stale locks are removed on boot');
+  assert.equal(tipIn('3'), tipIn('wall'), 'a broken lab starts over from the Wall');
+  assert.ok((await stateOf(labs[3][0])).lab.graph, 'and its students carry on');
   const s = await stateOf(p);
   assert.deepEqual(s.lab.drafts.main, { face: 'lion' }, 'the draft survives a crash');
   assert.equal(s.session.step, 5);
   assert.ok(okay(await act(p, 'commit'), 'save after the crash').result.id, 'saving works after the crash');
   await act(a, 'commit');
-}
-
-// The session must agree with Git: no saved part shows as "not saved", and an open merge
-// still starts from its note's card (else Finish could never land).
-async function checkSessionMatchesGit(people) {
-  for (const labId of new Set(people.map((w) => w.labId))) {
-    const { lab } = await stateOf(people.find((w) => w.labId === labId));
-    for (const [note, draft] of Object.entries(lab.drafts)) {
-      const card = lab.graph.commits.find((x) => x.id === lab.branches[note])?.monster ?? {};
-      for (const [part, value] of Object.entries(draft)) {
-        if (card[part] === value) problems.push(`Lab ${labId}: ${note}'s draft shows ${part}=${value} as not saved, but the card has it`);
-      }
-    }
-    for (const [note, open] of Object.entries(lab.merging)) {
-      if (open.intoTip !== lab.branches[note]) problems.push(`Lab ${labId}: the open merge on ${note} starts from a card ${note} left`);
-    }
-  }
 }
 
 // SIGKILL in the middle of saves and a Finish merge, six times: Git stays sound and the session agrees with it.
@@ -571,10 +577,11 @@ async function undoRaces(labs) {
     "The Start card can't be undone.");
 
   // Lab 1: two Get & combine at once, then two Undo at once.
-  const pulls = tally(await Promise.all([act(a, 'pull'), act(b, 'pull')]));
-  assert.deepEqual(pulls, { ok: 1, 'Nothing new on the Wall.': 1 }, JSON.stringify(pulls));
+  const pulls = await Promise.all([act(a, 'pull'), act(b, 'pull')]);
+  assert.deepEqual([count(pulls, /^Got the Wall's cards/), count(pulls, /^Nothing new on the Wall\.$/)], [1, 1], JSON.stringify(tally(pulls)));
   const undos = await Promise.all([act(a, 'revert', { commit: intern }), act(b, 'revert', { commit: intern })]);
-  assert.deepEqual(tally(undos), { ok: 1, 'Already undone. Nothing to change.': 1 }, JSON.stringify(tally(undos)));
+  assert.deepEqual([count(undos, /^Added fix card [0-9a-f]{7}\./), count(undos, /^Already undone\. Nothing to change\.$/)], [1, 1],
+    JSON.stringify(tally(undos)));
   assert.ok(SENT.test(words(await act(a, 'push'))), 'Lab 1 sends the fix');
 
   // Lab 2: move back at the same moment as someone saves; the diary keeps both.
@@ -698,19 +705,6 @@ async function stalePages(pages) {
   return stale;
 }
 
-// A saved part never shows as "not saved": no draft part equals its note's card.
-async function checkDrafts(people) {
-  for (const labId of new Set(people.map((w) => w.labId))) {
-    const { lab } = await stateOf(people.find((w) => w.labId === labId));
-    for (const [note, draft] of Object.entries(lab.drafts)) {
-      const card = lab.graph.commits.find((x) => x.id === lab.branches[note])?.monster ?? {};
-      for (const [part, value] of Object.entries(draft)) {
-        if (card[part] === value) problems.push(`Lab ${labId}: ${note}'s draft shows ${part}=${value} as not saved, but the card has it`);
-      }
-    }
-  }
-}
-
 async function liveClass() {
   const people = [];
   for (let i = 0; i < SSE_CLIENTS; i++) people.push(await joinAs(`Student ${i + 1}`, String((i % 3) + 1)));
@@ -759,7 +753,7 @@ async function liveRun(people, students, pages) {
   clearInterval(sampler);
   await Promise.all(pending);
   const stale = await stalePages(pages);
-  await checkDrafts(people);
+  await checkSessionMatchesGit(people);
   const last = usage();
   const steady = pages.flatMap((c) => c.latencies);
   const seconds = (Date.now() - t0) / 1000;
@@ -771,7 +765,7 @@ async function liveRun(people, students, pages) {
   const burstMs = Date.now() - t1;
   const burstStale = await stalePages(pages);
   const burst = pages.flatMap((c, i) => c.latencies.slice(mark[i]));
-  await checkDrafts(people);
+  await checkSessionMatchesGit(people);
 
   const ms = (xs) => ({ p50: Math.round(pct(xs, 50)), p95: Math.round(pct(xs, 95)), max: Math.round(Math.max(...xs)) });
   const report = {

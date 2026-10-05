@@ -1,7 +1,8 @@
 // Projector (/screen): read-only and live. Same state and events as the teacher page.
 import { renderMonsterCard } from '/monster.js';
 import {
-  live, esc, md, clock, isWrap, goalsHtml, chipsHtml, labStatus, auditCards, auditHtml, qrSrc, patch, drawGraph, onBreak, backAt,
+  live, esc, md, clock, isWrap, goalsHtml, chipsHtml, labStatus, auditCards, auditHtml, PAPER_LINE, qrSrc, patch, drawGraph,
+  onBreak, backAt,
 } from '/admin.js';
 
 const $ = (id) => document.getElementById(id);
@@ -10,7 +11,7 @@ let resting = false; // the break was on at the last render
 
 // Step 8's per-lab counts: [heading, concept ids added up].
 const SUMMARY = [
-  ['Cards saved', ['save']], ['Merges', ['merge', 'fastforward']], ['Conflicts solved', ['conflict']],
+  ['Cards saved', ['save']], ['Merges', ['merge']], ['Conflicts solved', ['conflict']],
   ['Pushes', ['push']], ['Refused pushes', ['rejected']], ['Reverts', ['revert']],
 ];
 
@@ -21,11 +22,17 @@ function render(next) {
   const s = session.steps[n];
   const wrap = isWrap(session);
 
+  // During the break the countdown is the hero, centered, with the return time under it; the rest waits.
   resting = onBreak(session);
+  document.body.classList.toggle('break', resting);
   $('s-title').innerHTML = resting ? 'Break'
     : n === 0 || wrap ? esc(s.title) : `<span class="s-step">Step ${n} ·</span> ${esc(s.title)}`;
   const asking = Boolean(session.ask && s.check) && !resting;
-  $('s-line').innerHTML = resting ? `Back at ${backAt(session)}.` : asking ? md(s.check) : wrap ? '' : md(s.instruction);
+  // The tentacles audit runs at the end of Step 6 and again in Step 7. Once the audit after the clean-up
+  // exists, the paper line replaces the instruction.
+  const audits = n >= 6 && !wrap ? auditCards(session) : [];
+  const paper = audits.some((c) => c.after);
+  $('s-line').innerHTML = resting ? `Back at ${backAt(session)}` : asking ? md(s.check) : wrap ? '' : paper ? esc(PAPER_LINE) : md(s.instruction);
   $('s-line').classList.toggle('ask', asking);
 
   $('s-main').classList.toggle('joining', n === 0);
@@ -33,25 +40,24 @@ function render(next) {
   if ($('s-qr').getAttribute('src') !== qrSrc(session.joinUrl)) $('s-qr').src = qrSrc(session.joinUrl);
   $('s-url').textContent = session.joinUrl;
 
-  // The Wall from Step 4. A long history goes compact (newest cards only) so the emoji stay readable.
+  // The Wall from Step 4. A long history goes compact: Start and the 4 newest cards, readable from the back.
   const wall = n >= 4 && !wrap ? state.wall?.graph : null;
   $('s-wall').hidden = !wall;
-  if (wall) drawGraph($('s-wall-graph'), wall, { labels: true, compact: wall.commits.length > 6 });
+  if (wall) drawGraph($('s-wall-graph'), wall, { labels: true, compact: wall.commits.length > 6, maxCols: 5, pillFont: 16 });
 
-  // The tentacles audit runs at the end of Step 6 and again in Step 7.
-  const audits = n >= 6 && !wrap ? auditCards(session) : [];
   $('s-audits').hidden = !audits.length;
   patch($('s-audits'), audits.map((c) => auditHtml(c, 's-audit')).join(''));
   $('s-stage').hidden = !wall && !audits.length;
   $('s-stage').classList.toggle('split', Boolean(wall && audits.length));
+  $('s-main').classList.toggle('fill', $('s-stage').hidden && !wrap);
 
   $('s-wrap').hidden = !wrap;
-  $('s-labs').hidden = wrap;
+  $('s-labs').hidden = wrap || resting;
   if (wrap) patch($('s-wrap'), wrapHtml(s));
   tick();
 }
 
-// One tile per lab: monster, goal ticks, this step's Git ideas, and a red dot when the lab needs a teacher.
+// One tile per lab: monster, goal ticks and a red dot when the lab needs a teacher.
 // Step 0 shows member names instead, so labs can balance themselves.
 function renderTiles() {
   const { session, labs } = state;
@@ -66,14 +72,16 @@ function renderTiles() {
   labs.forEach((lab, i) => {
     const el = box.children[i];
     const help = labStatus(lab, state, now)?.alert;
-    const count = n === 0 ? `<span class="muted">${lab.members.length}</span>` : '';
+    const count = n === 0 ? `<span class="muted">${lab.members.length === 1 ? '1 person' : `${lab.members.length} people`}</span>` : '';
     const html = `<h2><span class="dot"></span>${esc(lab.name)}${count}${help ? '<span class="help" title="Needs help"></span>' : ''}</h2>
       <div class="monster"></div>
       <div class="s-info">${n === 0
         ? `<p class="people">${lab.members.map((m) => esc(m.name)).join(', ') || 'Nobody yet'}</p>`
-        : `${goalsHtml(lab.goals)}${chipsHtml(lab.concepts, n, n)}`}</div>`;
+        : goalsHtml(lab.goals)}</div>`;
     if (patch(el, html, html + JSON.stringify(lab.monster))) {
-      renderMonsterCard(el.querySelector('.monster'), lab.monster, { size: n >= 4 ? 'medium' : 'large' });
+      const monster = el.querySelector('.monster');
+      renderMonsterCard(monster, lab.monster);
+      monster.style.fontSize = ''; // admin.css sizes it to the projector
     }
   });
 }

@@ -1,0 +1,2 @@
+# What deploy_cloudrun.sh uploads: the same files the Docker build uses.
+#!include:.dockerignore

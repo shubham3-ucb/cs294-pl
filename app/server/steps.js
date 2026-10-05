@@ -1,11 +1,14 @@
 // Step copy, missions, goals and the plan clock. Wording follows the lesson script
-// (lesson/tuesday.md, lesson/app_copy_proposals.md): every step is Problem → Idea → Git.
+// (lesson/tuesday.md): every step is Problem → Idea → Git.
 //
 // Per step:
 //   instruction, mission, unlocks, goals(view), bonus  — the student's mission panel
+//   bossInstruction, screenInstruction — Step 7's line for the boss lab, and for the projector
 //   check  — the pause question ("We'll ask:"; the projector shows it while Ask is on)
 //   hope   — what we hope to hear back (teachers only)
-//   behind — Behind the door: {problem, idea, text (how Git does it), cmds ("You'd type")}
+//   behind — {problem, idea (teachers only), text (how Git does it), cmds}; students see text + cmds
+//   mainLocked — while set, main changes only by merging; clicking a part on main says this
+//   paper  — one quiet line tying the step to Tuesday's paper (teachers only)
 //   askFirst — the idea question to ask before pressing Next into this step (teachers only)
 //   next   — what pressing Next into this step does (teachers only)
 //   facilitator — what to watch for, the board line, then "If behind:" (teachers only)
@@ -45,7 +48,7 @@ export const STEPS = [
     behind: {
       problem: 'Nothing is saved. Nobody knows who did what.',
       idea: 'Save every version, with a name on it.',
-      text: 'None yet. This is life without it.',
+      text: null, // no Git yet: students see no Behind the door
       cmds: [],
     },
     askFirst: null,
@@ -56,21 +59,22 @@ export const STEPS = [
   {
     id: 'commit',
     title: 'Save every version',
-    instruction: 'The old monster is gone for good. From now on, every save makes a card. Change one part, then press **Save card**. Take turns. Everyone saves at least once.',
+    instruction: 'The chaos monster is gone. From now on, every save makes a card. One at a time: change one part, then press **Save card**. Everyone saves at least once.',
     unlocks: ['draft', 'commit', 'inspect'],
     goals: (v) => {
       const { saved, online } = v.savers();
       return [{ text: `Everyone saved a card (${saved}/${online})`, done: online > 0 && saved === online }];
     },
-    bonus: 'Click the oldest card. Who made it? What is its parent?',
+    bonus: 'Click any card. Press **Show what Git stored**. Find the parent, the author and the message.',
     check: 'Why do arrows point back, never forward?',
     hope: "The next card doesn't exist yet. Cards never change.",
     behind: {
       problem: "You couldn't get an old monster back.",
       idea: 'Save the whole monster, your name, and the card before.',
-      text: '`git commit` stores exactly that. The ID is computed from all of it. So a card never changes.',
+      text: '`git commit` saves the monster, the card before, your name and time. Its ID is computed from all of it. Change anything, and you get a new card.',
       cmds: ['git commit', 'git log'],
     },
+    paper: "Git takes your name and your laptop's clock on trust. The paper found 99k+ wrong timestamps in 9 projects.",
     askFirst: 'What should each saved version hold?',
     next: 'Adds Save card. Every lab starts from the Start card.',
     facilitator: 'Watch for: anyone who hasn\'t saved yet. Pause: first ask "Which card came 3 saves ago, and who made it?" Board: "1. Card (commit): a full snapshot + its parent. Never changes." If behind: skip "3 saves ago".',
@@ -79,22 +83,27 @@ export const STEPS = [
   {
     id: 'branch',
     title: 'Try two ideas at once',
-    instruction: 'Try two ideas without losing main. Each pair makes its own sticky note. Build your idea on it and save.',
+    instruction: 'Your lab already has one sticky note: main. Each pair makes its own note for its idea. Build on it and save.',
     unlocks: ['branch', 'switch', 'pair'],
+    mainLocked: 'main keeps the monster you have. Make or switch to a sticky note to edit.',
+    // A pair of one (a lab of 3 has one) gets the solo mission, so nobody waits for a partner.
     mission: {
-      A: 'Press **New sticky note**, name it **cat-robot** (partner: **Switch to** cat-robot). FACE → 🐱, BODY → 🤖. **Save card**.',
-      B: 'Press **New sticky note**, name it **superhero** (partner: **Switch to** superhero). BODY → 🦸, LEGS → 🐙. **Save card**.',
+      A: 'One of you: press **New sticky note**, keep the name **cat-robot**. The other: wait for it, then **Switch to** **cat-robot**. Then FACE → 🐱, BODY → 🤖. **Save card**.',
+      B: 'One of you: press **New sticky note**, keep the name **superhero**. The other: wait for it, then **Switch to** **superhero**. Then BODY → 🦸, LEGS → 🐙. **Save card**.',
+      soloA: 'Press **New sticky note**, keep the name **cat-robot**. Then FACE → 🐱, BODY → 🤖. **Save card**.',
+      soloB: 'Press **New sticky note**, keep the name **superhero**. Then BODY → 🦸, LEGS → 🐙. **Save card**.',
     },
     goals: (v) => [
       { text: 'cat-robot has 🐱 + 🤖', done: v.noteHas('cat-robot', PAIR_PARTS['cat-robot']) },
       { text: 'superhero has 🦸 + 🐙', done: v.noteHas('superhero', PAIR_PARTS.superhero) },
     ],
+    bonus: "**Switch to** main and back. Watch the draft change. Look, don't edit.",
     check: 'Where is the original monster now? Did anything get copied?',
     hope: "Still on main's card. Nothing was copied.",
     behind: {
       problem: 'Two ideas in one draft overwrite each other.',
       idea: 'Each idea gets its own sticky note. Saving moves only that note.',
-      text: "A branch is a tiny file holding one card's ID. Making one copies nothing. Your pin (HEAD) shows which note you're on.",
+      text: "A sticky note (branch) is a tiny file holding one card's ID. Making one copies nothing. Your pin (HEAD) shows which note you're on.",
       cmds: ['git switch -c', 'git switch'],
     },
     askFirst: 'Half your lab tries one idea, half another. Same draft. What goes wrong?',
@@ -107,36 +116,39 @@ export const STEPS = [
     title: 'Make one monster from both',
     instruction: 'The client wants one monster with both ideas. On **main**: merge **cat-robot**. Then merge **superhero**.',
     unlocks: ['merge', 'resolve', 'abort'],
+    mainLocked: 'In this step, main changes only by merging.',
     goals: (v) => [
       { text: 'main has cat-robot', done: v.mainHas('cat-robot') },
       { text: 'main has superhero (merge card)', done: v.mainHas('superhero') && v.mainHasMergeCard() },
     ],
     bonus: 'Open the merge card. Why two parents?',
-    check: 'Why did the first merge only move the note? Why did BODY need you?',
-    hope: 'Main had nothing new, so its note slid. Only BODY changed on both sides.',
+    check: 'Why did FACE and LEGS combine alone, but BODY needed you?',
+    hope: 'Compared with the split card, only BODY changed on both sides.',
     behind: {
       problem: "Two newest cards can't tell you who changed what.",
       idea: 'Compare each part with the card where you split.',
-      text: '`git merge` finds that card. Changed on one side: keep it. Changed on both: conflict, you pick.',
+      text: '`git merge` finds the card where you split. Changed on one side: keep it. Changed on both, differently: a conflict, you pick.',
       cmds: ['git merge'],
     },
+    paper: 'No merge card says these cards came from cat-robot. The paper: fast-forward forgets the branch.',
     askFirst: 'FACE differs on the two newest cards. Which side changed it?',
     next: 'Adds merging.',
-    facilitator: 'Watch for: a lab says "take the newest". Ask: "Whose work did you throw away?" Board: "3. Merge: compare both sides with the card they share." Then press **Break** (4 minutes). Stay on Step 3. Rescue any lab without a merge card.',
+    facilitator: 'Watch for: a lab says "take the newest". Ask: "Whose work did you throw away?" Pause: first ask "Why did the first merge only move the note?" Board: "3. Merge: compare both sides with the card they share." Then press **Break** (4 minutes). Stay on Step 3. Rescue any lab without a merge card.',
     minutes: 5, at: 22,
   },
   {
     id: 'remote',
     title: 'Meet the Wall',
-    instruction: "Each lab's cards lived only in that lab. The Wall is the class's shared copy, like GitHub. Your lab's cards are now a full copy of it ({wallLab}'s monster). Compare your newest card's ID with the Wall's.",
+    instruction: "The Wall is the class's shared copy, like GitHub. It got {wallCards}. Is your newest card's ID the same as the Wall's?",
     unlocks: ['wall'],
+    mainLocked: 'Look only in this step. You change main in Step 5.',
     goals: () => [],
-    check: 'Only one lab made that card. Why is the ID the same everywhere?',
+    check: 'Two labs never made that card. Why does their copy have the same ID?',
     hope: 'The ID is computed from the card. Same card, same ID.',
     behind: {
       problem: "Each lab's cards lived only in that lab.",
       idea: 'One shared copy. Every lab keeps a full copy of it.',
-      text: '`git clone` copies every card. Same card, same ID, on every laptop. Blue `wall/main` = the Wall, when you last checked.',
+      text: '`git clone` copies every card. Same card, same ID, on every laptop. Blue `wall/main` = the Wall, last time you checked.',
       cmds: ['git clone'],
     },
     askFirst: 'How do labs share, without one lab holding the only copy?',
@@ -153,7 +165,8 @@ export const STEPS = [
       const change = LAB_CHANGES[v.labId];
       return [
         { text: "Your lab's change is on the Wall", done: !!change && v.wallHasPart(change.part, change.value) },
-        { text: "Your lab's cards match the Wall", done: v.matchesWall() },
+        // Ticks only once the change is in: at the step's start every lab already matches the Wall.
+        { text: "Your lab's cards match the Wall (Get & combine)", done: !!change && v.wallHasPart(change.part, change.value) && v.matchesWall() },
       ];
     },
     check: 'Why did the Wall refuse your card instead of adding it?',
@@ -161,9 +174,10 @@ export const STEPS = [
     behind: {
       problem: 'The Wall refused your card.',
       idea: 'The Wall never drops a card. Combine its new cards first.',
-      text: '`git push` only moves the Wall forward. `git pull` = `git fetch` + `git merge`.',
+      text: "`git push` is refused unless you already have the Wall's newest card. `git pull` = `git fetch` + `git merge`.",
       cmds: ['git push', 'git pull'],
     },
+    paper: "Each card's trip to the Wall is an integration path. How long the trip took is code velocity. Microsoft had to rebuild that metric for Git.",
     askFirst: null,
     next: 'Adds Send to Wall and Get & combine. Students hit the problem first.',
     facilitator: 'Watch for: the first lab gets in. The others are refused, then combine with no red. "Refused twice"? Check they pressed Get & combine. Board: "5. Send (push) only moves the Wall forward. Behind? Get & combine (pull) first."',
@@ -172,15 +186,16 @@ export const STEPS = [
   {
     id: 'undo',
     title: 'Oops: undo a shared mistake',
-    instruction: "A mustache card reached the Wall. Every lab has a copy. Remove it without breaking anyone's copy.",
+    instruction: "A mustache card reached the Wall. Get it, then remove it without breaking anyone's copy.",
     unlocks: ['revert', 'reset', 'reflog'],
     mission: {
-      odd: 'Press **Get & combine**. Click the mustache card, press **Undo this card**, then **Send to Wall**.',
-      even: 'Press **Get & combine**. Click the card before the mustache, press **Move my note back here**, then **Send to Wall**. What happens? Refused? Open the **Safety diary**.',
+      odd: "Press **Get & combine**. In your lab's cards, click the 🥸 card. Press **Undo this card**, then **Send to Wall**.",
+      even: 'Press **Get & combine**. Click the card right before 🥸. Press **Move my note back here**, then **Send to Wall**. What happens?',
+      evenRefused: 'Refused. Open the **Safety diary**, then press **Get & combine**. 🥸 back? Click it, press **Undo this card**, then send.',
     },
     goals: (v) => [
       { text: 'You got the mustache card', done: v.gotSabotage() },
-      { text: "Your lab's cards match the Wall, with no mustache", done: v.matchesWall() && v.wallMonster()?.face !== 'mustache' },
+      { text: 'No mustache on the Wall or in your lab (Undo, then Send)', done: v.matchesWall() && v.wallMonster()?.face !== 'mustache' },
     ],
     bonus: 'Open the Safety diary. Find every place main has been.',
     check: 'Why is adding a fix card safe, but moving back is not?',
@@ -188,7 +203,7 @@ export const STEPS = [
     behind: {
       problem: 'A bad card is on the Wall, and every lab has it.',
       idea: "Don't rip out a shared card. Add a card that undoes it.",
-      text: '`git revert` adds that card. `git reset` moves your note back. Safe only if nobody has the card. `git reflog` lists every place your note has been.',
+      text: '`git revert` adds a card that undoes the old one. `git reset` moves your note back. Safe only if nobody else has the card. `git reflog` lists every place your note has been.',
       cmds: ['git revert', 'git reset --hard', 'git reflog'],
     },
     askFirst: 'After Sabotage and Get & combine: "How do you get rid of it?"',
@@ -199,8 +214,9 @@ export const STEPS = [
   {
     id: 'rewrite',
     title: 'The boss wants it clean',
-    instruction: "Watch the Wall. Who added the tentacles? Find out in your lab's cards.",
+    instruction: "Press nothing; watch the Wall. Then press **← older cards** in your lab's cards. Who made the first 🐙 card?",
     bossInstruction: 'The boss wants one clean card. Press **Get & combine**. Then **Replace the Wall with one card**.',
+    screenInstruction: '{boss} replaces the Wall. Everyone else: press nothing and watch.',
     unlocks: ['squash'],
     goals: (v) => [{ text: 'The Wall has one clean card', done: v.wallIsClean() }],
     bonus: 'Ask another lab who added the tentacles.',
@@ -209,9 +225,10 @@ export const STEPS = [
     behind: {
       problem: 'The boss wants one clean card. Cards never change.',
       idea: 'Make one new card after Start. Force the Wall onto it.',
-      text: 'Squash writes a new card with a new ID. `git push --force` points the Wall at it. `git gc` deletes the old cards. Who did what is gone.',
+      text: 'Squash (many cards into one) writes a new card with a new ID. `git push --force` points the Wall at it. `git gc` deletes the old cards from the Wall. The Wall no longer knows who did what.',
       cmds: ['git push --force', 'git gc'],
     },
+    paper: 'Squash dropped the cards, and who made them. The paper: some loss cannot be recovered.',
     askFirst: 'Cards never change. How do you give me one clean card?',
     next: "Only the boss lab can replace the Wall. The other labs' sends pause.",
     facilitator: 'In order: **Audit** → the boss lab replaces the Wall → **Audit** → **Empty the Wall\'s bin**. Point out: every lab still has the old cards. Board: "7. Rewrite (squash, rebase): new cards. Force push + gc: the old ones are gone." Then the paper and the exit question.',
@@ -254,10 +271,12 @@ export const CONCEPTS = [
   { id: 'force', label: 'Force push', step: 7 },
 ];
 
-export function missionFor(step, labId, pair) {
+// solo: nobody else in my pair is online (Step 2). refused: the lab's send was refused in this step
+// (Step 6: the even labs see their next move only after they hit the refusal).
+export function missionFor(step, labId, pair, { solo = false, refused = false } = {}) {
   const s = STEPS[step];
-  if (step === 2) return s.mission[pair];
-  if (step === 5) return LAB_CHANGES[labId]?.text ?? null;
-  if (step === 6) return s.mission[labId % 2 ? 'odd' : 'even'];
+  if (step === 2) return s.mission[solo ? `solo${pair}` : pair];
+  if (step === 5) return LAB_CHANGES[labId] ? `${LAB_CHANGES[labId].text}. Change nothing else.` : null;
+  if (step === 6) return s.mission[labId % 2 ? 'odd' : refused ? 'evenRefused' : 'even'];
   return null;
 }

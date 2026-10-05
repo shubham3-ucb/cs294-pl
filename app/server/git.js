@@ -45,6 +45,8 @@ function identity(who = SYSTEM, time = Date.now()) {
 }
 
 // Run git in a repo ('wall', a lab id, or an absolute dir). Resolves with the exit code; never throws on exit codes.
+// Git never looks above DATA_DIR for a repo: a lab dir broken by a kill mid-clone fails instead of
+// acting on whatever repo DATA_DIR sits in (./data inside the project's own checkout).
 export function git(repo, args, { input, env, buffer = false } = {}) {
   return new Promise((resolve, reject) => {
     const child = execFile('git', args, {
@@ -53,7 +55,7 @@ export function git(repo, args, { input, env, buffer = false } = {}) {
       maxBuffer: 64 * 1024 * 1024,
       env: {
         PATH: process.env.PATH, LC_ALL: 'C', GIT_CONFIG_GLOBAL: '/dev/null', GIT_CONFIG_NOSYSTEM: '1',
-        GIT_TERMINAL_PROMPT: '0', ...identity(), ...env,
+        GIT_TERMINAL_PROMPT: '0', GIT_CEILING_DIRECTORIES: DATA_DIR, ...identity(), ...env,
       },
     }, (err, out, stderr) => {
       if (err && typeof err.code !== 'number') reject(err);
@@ -65,7 +67,12 @@ export function git(repo, args, { input, env, buffer = false } = {}) {
 }
 
 // How a command reads in "Show the low-level steps": runnable in a shell, input included.
-const quote = (a) => (/^[\w@%^{}:/.,=+-]+$/.test(a) ? a : `'${a.replace(/'/g, `'\\''`)}'`);
+// "Merge branch 'superhero'" reads better in double quotes than as 'Merge branch '\''superhero'\'''.
+const quote = (a) => {
+  if (/^[\w@%^{}:/.,=+-]+$/.test(a)) return a;
+  if (a.includes("'") && !/["$`\\!]/.test(a)) return `"${a}"`;
+  return `'${a.replace(/'/g, `'\\''`)}'`;
+};
 function shown(args, input) {
   const cmd = `git ${args.map(quote).join(' ')}`;
   return input === undefined ? cmd : `printf ${quote(input.replace(/\t/g, '\\t').replace(/\n/g, '\\n'))} | ${cmd}`;
@@ -249,7 +256,7 @@ export function commit(lab, note, author) {
     if (!(await swap(ctx, lab.id, ref, id, tip, `commit: ${message}`, author))) return moved(ctx);
     clearSaved();
     return finish(ctx, { id, parent: tip, message, monster: next }, `git commit -am ${quote(message)}`,
-      `Git stored the monster as card ${short(id)}. It points back to ${short(tip)}. ${note} moved to it.`);
+      `Git stored card ${short(id)}, pointing back to ${short(tip)}, and moved ${note} to it.`);
   });
 }
 
@@ -263,7 +270,7 @@ export function createBranch(lab, name, author = SYSTEM) {
       return finish(ctx, { exists: true }, '', `${name} already exists.`);
     }
     return finish(ctx, { id: main, name }, `git switch -c ${name} main`,
-      `Git wrote a new sticky note, ${name}, on main's card ${short(main)}. Nothing was copied.`);
+      `Git wrote sticky note ${name} on card ${short(main)}; nothing was copied.`);
   });
 }
 
@@ -321,10 +328,10 @@ function mergeExplain(r, into, from) {
   if (r.moved) return 'Someone moved this sticky note meanwhile. Nothing changed.';
   if (r.nothing) return `${into} already has every card of ${nameOf(from)}. Nothing to do.`;
   if (r.fastForward) {
-    return `${into}'s card was already in ${nameOf(from)}'s history. Git slid ${into} forward to ${short(r.id)}. No new card (fast-forward).`;
+    return `Git slid ${into} forward to ${short(r.id)}: a fast-forward, so no new card. Every card on ${into} was already in ${nameOf(from)}.`;
   }
-  if (r.merged) return `Each part changed on one side only. Git made merge card ${short(r.id)} with two parents.`;
-  return `${list(r.conflicts)} changed on both sides since card ${short(r.base)}. Git needs a person to pick.`;
+  if (r.merged) return `Git made merge card ${short(r.id)} alone: no part changed on both sides.`;
+  return `${list(r.conflicts)} changed on both sides since card ${short(r.base)}, so you pick.`;
 }
 
 export function merge(lab, into, from, author) {
@@ -351,7 +358,7 @@ export function resolve(lab, note, monster, author) {
     delete lab.merging[note];
     const explain = merging
       ? `Git made merge card ${short(id)} with two parents: ${note} and ${nameOf(open.from)}.`
-      : `Git made fix card ${short(id)}. The old card stays in the history.`;
+      : `Git made fix card ${short(id)}; the old card stays in the history.`;
     return finish(ctx, { id, parents, monster }, merging ? 'git add monster.txt\ngit commit' : 'git add monster.txt\ngit revert --continue', explain);
   });
 }
@@ -407,10 +414,16 @@ export function pull(lab, author) {
     await onWall(() => run(ctx, lab.id, ['fetch', 'wall']));
     touch(lab.id);
     const r = await mergeIn(ctx, lab, 'main', 'wall/main', author, 'pull');
-    const explain = r.nothing ? 'Git fetched from the Wall. Nothing new: main has every card already.'
-      : `Git fetched the Wall's cards into wall/main, then merged. ${mergeExplain(r, 'main', 'wall/main')}`;
-    return finish(ctx, r, 'git fetch wall\ngit merge wall/main', explain);
+    return finish(ctx, r, 'git fetch wall\ngit merge wall/main', pullExplain(r));
   });
+}
+
+function pullExplain(r) {
+  if (r.nothing) return 'Git fetched from the Wall. Nothing new: main has every card already.';
+  if (r.merged) return `Git fetched the Wall's cards, then made merge card ${short(r.id)} with two parents.`;
+  if (r.fastForward) return `Git fetched the Wall's cards, then slid main forward to ${short(r.id)}.`;
+  if (r.conflict) return `Git fetched the Wall's cards; ${list(r.conflicts)} changed on both sides, so you pick.`;
+  return mergeExplain(r, 'main', 'wall/main');
 }
 
 // ---------- Undo ----------
@@ -444,7 +457,7 @@ export function revert(lab, note, commit, author) {
     const id = await commitTree(ctx, lab.id, tree, [tip], message, author);
     if (!(await swap(ctx, lab.id, ref, id, tip, `revert: Revert "${subject}"`, author))) return moved(ctx);
     return finish(ctx, { id, reverted: commit }, porcelain,
-      `Git made card ${short(id)}, which takes back what ${short(commit)} changed. The old card stays.`);
+      `Git added fix card ${short(id)}; card ${short(commit)} stays in the history.`);
   });
 }
 
@@ -459,7 +472,7 @@ export function reset(lab, note, commit, author = SYSTEM) {
     if (!tip) return moved(ctx);
     if (!(await swap(ctx, lab.id, ref, commit, tip, `reset: moving to ${short(commit)}`, author))) return moved(ctx);
     return finish(ctx, { id: commit, from: tip }, `git reset --hard ${short(commit)}`,
-      `${note} now points to ${short(commit)}. Nothing was deleted: the diary remembers where it was.`);
+      `${note} now points to ${short(commit)}; the diary still lists where it was.`);
   });
 }
 
@@ -500,7 +513,7 @@ export function squashForcePush(lab, author) {
     if (!(await swap(ctx, lab.id, ref, id, start, `commit: ${CLEAN}`, author))) return moved(ctx);
     const sent = await pushIn(ctx, lab, true);
     return finish(ctx, { ...sent, id, start }, `git reset --soft ${short(start)}\ngit commit -m "${CLEAN}"\ngit push --force`,
-      `Git made one new card, ${short(id)}, right after Start. \`git push --force\` moved the Wall onto it.`);
+      `Git made one new card, ${short(id)}, after Start, and forced the Wall onto it.`);
   });
 }
 

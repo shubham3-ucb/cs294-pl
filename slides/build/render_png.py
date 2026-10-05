@@ -1,7 +1,7 @@
 """Render every slide of a .pptx to PNG WITH colour emoji.
 LibreOffice 7.3 PDF export silently drops Noto Color Emoji glyphs, so we split the deck
 into one-slide decks and use --convert-to png (which does draw emoji). Output 1280x720.
-usage: python3 render_png.py deck.pptx outdir [prefix]
+usage: python3 slides/build/render_png.py deck.pptx outdir [prefix]
 """
 import os, subprocess, sys, tempfile, shutil
 from pptx import Presentation

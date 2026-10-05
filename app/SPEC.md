@@ -49,23 +49,26 @@ legs: sticks
 
 The facilitator advances steps for the whole class from the admin page. Each step adds its own
 button(s); earlier buttons stay available (§3, action row). Copy below is FINAL wording (UI may
-trim, never add jargon). From Step 3 on, the mission panel shows one fixed line above the
-instruction: "One person presses, everyone watches. Swap each step."
+trim, never add jargon), except where lesson/tuesday.md later changed
+the wording or the clock: those win, and `server/steps.js` holds the live copy. From Step 3 on, the
+mission panel shows one fixed line above the instruction: "One person presses, everyone watches. Swap
+each step."
 
 | # | id | Title (UI) | Git | Minutes (work + talk) | Starts |
 |---|---|---|---|---|---|
-| 0 | chaos | Everyone, one monster | (none) | 1.5 + 1.5 | 0:03 |
-| 1 | commit | Save every version | git commit, git log | 4 + 2 | 0:06 |
-| 2 | branch | Try two ideas at once | git branch, git switch | 4 + 2 | 0:12 |
-| 3 | merge | Make one monster from both | git merge (fast-forward + conflict) | 6 + 4 | 0:18 |
-| 4 | remote | Meet the Wall | git clone, card IDs | 1 + 2 | 0:28 |
-| 5 | push | Put your monster on the Wall | git push, git pull, refused push | 6 + 3 | 0:34 |
-| 6 | undo | Oops: undo a shared mistake | git revert, git reset, git reflog | 6 + 3 | 0:43 |
-| 7 | rewrite | The boss wants it clean | squash, git push --force, git gc | 4 + 4 | 0:52 |
-| 8 | wrap | What you built | recap | 15 | 1:00 |
+| 0 | chaos | Everyone, one monster | (none) | 1.5 + 2.5 | 0:03 |
+| 1 | commit | Save every version | git commit, git log | 3 + 4 | 0:08 |
+| 2 | branch | Try two ideas at once | git branch, git switch | 3 + 4 | 0:15 |
+| 3 | merge | Make one monster from both | git merge (fast-forward + conflict) | 5 + 5 | 0:22 |
+| 4 | remote | Meet the Wall | git clone, card IDs | 2 + 4 | 0:36 |
+| 5 | push | Put your monster on the Wall | git push, git pull, refused push | 5 + 4 | 0:42 |
+| 6 | undo | Oops: undo a shared mistake | git revert, git reset, git reflog | 4 + 5 | 0:51 |
+| 7 | rewrite | The boss wants it clean | squash, git push --force, git gc | 2 + 6 | 1:00 |
+| 8 | wrap | What you built | recap | 2 | 1:15 |
 
-Around the steps: join 0:00 (3 min) · break 0:31 (3 min) · buffer 1:15 (5 min). Step 8's 15 minutes
-cover the wrap, the paper and the exit questions. The plan clock starts 3 minutes before Step 0.
+Around the steps (the lesson clock): join 0:00 (3 min) · objectives 0:07 (1 min) · break 0:32 (4 min, on
+Step 3) · the paper 1:08 (4 min) and the exit question 1:12 (3 min), both on Step 7 · buffer 1:17 (3 min).
+The plan clock starts 3 minutes before Step 0.
 
 For each step `server/steps.js` holds: **instruction**, **mission** (per pair or lab, if any),
 **unlocks**, **goals** (1–3 live ticks computed from lab state; offline members don't count),

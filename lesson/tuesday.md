@@ -21,7 +21,7 @@
 In Steps 5 and 6, students hit the problem first. The idea comes last, out of the pause.
 Never say a Git name before a student says the idea.
 Someone says the Git name first? Say: "Right. Now say what it does, without Git words."
-From Step 3 on, one student per lab drives. The lab decides together.
+From Step 3 on, one student per lab presses. Swap who presses each step. The lab decides together.
 
 | Clock | Block | Min |
 |---|---|---|
@@ -255,7 +255,7 @@ Checked in: #1, the pauses in Steps 1, 2 and 4. #2, the pauses in Steps 3 and 5.
 **Do:** Next → Step 5.
 **Say:** "Put your monster on the Wall. The first lab there wins."
 **Do (students):**
-- Add your lab's signature. Lab 1: FACE → 🐲. Lab 2: LEGS → 🛼. Lab 3: BODY → 🌵.
+- Make your lab's change. Lab 1: FACE → 🐲. Lab 2: LEGS → 🛼. Lab 3: BODY → 🌵.
 - **Save card**, then **Send to Wall**.
 - Refused? Press **Get & combine**. Then **Send to Wall** again.
 

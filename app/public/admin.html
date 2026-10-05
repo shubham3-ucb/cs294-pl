@@ -25,7 +25,7 @@
         </div>
         <!-- This step, in lesson order. Empty rows hide. -->
         <div class="flow">
-          <div class="row"><p class="label">Watch</p><p id="facilitator"></p></div>
+          <div class="row"><p class="label">Notes</p><p id="facilitator"></p></div>
           <div class="row"><p class="label">Problem</p><p id="problem"></p></div>
           <div class="row"><p class="label">Pause · ask</p>
             <div><p id="check" class="check"></p><button id="ask"></button></div></div>
@@ -43,9 +43,9 @@
             <div class="row"><p class="label">Idea</p><p id="next-idea"></p></div>
           </div>
           <div class="step-nav">
-            <button id="break"></button>
             <button id="prev">Prev</button>
             <button id="next" class="primary"></button>
+            <button id="break" hidden></button>
             <label id="step-lab" class="step-lab" hidden><span id="step-lab-label"></span> <select id="step-lab-select"></select></label>
           </div>
           <p id="next-note" class="muted small"></p>
@@ -76,7 +76,7 @@
     <section class="bottom">
       <div class="panel" id="wall-panel" hidden>
         <h3>The Wall <code>wall.git</code></h3>
-        <div id="wall-scroll" class="scroll"><svg class="graph"></svg></div>
+        <svg id="wall-graph" class="graph"></svg>
       </div>
       <div class="panel">
         <h3>Feed <button id="feed-all" class="small" hidden>Show all labs</button></h3>

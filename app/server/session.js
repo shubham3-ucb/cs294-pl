@@ -20,12 +20,12 @@ const BREAK_MS = 4 * 60e3; // the lesson's break, after Step 3
 const T = {
   unsaved: "Save your changes first. Git won't overwrite unsaved work.",
   merging: 'Finish or cancel the merge first.',
-  mainLocked: 'main is the approved monster. Make or switch to a sticky note first.',
   mainOnly: 'Switch to main first.',
   boss: 'The boss is cleaning the Wall. Watch.',
   moved: 'Someone in your lab changed this note meanwhile. Press again.',
   busy: 'Busy, press again.',
   refused: "Refused: the Wall has cards you don't have. Press Get & combine first.",
+  refusedMovedBack: "Refused: the Wall still has the 🥸 card. Moving your note back didn't remove it.",
   rejoin: 'Please join again.',
   closed: 'Someone already finished or cancelled this merge.',
   badPart: 'Pick a part from the list.',
@@ -48,7 +48,7 @@ const person = (pid) => own(S.people, pid);
 const labById = (id) => own(S.labs, id);
 const labName = (id) => labById(id)?.name ?? `Lab ${id}`;
 const authorOf = (me) => ({ pid: me.pid, name: me.name });
-const mainLocked = (note) => note === 'main' && (S.step === 2 || S.step === 3);
+const mainLocked = (note) => (note === 'main' && STEPS[S.step].mainLocked) || null;
 const isBoss = (lab) => S.step === 7 && S.stepLab[7] === lab.id;
 const allowed = (part, value) => PARTS.includes(part) && palette(S.step)[part].includes(value);
 const clone = (id) => git.cloneLab(id, { replace: true });
@@ -192,8 +192,11 @@ export async function boot() {
   const saved = fs.existsSync(SESSION_FILE) && JSON.parse(fs.readFileSync(SESSION_FILE, 'utf8'));
   if (saved && fs.existsSync(path.join(DATA_DIR, 'wall.git'))) {
     S = saved;
+    // A lab that is missing, or broken by a kill in the middle of its clone, starts over from the Wall.
     for (const id of Object.keys(S.labs)) {
-      if (!fs.existsSync(path.join(DATA_DIR, 'labs', id))) await clone(id);
+      const sound = fs.existsSync(path.join(DATA_DIR, 'labs', id))
+        && (await git.git(id, ['rev-parse', '--verify', '-q', 'refs/heads/main'])).code === 0;
+      if (!sound) await clone(id);
     }
     await agreeWithGit();
   } else {
@@ -278,6 +281,14 @@ async function noteCard(lab, note) {
 
 const noteMonster = async (lab, note) => (await noteCard(lab, note))?.monster ?? null;
 
+// Step 6: the lab has the Intern's 🥸 card, but main moved back off it (the card is only on wall/main or in the diary).
+async function movedOffMustache(lab) {
+  if (S.step !== 6) return false;
+  const graph = await git.graph(lab.id);
+  const intern = graph.commits.find((c) => c.author === INTERN.name);
+  return !!intern && !history(index(graph), tipOf(graph, 'main')).has(intern.id);
+}
+
 function membersOf(lab) {
   return Object.values(S.people)
     .filter((p) => p.labId === lab.id)
@@ -299,20 +310,26 @@ function labMonster(lab, graph) {
 
 // ---------- State for clients ----------
 
-// One step's copy for students. Step 7's instruction depends on the lab (boss or not).
+// One step's copy for students (lab) or the projector (no lab). Step 4's and Step 7's instructions
+// depend on the lab. Students see only how Git does it: the problem and the idea are theirs to say first.
 function stepFor(n, lab) {
   const s = STEPS[n];
-  const boss = n === 7 && lab && S.stepLab[7] === lab.id;
+  const wallLab = S.stepLab[4] ?? '1';
+  const wallCards = lab?.id === wallLab ? "your lab's cards, and every lab got a copy"
+    : `${labName(wallLab)}'s cards, and ${lab ? 'your lab got a fresh copy' : 'every lab got a copy'}`;
+  const instruction = (!lab && s.screenInstruction) || (lab && lab.id === S.stepLab[7] && s.bossInstruction) || s.instruction;
   return {
     n,
     id: s.id,
     title: s.title,
-    fixedLine: n >= 3 && n <= 7 ? FIXED_LINE : null,
-    instruction: boss ? s.bossInstruction : s.instruction.replace('{wallLab}', labName(S.stepLab[4] ?? '1')),
+    // Only where the lab presses something: not in Step 4 (look only), and in Step 7 only for the boss lab.
+    fixedLine: [3, 5, 6].includes(n) || (n === 7 && lab && lab.id === S.stepLab[7]) ? FIXED_LINE : null,
+    instruction: instruction.replace('{wallCards}', wallCards).replace('{boss}', labName(S.stepLab[7])),
     unlocks: s.unlocks,
+    mainLocked: s.mainLocked ?? null,
     bonus: s.bonus ?? null,
     check: s.check,
-    behind: s.behind,
+    behind: s.behind?.text ? { text: s.behind.text, cmds: s.behind.cmds } : null,
     minutes: s.minutes,
     at: s.at,
   };
@@ -338,6 +355,8 @@ export const state = (pid) => work(async () => {
   const graph = await git.graph(lab.id);
   const wallGraph = S.step >= 4 ? await git.graph('wall') : null;
   if (!tipOf(graph, me.branch)) me.branch = 'main';
+  const solo = !membersOf(lab).some((m) => m.pair === me.pair && m.pid !== me.pid && m.online);
+  const refused = S.feed.some((e) => e.labId === lab.id && e.t >= S.stepStartedAt && e.action === 'Send to Wall' && e.bad);
   return {
     ok: true,
     session: publicSession(lab),
@@ -347,7 +366,7 @@ export const state = (pid) => work(async () => {
       labId: me.labId,
       pair: me.pair,
       branch: me.branch,
-      mission: missionFor(S.step, lab.id, me.pair),
+      mission: missionFor(S.step, lab.id, me.pair, { solo, refused }),
       pairNote: PAIR_NOTES[me.pair],
     },
     lab: {
@@ -357,6 +376,7 @@ export const state = (pid) => work(async () => {
       members: membersOf(lab),
       branches: branchesOf(graph),
       drafts: lab.drafts,
+      draftBy: lab.draftBy ?? {},
       merging: lab.merging,
       goals: goalsFor(lab, graph, wallGraph),
       chaos: lab.chaos,
@@ -392,7 +412,7 @@ export const adminState = (joinUrl) => work(async () => {
     session: {
       ...publicSession(null),
       steps: STEPS.map((s, n) => ({
-        ...stepFor(n, null), hope: s.hope, askFirst: s.askFirst, next: s.next, facilitator: s.facilitator,
+        ...stepFor(n, null), behind: s.behind, paper: s.paper ?? null, hope: s.hope, askFirst: s.askFirst, next: s.next, facilitator: s.facilitator,
       })),
       planStartedAt: S.planStartedAt,
       joinUrl,
@@ -495,6 +515,9 @@ function blocked(lab, note) {
 
 const partsOf = (conflicts) => conflicts.map((p) => p.toUpperCase()).join(', ');
 
+// After an undo or a move back on main, the next move is to send.
+const sendNext = (note) => (note === 'main' ? ' Now press Send to Wall.' : '');
+
 // Finish or Cancel pressed just after someone else's (the merge banner was still up): nothing left to do.
 const closed = () => ({ ok: true, result: { nothing: true, message: T.closed } });
 
@@ -530,11 +553,12 @@ const ACTIONS = {
     const note = me.branch;
     if (!allowed(part, value)) return fail(T.badPart);
     if (lab.merging[note]) return fail(T.merging);
-    if (mainLocked(note)) return fail(T.mainLocked);
+    if (mainLocked(note)) return fail(mainLocked(note));
     const card = await noteMonster(lab, note);
     const draft = (lab.drafts[note] ??= {});
     if (card?.[part] === value) delete draft[part];
     else draft[part] = value;
+    ((lab.draftBy ??= {})[note] ??= {})[part] = me.pid; // who changed it, for "changed by Ben"
     bump(lab.id);
     return { ok: true, result: { draft } };
   },
@@ -542,16 +566,21 @@ const ACTIONS = {
   async commit(me, lab) {
     const note = me.branch;
     if (lab.merging[note]) return fail(T.merging);
-    if (mainLocked(note)) return fail(T.mainLocked);
+    if (mainLocked(note)) return fail(mainLocked(note));
     const waiting = Object.keys(lab.drafts[note] ?? {}).length > 0; // someone may save these parts first
+    // The draft is shared: say whose changes this card also saves ("It includes Maya's LEGS.").
+    const by = lab.draftBy?.[note] ?? {};
+    const others = Object.keys(lab.drafts[note] ?? {}).filter((part) => by[part] && by[part] !== me.pid)
+      .map((part) => `${person(by[part])?.name ?? 'someone'}'s ${part.toUpperCase()}`);
     const r = await git.commit(lab, note, authorOf(me));
     if (r.nothing) {
       const card = waiting && await noteCard(lab, note);
       const message = card ? `Already saved by ${card.author}: card ${short(card.id)}.` : 'Nothing changed — nothing to save.';
       return reply(lab, me, r, null, { message });
     }
+    const includes = others.length ? ` It includes ${others.join(' and ')}.` : '';
     return reply(lab, me, r, { action: 'Save card', outcome: `card ${short(r.id)}`, concepts: ['save'] },
-      { message: `Saved card ${short(r.id)}.` });
+      { message: `Saved card ${short(r.id)}.${includes}` });
   },
 
   async branch(me, lab, { name }) {
@@ -562,7 +591,8 @@ const ACTIONS = {
     if (r.exists) return fail(`${note} already exists. Press Switch to join it.`);
     me.branch = note;
     lab.drafts[note] ??= {};
-    return reply(lab, me, r, { action: `New sticky note ${note}`, outcome: 'from main', concepts: ['branch'] });
+    return reply(lab, me, r, { action: `New sticky note ${note}`, outcome: 'from main', concepts: ['branch'] },
+      { message: `You're on ${note} now. Change parts, then Save card.` });
   },
 
   // Switch runs no git: your pin lives in the session, and each note keeps its own draft.
@@ -572,10 +602,10 @@ const ACTIONS = {
     me.branch = note;
     const r = {
       porcelain: `git switch ${note}`,
-      explain: `In your own copy this is \`git switch ${note}\`: \`.git/HEAD\` becomes \`ref: refs/heads/${note}\`. Here each note keeps its own draft; real Git brings unsaved changes along, or refuses.`,
+      explain: `Your pin (HEAD) moved to ${note}: \`.git/HEAD\` now says \`ref: refs/heads/${note}\`. Here each note keeps its own draft. Real Git brings unsaved changes along, or refuses.`,
       commands: [],
     };
-    return reply(lab, me, r, { action: `Switch to ${note}`, concepts: ['switch'] });
+    return reply(lab, me, r, { action: `Switch to ${note}`, concepts: ['switch'] }, { message: `You're on ${note} now.` });
   },
 
   // Merges always go into main ("Merge [note] into main").
@@ -588,7 +618,9 @@ const ACTIONS = {
     if (stop) return stop;
     const r = await git.merge(lab, into, from, authorOf(me));
     if (r.nothing) return reply(lab, me, r, null, { message: `${into} already has ${from}. Nothing to merge.` });
-    return reply(lab, me, r, mergeEntry(r, from, into));
+    const message = r.fastForward ? `${into} slid forward to ${short(r.id)}. No new card.`
+      : r.merged ? `Merged. New card ${short(r.id)} has two parents.` : null;
+    return reply(lab, me, r, mergeEntry(r, from, into), { message });
   },
 
   async resolve(me, lab, { monster }) {
@@ -606,7 +638,8 @@ const ACTIONS = {
     const r = await git.resolve(lab, note, choice, authorOf(me));
     if (r.refused && !lab.merging[note]) return closed();
     const what = open.kind === 'revert' ? 'revert' : 'merge';
-    return reply(lab, me, r, { action: 'Finish merge', outcome: `${what} card ${short(r.id)}`, concepts: ['conflict', what] });
+    const message = what === 'merge' ? `Saved merge card ${short(r.id)}. It has two parents.` : `Saved fix card ${short(r.id)}.`;
+    return reply(lab, me, r, { action: 'Finish merge', outcome: `${what} card ${short(r.id)}`, concepts: ['conflict', what] }, { message });
   },
 
   async abort(me, lab) {
@@ -614,21 +647,23 @@ const ACTIONS = {
     if (!lab.merging[note]) return closed();
     const r = await git.abort(lab, note);
     if (r.nothing) return closed();
-    return reply(lab, me, r, { action: 'Cancel merge', outcome: `${note} unchanged` });
+    const message = `${r.kind === 'revert' ? 'Undo' : 'Merge'} cancelled. ${note} is unchanged.`;
+    return reply(lab, me, r, { action: 'Cancel merge', outcome: `${note} unchanged` }, { message });
   },
 
   async push(me, lab) {
     if (me.branch !== 'main') return fail(T.mainOnly);
-    if (S.step === 7 && !isBoss(lab)) return fail(T.boss);
+    if (S.step === 7 && !isBoss(lab)) return fail(T.boss, { tone: 'info' }); // nothing to do but watch: no sticky red toast
     const unsaved = Object.keys(lab.drafts.main ?? {}).length > 0;
     const r = await git.push(lab, { force: false });
     if (r.rejected) {
       lab.refusedInARow += 1;
       const entry = { action: 'Send to Wall', outcome: `refused (${r.reason})`, bad: true, concepts: ['rejected'] };
-      return { ...reply(lab, me, r, entry), ok: false, error: T.refused };
+      const error = (await movedOffMustache(lab)) ? T.refusedMovedBack : T.refused;
+      return { ...reply(lab, me, r, entry), ok: false, error };
     }
-    if (r.already) return reply(lab, me, r, null, { message: 'The Wall already has this card.' });
     lab.refusedInARow = 0;
+    if (r.already) return reply(lab, me, r, null, { message: 'The Wall already has this card.' });
     const sent = `Sent! The Wall moved to ${short(r.id)}.`;
     return reply(lab, me, r, { action: 'Send to Wall', outcome: `sent ${short(r.id)}`, concepts: ['push'] },
       { message: unsaved ? `${sent} Sent your last saved card. Unsaved parts weren't sent.` : sent, wall: true });
@@ -636,13 +671,19 @@ const ACTIONS = {
 
   async pull(me, lab) {
     if (me.branch !== 'main') return fail(T.mainOnly);
+    if (S.step === 7 && !isBoss(lab)) return fail(T.boss, { tone: 'info' });
     const stop = blocked(lab, 'main');
     if (stop) return stop;
+    const movedOff = await movedOffMustache(lab);
     const r = await git.pull(lab, authorOf(me));
+    if (!r.moved) lab.refusedInARow = 0;
     if (r.nothing) {
       return reply(lab, me, r, { action: 'Get & combine', outcome: 'nothing new', concepts: ['pull'] }, { message: 'Nothing new on the Wall.' });
     }
-    return reply(lab, me, r, pullEntry(r));
+    const back = movedOff && !(await movedOffMustache(lab)) ? ' The 🥸 card is back: the Wall still had it.' : '';
+    const message = r.fastForward ? `Got the Wall's cards. main slid forward to ${short(r.id)}.${back}`
+      : r.merged ? `Got the Wall's cards and combined them.${back} Now press Send to Wall.` : null;
+    return reply(lab, me, r, pullEntry(r), { message });
   },
 
   // git.js refuses the Start card and cards outside the note's history, in the client's words.
@@ -654,7 +695,8 @@ const ACTIONS = {
     if (r.nothing) return reply(lab, me, r, null, { message: 'Already undone. Nothing to change.' });
     const action = `Undo card ${short(commit)}`;
     if (r.conflict) return reply(lab, me, r, { action, outcome: `conflict: ${partsOf(r.conflicts)}`, bad: true });
-    return reply(lab, me, r, { action, outcome: `fix card ${short(r.id)}`, concepts: ['revert'] });
+    return reply(lab, me, r, { action, outcome: `fix card ${short(r.id)}`, concepts: ['revert'] },
+      { message: `Added fix card ${short(r.id)}.${sendNext(note)}` });
   },
 
   // Any card in the lab, diary-only ones included: that's how you recover.
@@ -663,7 +705,8 @@ const ACTIONS = {
     const stop = blocked(lab, note);
     if (stop) return stop;
     const r = await git.reset(lab, note, String(commit ?? ''), authorOf(me));
-    return reply(lab, me, r, { action: 'Move my note back here', outcome: `${note} → ${short(commit)}`, concepts: ['reset'] });
+    return reply(lab, me, r, { action: 'Move my note back here', outcome: `${note} → ${short(commit)}`, concepts: ['reset'] },
+      { message: `${note} moved back to ${short(commit)}.${sendNext(note)}` });
   },
 
   async reflog(me, lab) {
@@ -694,7 +737,7 @@ const ACTIONS = {
     if (r.already) return reply(lab, me, r, null, { message: 'The Wall already has one clean card.' });
     if (r.forced) S.replacedAt = now();
     return reply(lab, me, r, { action: 'Replace the Wall with one card', outcome: `forced ${short(r.id)}`, bad: true, concepts: ['force'] },
-      { wall: true });
+      { message: `The Wall now has one clean card: ${short(r.id)}.`, wall: true });
   },
 };
 
@@ -736,6 +779,7 @@ async function firstReadyLab() {
 // The lesson presses Sabotage on Step 5; entering Step 6 only runs it if nobody did.
 async function goToStep(step, labId) {
   const picked = labById(labId) ? String(labId) : null;
+  for (const lab of Object.values(S.labs)) lab.lastOp = null; // Behind the door shows only this step's actions
   if (step >= 4 && !S.wallMet) {
     S.stepLab[4] = (step === 4 && picked) || await firstReadyLab();
     await meetTheWall(S.stepLab[4]);
@@ -745,7 +789,7 @@ async function goToStep(step, labId) {
   if (step === 7) S.stepLab[7] = picked ?? S.stepLab[7] ?? Object.keys(S.labs)[0];
   // main is read-only in Steps 2–3, so leftover unsaved parts there could never be saved.
   if (step === 2 || step === 3) for (const lab of Object.values(S.labs)) lab.drafts.main = {};
-  for (const lab of Object.values(S.labs)) lab.lastClickAt = now(); // "No clicks for" counts from here
+  for (const lab of Object.values(S.labs)) Object.assign(lab, { lastClickAt: now(), refusedInARow: 0 }); // status lines count from here
   Object.assign(S, { step, stepStartedAt: now(), ask: false, breakUntil: null });
 }
 
@@ -900,7 +944,7 @@ async function setLabCount(count) {
   return { ok: true, result: { message: `${count} labs.` } };
 }
 
-// "Wall: Priya (Lab 2), 3fa9c1e" — one line for the Wall, then one per lab.
+// "Wall: Priya (Lab 2), 3fa9c1e" — one line for the Wall, then one per lab, all in the same form.
 function auditLines(r) {
   const line = (where, found) => {
     if (!found) return `${where}: not found`;
@@ -916,7 +960,7 @@ const ADMIN = {
     step = Number(step);
     if (!Number.isInteger(step) || step < 0 || step >= STEPS.length) return fail('No such step.');
     await goToStep(step, labId);
-    return { ok: true, result: { message: `Step ${step} · ${STEPS[step].title}` } };
+    return { ok: true, result: {} };
   },
   labs: ({ count }) => setLabCount(Number(count)),
   move({ pid, labId }) {
@@ -936,7 +980,7 @@ const ADMIN = {
   },
   break({ on }) {
     S.breakUntil = on ? now() + BREAK_MS : null;
-    return { ok: true, result: { message: on ? 'Break: back in 4 minutes.' : 'Break over.' } };
+    return { ok: true, result: {} }; // the Break button shows the return time
   },
   timer() {
     S.stepStartedAt = now();

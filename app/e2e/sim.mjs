@@ -24,8 +24,9 @@ const WAIT = 10_000;
 
 const LABS = { 1: ['Ana', 'Raj', 'Mei'], 2: ['Priya', 'Tom', 'Lea'], 3: ['Sam', 'Kim', 'Ola'] }; // pairs A, B, A
 const LEADS = ['Ana', 'Priya', 'Sam']; // one student per lab in the screenshots
-const MAIN_LOCKED = 'main is the approved monster. Make or switch to a sticky note first.';
+const MAIN_LOCKED = 'main keeps the monster you have. Make or switch to a sticky note to edit.'; // Step 2
 const REFUSED = "Refused: the Wall has cards you don't have. Press Get & combine first.";
+const REFUSED_MOVED_BACK = "Refused: the Wall still has the 🥸 card. Moving your note back didn't remove it.";
 const SENT = /^Sent! The Wall moved to [0-9a-f]{7}\.$/;
 const API = { commit: 'commit', switch: 'switch', tomain: 'switch', merge: 'merge', push: 'push', pull: 'pull', reflog: 'reflog' };
 
@@ -212,10 +213,38 @@ async function next(step, labId) {
   await sees(screen, '#s-title', step === 8 ? 'What you built' : `Step ${step}`);
 }
 
+// Wait until a page's toasts have faded (a red one stays until closed).
+const toastsFade = (p) => until(`${NAMES.get(p)}'s toasts fade`, async () => !(await count(p, '#toasts .toast:not(.bad)')));
+
+// Wait until nothing moves: cards, sticky notes, toasts and dialogs finish their animations.
+async function still(p) {
+  await sleep(200); // a refetch after the last click may still be on its way
+  await p.waitForFunction(() => document.getAnimations().every((a) => a.playState !== 'running'));
+}
+
+// The top of the page, once it is still (a scrolled page hides the top bar's band).
+async function settle(p) {
+  await p.evaluate(() => scrollTo(0, 0));
+  await still(p);
+}
+
+// The projector's card IDs in px as drawn: the Wall graph is scaled to fit the screen.
+const projectorIdPx = () => screen.$eval('#s-wall-graph', (svg) => {
+  const box = svg.getBoundingClientRect();
+  const { width, height } = svg.viewBox.baseVal;
+  const id = svg.querySelector('.g-card text[font-family*="monospace"]');
+  return Math.min(box.width / width, box.height / height) * Number(id.getAttribute('font-size'));
+});
+
 // One shot per lab, the teacher page and the projector, once old toasts have faded.
+// The Wall on the projector must read from the back of the room.
 async function shoot(tag) {
-  await Promise.all(LEADS.map((name) => until(`${name}'s toasts fade`, async () => !(await count(S[name], '#toasts .toast')))));
-  await sleep(300); // let cards and notes finish gliding
+  await Promise.all(LEADS.map((name) => toastsFade(S[name])));
+  await Promise.all([...LEADS.map((name) => S[name]), admin, screen].map(settle));
+  if (await shown(screen, '#s-wall')) {
+    const px = await projectorIdPx();
+    assert.ok(px >= 16, `${tag}: the projector's card IDs are ${px.toFixed(1)}px, under 16px`);
+  }
   await Promise.all([
     ...LEADS.map((name, i) => S[name].screenshot({ path: `${SHOTS}/${tag}-lab${i + 1}-student.png`, fullPage: true })),
     admin.screenshot({ path: `${SHOTS}/${tag}-admin.png`, fullPage: true }),
@@ -223,16 +252,32 @@ async function shoot(tag) {
   ]);
 }
 
-// One page's view (dialogs fade in first).
+// One page's view, as it is scrolled (dialogs fade in first).
 async function snap(p, name) {
-  await sleep(400);
+  await still(p);
   await p.screenshot({ path: `${SHOTS}/${name}.png` });
+}
+
+// The projector at 1280×720: the instruction, the Wall and every lab tile still fit on one screen.
+async function smallProjector(tag) {
+  await screen.setViewportSize({ width: 1280, height: 720 });
+  await still(screen);
+  const over = await screen.$$eval('#s-labs .s-lab', (tiles) => Math.max(...tiles.map((t) => t.getBoundingClientRect().bottom)) - innerHeight);
+  const overlap = await screen.evaluate(() => {
+    const top = Math.min(...[...document.querySelectorAll('#s-labs .s-lab')].map((t) => t.getBoundingClientRect().top));
+    return Math.max(0, ...[...document.querySelectorAll('#s-audits > *')].map((a) => a.getBoundingClientRect().bottom)) - top;
+  });
+  await screen.screenshot({ path: `${SHOTS}/${tag}-screen-720p.png` });
+  await screen.setViewportSize(DESKTOP);
+  assert.ok(over <= 0, `${tag}: the lab tiles run ${Math.ceil(over)}px past a 1280×720 projector`);
+  assert.ok(overlap <= 0, `${tag}: the audits run ${Math.ceil(overlap)}px into the lab tiles on a 1280×720 projector`);
 }
 
 // The same student on a phone: nothing may stick out sideways.
 async function phoneShot(p, tag) {
+  await toastsFade(p);
   await p.setViewportSize(PHONE);
-  await sleep(400);
+  await settle(p); // the graphs redraw for the new width
   const wider = await p.evaluate(() => document.documentElement.scrollWidth - innerWidth);
   assert.ok(wider <= 0, `${tag}: the student page is ${wider}px wider than a 390px phone`);
   await p.screenshot({ path: `${SHOTS}/${tag}-mobile.png`, fullPage: true });
@@ -268,6 +313,10 @@ async function run() {
   for (const names of Object.values(LABS)) for (const name of names) S[name] = await open(name, '/');
 
   // ---------- Join ----------
+  await sees(S.Ana, '#join-labs', 'Lab 3');
+  await settle(S.Ana);
+  await S.Ana.screenshot({ path: `${SHOTS}/s00-join-student.png`, fullPage: true });
+  await phoneShot(S.Ana, 's00-join');
   await S.Ana.click('#join-form button[type=submit]');
   await sees(S.Ana, '#join-error', 'Type your name (a letter or digit).');
   for (const [lab, names] of Object.entries(LABS)) {
@@ -325,7 +374,7 @@ async function run() {
     });
     assert.equal(await count(p, '#graph .g-edges path'), 3, `Lab ${lab}: 3 arrows`);
     await sees(p, '#mission .goals li.done', 'Everyone saved a card (3/3)');
-    await sees(p, '#mission .bonus', 'Click the oldest card');
+    await sees(p, '#mission .bonus', 'Click any card');
   }
   const nothing = await press(S.Ana, 'commit');
   assert.equal(nothing.result.message, 'Nothing changed — nothing to save.');
@@ -354,6 +403,8 @@ async function run() {
   await sees(S.Ana, '#toasts', MAIN_LOCKED);
   assert.ok(!(await shown(S.Ana, '#popover')), 'no palette on main in Step 2');
   await sees(S.Ana, '#draft-status', MAIN_LOCKED);
+  await sees(S.Raj, '#mission .mission-box', "You're in Pair B, on your own"); // a pair of one gets the solo mission
+  assert.doesNotMatch(await textOf(S.Raj, '#mission .mission-box'), /The other/);
   await S.Ola.click('#mission [data-pair]');
   await sees(S.Ola, '#mission .mission-box', /superhero.*Pair B/);
   await S.Ola.click('#mission [data-pair]');
@@ -367,9 +418,10 @@ async function run() {
     await S[a2].keyboard.press('Escape');
     await switchTo(S[a2], 'cat-robot');
     await pick(S[a], 'face', 'cat');
-    await sees(S[a2], '#draft [data-part="face"]', /cat.*not saved/); // one shared draft per note
+    await sees(S[a2], '#draft [data-part="face"]', new RegExp(`cat.*changed by ${a}.*not saved`)); // one shared draft per note
     await pick(S[a2], 'body', 'robot');
-    ok(await press(S[a2], 'commit'), `${a2}: save cat-robot`);
+    const saved = ok(await press(S[a2], 'commit'), `${a2}: save cat-robot`);
+    assert.match(saved.result.message, new RegExp(`It includes ${a}'s FACE\\.$`), `${a2}'s save names ${a}'s change`);
     ok(await newNote(S[b], 'superhero'), `${b}: new sticky note`);
     assert.equal(tipIn(lab, 'superhero'), tipIn(lab, 'main'), `Lab ${lab}: superhero starts on main's card`);
     await pick(S[b], 'body', 'superhero');
@@ -377,6 +429,7 @@ async function run() {
     ok(await press(S[b], 'commit'), `${b}: save superhero`);
   }));
   for (const name of LEADS) await goalsDone(S[name]);
+  for (const note of ['main', 'cat-robot', 'superhero']) assert.ok(await noteIn(S.Ana, '#graph', note), `Ana sees the ${note} note`);
   // A refresh keeps who you are and where your pin is.
   await S.Mei.reload();
   await sees(S.Mei, '#crumbs', 'Lab 1 · Mei · Step 2');
@@ -496,9 +549,13 @@ async function run() {
     assert.match(await textOf(p, '#graph .g-note[data-key="main"]'), /YOU/, `${who}: the pin is on main`);
     assert.equal(await count(p, '#mission .break-line'), 0, `${who}: Next ended the break`);
   }));
-  await sees(S.Sam, '#mission .instruction', "Lab 2's monster");
+  await S.Sam.click('#draft [data-part="face"]');
+  await sees(S.Sam, '#toasts', 'Look only in this step. You change main in Step 5.');
+  await sees(S.Sam, '#mission .instruction', "It got Lab 2's cards, and your lab got a fresh copy.");
+  await sees(S.Priya, '#mission .instruction', "It got your lab's cards, and every lab got a copy.");
   assert.ok(await shown(screen, '#s-wall'), 'the projector shows the Wall');
   await shoot('s04-remote');
+  await smallProjector('s04-remote');
   checkClean('Step 4');
   log(`step 4: the Wall and all 3 labs have newest card ${lab2Main.slice(0, 7)}; every pin on main`);
 
@@ -575,15 +632,18 @@ async function run() {
   ok(await hit(S.Priya, '#card-dialog [data-card-act="reset"]', 'reset'), 'Priya: move my note back');
   assert.equal(tipIn('2'), beforeMustache);
   await until('Priya sees the mustache gone', async () => !/mustache/.test(await textOf(S.Priya, '#draft [data-part="face"]')));
+  await sees(S.Priya, '#mission .mission-box', 'What happens?');
   const refused = await press(S.Priya, 'push');
-  assert.equal(refused.error, REFUSED, 'a moved-back main is refused');
+  assert.equal(refused.error, REFUSED_MOVED_BACK, 'a moved-back main is refused');
+  await sees(S.Priya, '#mission .mission-box', 'Refused. Open the Safety diary');
   ok(await press(S.Priya, 'reflog'), 'Priya: Safety diary');
   await sees(S.Priya, '#diary-dialog .diary li:first-child', /reset: moving to [0-9a-f]{7}/);
   await sees(S.Priya, '#diary-dialog .diary', 'clone: from the Wall');
   await snap(S.Priya, 's06-undo-diary-lab2-student');
   await closeDialog(S.Priya, 'diary-dialog');
-  ok(await press(S.Priya, 'pull'), 'Priya: Get & combine again');
+  const zombie = ok(await press(S.Priya, 'pull'), 'Priya: Get & combine again');
   assert.equal(tipIn('2'), intern.id, 'Get & combine brings the mustache card back');
+  assert.match(zombie.result.message, /The 🥸 card is back/, 'Priya is told the mustache card came back');
   await sees(S.Priya, '#draft [data-part="face"]', 'mustache');
   // Lab 1 (odd): get it, undo it, send.
   ok(await press(S.Ana, 'pull'), 'Ana: Get & combine');
@@ -600,10 +660,21 @@ async function run() {
   const again = await hit(S.Raj, '#card-dialog [data-card-act="revert"]', 'revert');
   assert.equal(again.result?.message, 'Already undone. Nothing to change.');
   assert.match(ok(await press(S.Ana, 'push'), 'Ana: send the fix').result.message, SENT);
-  await openCard(S.Ana, startId);
-  assert.ok(await S.Ana.locator('#card-dialog [data-card-act="revert"]').isDisabled(), 'the Start card cannot be undone');
-  await sees(S.Ana, '#card-dialog .why', "The Start card can't be undone.");
-  await closeDialog(S.Ana, 'card-dialog');
+  // A long history: Start, then "← N older cards", then the newest. The pill draws them all.
+  const drawnCards = await cardsIn(S.Raj, '#graph');
+  assert.equal(drawnCards[0].id, startId, 'Start stays drawn in front of the pill');
+  for (const note of ['main', 'wall/main']) assert.ok(await noteIn(S.Raj, '#graph', note), `the ${note} note is never folded away`);
+  await S.Raj.click('#graph .g-older [role="button"]');
+  await until('the pill draws every card', async () => (await cardsIn(S.Raj, '#graph')).length > drawnCards.length);
+  await until('the full strip shows your sticky note', () => S.Raj.$eval('#graph-scroll', (box) => {
+    const pin = [...box.querySelectorAll('.g-note')].find((n) => n.dataset.key === 'main').getBoundingClientRect();
+    const view = box.getBoundingClientRect();
+    return pin.left >= view.left && pin.right <= view.right;
+  }));
+  await openCard(S.Raj, startId);
+  assert.ok(await S.Raj.locator('#card-dialog [data-card-act="revert"]').isDisabled(), 'the Start card cannot be undone');
+  await sees(S.Raj, '#card-dialog .why', "The Start card can't be undone.");
+  await closeDialog(S.Raj, 'card-dialog');
   ok(await press(S.Priya, 'pull'), 'Priya: get the fix');
   // Lab 3: the teacher rescues.
   await tool('#labs [data-rescue="3"]', 'rescue');
@@ -629,6 +700,7 @@ async function run() {
   await sees(S.Raj, '#actions [data-act="squash"]', 'Replace the Wall with one card'); // the whole boss lab
   for (const name of ['Priya', 'Tom', 'Sam', 'Zoe']) assert.equal(await count(S[name], '#actions [data-act="squash"]'), 0, `${name} has no replace button`);
   assert.equal((await press(S.Priya, 'push')).error, 'The boss is cleaning the Wall. Watch.');
+  assert.equal((await press(S.Priya, 'pull')).error, 'The boss is cleaning the Wall. Watch.');
   const audit1 = (await tool('#audit', 'audit')).result.audit;
   assert.match(audit1.lines[0], /^Wall: Tom \(Lab 2\), [0-9a-f]{7}$/, 'before: the Wall knows who added the tentacles');
   assert.equal((await press(S.Ana, 'pull')).result.message, 'Nothing new on the Wall.');
@@ -642,14 +714,19 @@ async function run() {
   assert.equal(gitIn('wall', 'log', '--format=%s', 'refs/heads/main'), 'Clean history\nStart');
   const audit2 = (await tool('#audit', 'audit')).result.audit;
   assert.match(audit2.lines[0], /^Wall: (not found|Only the clean card has it\. The real author is gone\.)$/, 'after: the Wall forgot');
-  for (const lab of ['2', '3']) assert.ok(audit2.lines.includes(audit1.lines[0].replace('Wall', `Lab ${lab}`)), `Lab ${lab} still knows`);
+  const [, who, from, first] = audit1.lines[0].match(/^Wall: (.+) \((Lab \d)\), ([0-9a-f]{7})$/);
+  for (const lab of ['Lab 2', 'Lab 3']) {
+    assert.ok(audit2.lines.includes(`${lab}: ${who} (${from}), ${first}`), `${lab} still knows`);
+  }
   await sees(screen, '#s-audits', /Before the clean-up.*Wall: Tom \(Lab 2\).*After the clean-up/i);
   await sees(admin, '#audits', /Before the clean-up.*After the clean-up/i);
+  await sees(screen, '#s-line', 'The Tuesday paper: flat history is data loss.');
   const gc = (await tool('#gc', 'gc')).result.message;
   const bin = gc.match(/^The Wall's bin had (\d+) old cards?\. Now 0\.$/);
   assert.ok(bin && Number(bin[1]) > 0, `gc empties the bin: "${gc}"`);
   for (const name of LEADS) await goalsDone(S[name]);
   await shoot('s07-rewrite');
+  await smallProjector('s07-rewrite');
   checkClean('Step 7');
   log(`step 7: boss-only button, Wall = Start ← Clean, audits "${audit1.lines[0]}" → "${audit2.lines[0]}", ${gc}`);
 

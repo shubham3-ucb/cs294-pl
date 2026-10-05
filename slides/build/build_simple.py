@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
-"""Minimal Git Week decks: one idea per slide, huge type, lots of white space.
+"""Thursday deck + shared minimal slide helpers (used by build_app_slides.py): one idea per slide, huge type, lots of white space.
 
 Builds:
-  slides/tuesday_simple.pptx   (Monster Lab, Implementation Day)
   slides/thursday_simple.pptx  (The Humans, User Study Day)
 Run:  python3 build_simple.py
 """
@@ -323,100 +322,6 @@ def terminal_slide(prs, title, lines, notes):
     return s
 
 
-# ================================================================= TUESDAY
-def tuesday():
-    prs = new_deck()
-    title_slide(prs, 'Monster Lab', 'Build Git out of paper',
-                'CS294 · Git Week · Tuesday · Shubham & Ananya',
-                'Welcome. Sit in 3 teams of 3-4. Each team gets index cards, markers and '
-                'sticky notes. Today we will not explain Git. You will invent it.')
-
-    task_slide(prs, 'STEP 1', '2 min', 'Draw one monster together.',
-               'One sheet. Everyone at once.',
-               'Everyone draws on ONE sheet at the same time (face, body, legs). After 2 min '
-               'ask: What did it look like before? Who added the horns? Nobody knows. '
-               'Ask: what rule would fix this? Wait for: never erase, new card each time.')
-    reveal_slide(prs, 'git commit', 'Never erase. Every change = a new card.',
-                 'Every card is a full snapshot of the monster. Write your name and which card '
-                 'you came from. Following the arrows back = git log. Under the hood: each '
-                 'commit stores a snapshot plus a pointer to its parent.')
-
-    task_slide(prs, 'STEP 2', '4 min', 'Two ideas. Two pairs.',
-               "Keep the good monster safe.",
-               'Split each team into two pairs. Both start from the same card. Each pair puts a '
-               'sticky note with its name on its newest card and moves it forward as it draws. '
-               'Secret: tell both pairs to change the BODY. Pair A also changes the face; '
-               'pair B also changes the legs.')
-    reveal_slide(prs, 'git branch', 'A sticky note that says "my latest card".',
-                 'A branch is just a movable label on a card. It is not a copy. HEAD is the pin '
-                 'that says where you are right now.')
-
-    task_slide(prs, 'STEP 3', '5 min', 'Make one monster from both.',
-               'One new card. It points back to both.',
-               'Each team combines its two pairs into ONE new card with two arrows. Let them '
-               'notice: the face and legs are easy, the body is a fight. They must agree and '
-               'draw one body (a robot with a cape is fine).')
-    merge_slide(prs, 'Compare each panel with the START card. Only one side changed it: keep '
-                     'that change. Both changed it: conflict, a human decides. This is exactly '
-                     'what git merge does, line by line. Ask: why does Git need the START card?')
-
-    break_slide(prs, 3, 'Stretch. Meanwhile put the starting card on the wall (the wall = '
-                        'GitHub).')
-
-    task_slide(prs, 'STEP 4', '6 min', 'Post your card on the wall.',
-               'Wall changed? Take the new cards first.',
-               'The wall is GitHub. Each team copies only its NEW cards to the wall and moves '
-               'the wall\'s sticky note forward. The second team finds the wall changed: they '
-               'must copy the wall\'s new card to their table, combine, then post.')
-    reveal_slide(prs, 'git pull · git push', 'Take the new cards. Then add yours.',
-                 'clone = copy every card. pull = get the new cards and merge. push = add your '
-                 'cards to the wall. The wall refuses your card if it does not build on top of '
-                 'the newest one: that is a rejected push.')
-
-    task_slide(prs, 'STEP 5', '3 min', 'Remove the mustache.',
-               'Everyone already has a copy.',
-               'Before this step, post a card with a mustache on the wall and let every team '
-               'copy it. Now: get rid of it. Ripping it off the wall breaks everyone\'s arrows. '
-               'Wait for: draw a new card without the mustache.')
-    reveal_slide(prs, 'git revert', "Don't rip it out. Add a fix card.",
-                 'revert = a new card that undoes a change. Safe when others have it. '
-                 'reset = move your sticky note back. Only safe if nobody else has the card.')
-
-    task_slide(prs, 'STEP 6', '3 min', 'Boss: "Keep only the last card."',
-               'Throw the rest away. Then: who drew the tentacles?',
-               'Play the boss. Teams redraw one clean final card and bin the old ones. '
-               'Then ask: who drew the tentacles first, and when? Nobody can answer. '
-               'The history is in the bin.')
-    reveal_slide(prs, 'git push --force', 'Clean history. Lost history.',
-                 'Rebase and squash draw NEW cards. --force makes the wall forget the old '
-                 'ones. Clean, but the story of who did what is gone.')
-
-    paper_slide(prs, 'This is the Tuesday paper. Microsoft teams moved to Git. Branches and '
-                     'local commits helped. But rebase, squash and force-push erased the '
-                     'history their analytics and audits needed. They had to rebuild how '
-                     'changes reached main.')
-
-    terminal_slide(prs, 'Same story, real Git',
-                   ['$ git merge superhero',
-                    'CONFLICT (content) in monster.txt',
-                    '<<<<<<< cat-robot',
-                    'body: robot',
-                    '=======',
-                    'body: superhero',
-                    '>>>>>>> superhero'],
-                   'Live demo in a terminal with monster.txt (one line per panel). Face and '
-                   'legs merge on their own. Only the body conflicts, exactly like on paper. '
-                   'Then show git log --graph and git reflog.')
-
-    menti_slide(prs, 'Exit ticket', [],
-                '3 quick questions on Menti. Laptops for Menti only.',
-                kicker='Live poll', sub='3 quick questions.')
-
-    final_slide(prs, ['Cards never change.', 'Sticky notes move.', "That's Git."],
-                'Thanks. Thursday: why do developers struggle with exactly these tools?')
-    return prs
-
-
 # ================================================================= THURSDAY
 def thursday():
     prs = new_deck()
@@ -483,7 +388,7 @@ def thursday():
 
 
 if __name__ == '__main__':
-    for name, fn in [('tuesday_simple.pptx', tuesday), ('thursday_simple.pptx', thursday)]:
+    for name, fn in [('thursday_simple.pptx', thursday)]:
         p = os.path.join(OUT, name)
         fn().save(p)
         print('saved', p)

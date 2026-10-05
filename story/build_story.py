@@ -6,7 +6,7 @@ import os, sys
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 import img2pdf
 
-SHOTS = sys.argv[1] if len(sys.argv) > 1 else '/tmp/lead_review'
+SHOTS = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'app', 'e2e', 'shots')
 OUT = os.path.dirname(os.path.abspath(__file__))
 F = '/usr/share/fonts/opentype/inter/Inter-{}.otf'
 font = lambda w, s: ImageFont.truetype(F.format(w), s)
@@ -45,7 +45,7 @@ STEPS = [
     ('Step 7', 'The boss wants it clean', 's07-rewrite-screen.png',
      [('PROBLEM', '"Who added the tentacles?" Before the clean-up: Tom, Lab 2. After: not found.'),
       ('IDEA', 'Rewriting history makes new cards and forgets the old ones.'),
-      ('GIT', 'Squash = one new card, new ID. git push --force makes the Wall forget. git gc deletes. The Tuesday paper.')]),
+      ('GIT', 'Squash = one new card, new ID. git push --force makes the Wall forget. The paper: flat history is data loss.')]),
     ('Step 8', 'What you built', 's08-wrap-screen.png',
      [('', 'Cards never change.'), ('', 'Sticky notes move.'), ('', 'The Wall copies cards. That\'s Git.')]),
     ('Teachers', 'What you see while it runs', 's05-push-admin.png',
