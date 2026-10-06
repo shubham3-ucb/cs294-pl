@@ -863,7 +863,7 @@ function projectorView() {
 // One status per lab for the teacher: tone 'done' | 'ok' | 'alert' | 'practice', and a few plain words.
 // Time-based alerts (a long conflict, no clicks) are the page's to add, from merging[].t and lastClickAt.
 function statusOf(lab, isDone) {
-  if (lab.practice) return { tone: 'practice', text: 'Plays by itself' };
+  if (lab.practice) return { tone: 'practice', text: 'Played by the app, so your lab has someone to share with' };
   if (isDone) return { tone: 'done', text: 'Done' };
   const open = Object.values(lab.merging)[0];
   if (open) return { tone: 'ok', text: `${{ merge: 'Merging', revert: 'Undoing', rebase: 'Replaying' }[open.kind]}: ${partsOf(open.conflicts)} to pick` };
@@ -1734,7 +1734,7 @@ const RESCUE = {
 };
 
 async function rescue(lab) {
-  if (lab.practice) return fail('The practice lab plays by itself.');
+  if (lab.practice) return fail('The practice lab is played by the app.');
   const plan = RESCUE[S.step];
   if (!plan) return fail('Nothing to rescue in this step.');
   const graph = await git.graph(lab.id);

@@ -136,7 +136,7 @@ const goalsHtml = (goals) => `<ul class="sl-goals">${goals.map((g) =>
 const ticksHtml = (goals) => `<p class="sl-ticks">${goals.map((g) => `<span class="${g.done ? 'done' : ''}" title="${esc(g.text)}">${g.done ? '✓' : '○'}</span>`).join(' ')}</p>`;
 
 function tile(lab, step, ticks) {
-  const body = lab.practice ? '<p class="sl-note">Plays by itself</p>'
+  const body = lab.practice ? '<p class="sl-note">Played by the app, so your lab has someone to share with</p>'
     : step === 0 ? `<p class="sl-note">${esc(lab.members.map((m) => m.name).join(', ') || 'Nobody yet')}</p>`
       : ticks ? ticksHtml(lab.goals) : goalsHtml(lab.goals);
   return `<article class="sl-lab${lab.practice ? ' practice' : ''}" style="--lab:${esc(lab.color)}">
@@ -203,7 +203,7 @@ const SLIDES = {
   join(scene, state) {
     const url = state.session.joinUrl;
     const roster = state.labs.map((lab) => `<li style="--lab:${esc(lab.color)}"><span class="chip">${esc(lab.name)}</span>
-      <span>${lab.practice ? 'Plays by itself' : esc(lab.members.map((m) => m.name).join(', ')) || '<span class="muted">Nobody yet</span>'}</span></li>`);
+      <span>${lab.practice ? 'Played by the app, so your lab has someone to share with' : esc(lab.members.map((m) => m.name).join(', ')) || '<span class="muted">Nobody yet</span>'}</span></li>`);
     return `<div class="sl-join"><div class="sl-join-text">
         <p class="sl-kicker">Outfit Lab</p>
         <h1 class="sl-url">${esc(shortUrl(url))}</h1>

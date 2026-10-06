@@ -1486,8 +1486,8 @@ async function practiceRun() {
   LAB = { 1: ['Noor', 'Eli'] };
   LEADS = ['Noor'];
   await sees(admin, '#labs .tile:nth-child(2)', 'Practice lab');
-  await sees(admin, '#labs .tile.practice .status', 'Plays by itself');
-  await sees(screen, '.sl-roster', /Practice lab\s*Plays by itself/);
+  await sees(admin, '#labs .tile.practice .status', 'Played by the app, so your lab has someone to share with');
+  await sees(screen, '.sl-roster', /Practice lab\s*Played by the app, so your lab has someone to share with/);
   await sees(noor, '#crumbs', 'Lab 1 · Noor');
   await sees(eli, '#crumbs', 'Lab 1 · Eli');
   await arrive(0);
@@ -1505,7 +1505,7 @@ async function practiceRun() {
   const wall = await until("the practice lab's card is on the Wall", async () =>
     (await cardsIn(noor, '#wall-graph')).find((c) => c.author === 'Practice lab'));
   assert.equal(tipIn('wall'), wall.id, 'the practice lab sent first');
-  await sees(screen, '.sl-lab.practice', 'Plays by itself');
+  await sees(screen, '.sl-lab.practice', 'Played by the app, so your lab has someone to share with');
   // The real lab is refused, and chooses its way: Eli picks Replay on top.
   await pick(noor, 'hat', 'crown');
   ok(await press(noor, 'commit'), 'Noor: save');
