@@ -23,7 +23,7 @@
 
 **Stuck lab:** after 45 s students get **Need a hint?** (the idea first, then the exact click). Still stuck: **Rescue** on its tile.
 
-**Homework:** Yang et al., §3.2–3.5. For one finding, write down what they measured.
+**Homework:** none. Thursday needs no reading.
 
 <div style="page-break-after: always"></div>
 

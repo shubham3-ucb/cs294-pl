@@ -487,7 +487,7 @@ Checked in: #1, the reveals of Steps 1, 2 and 4. #2, every Merge and Send in Ste
 
 **Projector:** "Cards never change. Branches move. The Wall copies cards." Then a wall of takeaways, without names. Each student sees "My Git in 7 lines" and their lab's counts, with a Copy button.
 
-**Say:** Cards never change. Branches move. The Wall copies cards. That's Git. Homework: Yang et al., Sections 3.2 to 3.5. For one finding, write down what they measured.
+**Say:** A commit never changes. A branch is a pointer that moves. The Wall holds copies of commits. That is the whole model. On Thursday we look at a study of people asking about Git. No reading needed.
 
 **Do:** Read one lab's counts aloud. Point at the takeaway wall.
 

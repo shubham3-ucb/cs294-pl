@@ -197,7 +197,7 @@ function drawGroup(s) {
   const g = st.group;
   if (!g) { app.innerHTML = `${top()}${intro(s)}<p class="s-wait">Your group is being formed…</p>`; return; }
   const fields = s.fields === 'claim' ? s.claimFields : s.designFields;
-  const claim = s.fields === 'claim' && g.claim ? `<div class="s-claim"><p class="s-sub">Your claim · ${esc(g.claim.where)}</p>
+  const claim = s.fields === 'claim' && g.claim ? `<div class="s-claim"><p class="s-sub">Your claim</p>
     <p class="quote">“${esc(g.claim.quote)}”</p><p class="s-sub">The facts behind it</p><ul class="s-facts">${(g.claim.facts ?? []).map((f) => `<li>${esc(f)}</li>`).join('')}</ul></div>` : '';
   app.innerHTML = `${top()}${intro(s)}<p class="muted">${esc(g.name)} is ${esc(g.members.join(', '))}. One answer per group, so pick one person to type.</p>
     ${claim}${(fields ?? []).map((f) => `<div class="s-field"><label for="f-${f.id}">${esc(f.label)}</label>

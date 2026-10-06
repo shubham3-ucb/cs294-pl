@@ -170,7 +170,7 @@ export function state(pid) {
     group: g && {
       name: g.name,
       members: g.members.map((m) => S.people[m]?.name).filter(Boolean),
-      claim: (({ id, quote, where, facts }) => ({ id, quote, where, facts }))(CLAIMS[g.claim]), // no model answer
+      claim: (({ id, quote, facts }) => ({ id, quote, facts }))(CLAIMS[g.claim]), // no model answer, no citation
       answers: s.kind === 'group' ? S.groupAnswers[s.id]?.[g.id] ?? null : null,
     },
     results: s.kind === 'reveal' || s.kind === 'end' ? results(s.shows) : null,

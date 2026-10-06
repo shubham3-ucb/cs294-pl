@@ -89,7 +89,7 @@ export const CLAIMS = [
     facts: [
       'The authors measured experience as the years since the asker joined Stack Overflow.',
       'In 2020, 40.0% of Git askers had joined more than 5 years earlier. Among all Stack Overflow askers, 21.2% had.',
-      'The authors themselves call this a stand-in for experience (§5).',
+      'The authors themselves call this a stand-in for experience.',
       'Two askers are quoted saying they have programmed for years and still struggle with Git.',
     ],
     measured: 'The years since the asker joined Stack Overflow.',
@@ -103,11 +103,11 @@ export const CLAIMS = [
       '“Difficult” was measured as the share of a command’s questions where the asker never marked an answer as accepted.',
       'git credential: 43.0% of 328 questions. git submodule: 37.5% of 2,911. All Git questions together: 36.5% (our count on the paper’s data).',
       'A question counts for a command when the command’s name appears in the question or in its accepted answer.',
-      'Accepting an answer is one click by the asker. The authors note askers may forget it (§5).',
+      'Accepting an answer is one click by the asker. The authors note askers may forget it.',
     ],
     measured: 'The share of a command’s questions that have no accepted answer.',
     supports: 'For git credential the share is above average (43.0% against 36.5% overall); for git submodule it is about average (37.5%).',
-    why: 'Accepting an answer is one click by the asker, and it is often forgotten (§5). And a post counted through its accepted answer has one by definition, so commands that appear in fixes look easy.',
+    why: 'Accepting an answer is one click by the asker, and it is often forgotten. And a post counted through its accepted answer has one by definition, so commands that appear in fixes look easy.',
   },
   {
     id: 'learning', quote: 'Self-learning is the primary learning approach.', where: 'Abstract; §3.5',

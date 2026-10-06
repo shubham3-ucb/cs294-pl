@@ -781,7 +781,7 @@ const SCRIPT = [
   {
     id: 'wrap', kind: 'wrap', step: 7, minutes: 2, title: 'What you did today', tools: ['export'],
     line: WRAP_LINE,
-    say: 'A commit never changes, a branch is a pointer that moves, and the Wall holds copies of those commits. That is the whole model. Homework: Yang et al., Sections 3.2 to 3.5. For one finding, write down what they measured.',
+    say: 'A commit never changes, a branch is a pointer that moves, and the Wall holds copies of those commits. That is the whole model. On Thursday we look at a study of people asking about Git. No reading needed.',
     do: 'Read one lab\'s counts aloud. Point at the takeaway wall.',
     ask: null,
   },
