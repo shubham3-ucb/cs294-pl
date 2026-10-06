@@ -23,8 +23,8 @@ const PAUSE = { arrive: [800, 2500], think: [2500, 7000], click: [800, 2000], wr
 export const ANSWERS = {
   'reveal-0': ['Save every version, with a name on it.', 'Keep a history of who changed what.', 'Take a snapshot after each change.', 'One person edits at a time.'],
   'reveal-1': ["The next card doesn't exist yet when you save.", "A card never changes, so it can't point to later cards.", 'Each card only knows its parent.', 'Adding an arrow would change the old card.'],
-  'reveal-2': ["Still on main's card. Nothing was copied.", 'On main. The note is only a label.', 'main still points at it.', 'Nothing was copied, the branchs just point.'],
-  'reveal-3': ['No way to tell. A card does not record its branch.', 'We cannot say. The note is gone and no card names it.', 'The fast-forward made no card that says fancy.', 'A commit stores its parents, not its branch.'],
+  'reveal-2': ["Still on main's card. Nothing was copied.", 'On main. The branch is only a label.', 'main still points at it.', 'Nothing was copied, the branches just point.'],
+  'reveal-3': ['No way to tell. A card does not record its branch.', 'We cannot say. The branch is gone and no card names it.', 'The fast-forward made no card that says fancy.', 'A commit stores its parents, not its branch.'],
   'reveal-4': ['Its parent is new, so the hash is new.', 'The ID hashes the parent ID too.', 'A new parent means a new card.', 'Same change, different card: the parent changed.'],
   'reveal-5': ["A fix card only adds, so nobody's copy breaks.", 'Moving back drops a card others already have.', 'The Wall still had the card, so it came back.', 'Revert adds; reset only moves my branch.'],
   'reveal-6': ['Only in the labs that kept the old cards.', 'Not on the Wall anymore.', 'The other labs still know.', 'Gone from the Wall after gc.'],

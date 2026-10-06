@@ -364,7 +364,7 @@ describe('Step 3: delete the fancy branch', () => {
     assert.equal((await session.act('deleteNote', { pid: ana, note: 'fancy' })).error,
       "Refused: fancy has cards main doesn't have. Deleting it could lose them. Merge it first.");
     assert.equal((await session.act('deleteNote', { pid: ben, note: 'fancy' })).error, "You're on fancy. Switch to main first.");
-    assert.equal((await session.act('deleteNote', { pid: ana, note: 'main' })).error, 'main stays. Pick another note.');
+    assert.equal((await session.act('deleteNote', { pid: ana, note: 'main' })).error, 'main stays. Pick another branch.');
     let st = await session.state(ana);
     assert.equal(st.me.mission, null);
     assert.equal(st.me.hint.click, 'Press **Merge fancy into main**.');
@@ -592,7 +592,7 @@ describe('Step 2: Switch keeps unsaved parts', () => {
     assert.equal((await session.state(ana)).me.branch, 'fancy');
     ok(await session.act('switch', { pid: ben, branch: 'fancy' }), 'main has nothing unsaved: Ben may come');
     assert.equal((await session.act('switch', { pid: ben, branch: 'main' })).error, SWITCH_UNSAVED, "the draft is shared: Ana's part holds Ben too");
-    assert.deepEqual((await session.state(ben)).me.hint, { idea: 'Git keeps one working copy. Save your unsaved parts before you move your pin to another note.', click: 'Press **Save card**.' },
+    assert.deepEqual((await session.state(ben)).me.hint, { idea: 'Git keeps one working copy. Save your unsaved parts before you switch to another branch.', click: 'Press **Save card**.' },
       "Ben's note is sporty: his hint saves first");
     ok(await session.act('commit', { pid: ana }));
     ok(await session.act('switch', { pid: ana, branch: 'main' }));

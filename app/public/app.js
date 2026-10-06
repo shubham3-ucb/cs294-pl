@@ -58,12 +58,12 @@ const SUMMARY = [
 // [concept, plain words, the command its button showed]
 const IDEAS = [
   ['save', 'Save a card', 'git commit'], ['branch', 'Make a branch', 'git switch -c'],
-  ['switch', 'Switch notes', 'git switch'], ['fastforward', 'Fast-forward a note', 'git merge'],
+  ['switch', 'Switch branches', 'git switch'], ['fastforward', 'Fast-forward a branch', 'git merge'],
   ['merge', 'Combine two ideas', 'git merge'], ['conflict', 'Solve a conflict', 'git merge + git commit'],
   ['push', 'Send to the Wall', 'git push'], ['rejected', 'Have a send refused', 'git push'],
   ['pull', 'Get & combine', 'git pull --no-rebase'], ['rebase', 'Replay on top', 'git pull --rebase'],
   ['revert', 'Undo with a fix card', 'git revert'],
-  ['reset', 'Move a note back', 'git reset'], ['diary', 'Read the diary', 'git reflog'],
+  ['reset', 'Move a branch back', 'git reset'], ['diary', 'Read the diary', 'git reflog'],
   ['force', 'Replace the Wall', 'git push --force'],
 ];
 
@@ -661,7 +661,7 @@ async function copyGitIn7() {
     ok = document.execCommand('copy');
     area.remove();
   }
-  toast(ok ? 'Copied. Paste it into your branchs.' : 'Copy did not work. Select the lines and copy them.', ok ? 'good' : 'bad');
+  toast(ok ? 'Copied. Paste it into your notes.' : 'Copy did not work. Select the lines and copy them.', ok ? 'good' : 'bad');
 }
 
 // ---------- The paper, the exit question, the wrap ----------
@@ -1122,7 +1122,7 @@ function glossed(text) {
 
 // Safety diary lines in plain words; Git's own line stays underneath.
 const DIARY = [
-  [/^commit \(merge\)/, 'Merged'], [/^commit/, 'Saved a card'], [/^branch/, 'Made this note'],
+  [/^commit \(merge\)/, 'Merged'], [/^commit/, 'Saved a card'], [/^branch/, 'Made this branch'],
   [/^merge wall\/main: Fast-forward/, "Got the Wall's cards"], [/^merge wall\/main/, 'Got & combined'],
   [/^merge .*Fast-forward/, 'Fast-forwarded (merge)'], [/^merge/, 'Merged'],
   [/^(pull --rebase|rebase) \(finish\)/, 'Replayed on top'], [/^pull --rebase: Fast-forward/, "Got the Wall's cards"],
@@ -1141,7 +1141,7 @@ async function openDiary() {
   const entries = res.result?.entries || [];
   patch(body, `
     ${head}
-    <p class="muted">Every place ${esc(note)} has been. Newest first. Moving a note deletes nothing. Click a line to open that card.</p>
+    <p class="muted">Every place ${esc(note)} has been. Newest first. Moving a branch deletes nothing. Click a line to open that card.</p>
     <ol class="diary">${entries.map((e) => `
       <li><button data-goto="${e.id}">
         <span class="when">${clock(e.time * 1000)}</span>

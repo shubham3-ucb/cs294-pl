@@ -127,7 +127,7 @@ export const SCENES = [
   },
   {
     id: 'survey', kind: 'survey', part: 'Warm-up', title: 'Take the paper’s survey', minutes: 4,
-    lines: ['These are the questions the paper asked 92 developers.', 'Answer them for yourself on your laptop.'],
+    lines: ['These are the paper’s survey questions, which 92 developers answered.', 'Answer them for yourself on your laptop.'],
     say: 'These are the paper’s real survey questions. The projector shows totals only. We compare you with the 92 later.',
   },
   {
@@ -144,7 +144,7 @@ export const SCENES = [
     id: 'paper', kind: 'slide', part: '1 · The study', title: 'What the paper found', minutes: 3,
     table: [
       ['How many', 'Git questions have been a steady 0.4% of all Stack Overflow questions each year since 2010.'],
-      ['Who asks', 'Many askers are long-time users. In 2020, 40% had joined Stack Overflow more than 5 years earlier.'],
+      ['Who asks', 'Many askers have old Stack Overflow accounts. In 2020, 40% had joined more than 5 years earlier.'],
       ['Most viewed', 'The most-viewed commands are mostly about undoing work: `revert`, `reflog`, `stash`, `clean` and `reset`.'],
       ['Hardest', 'Rare commands most often lack an accepted answer. Among common commands, `credential` and `submodule` do.'],
       ['How people learn', 'The 92 surveyed say they learned mostly on their own: 81.7% of the boxes they ticked were self-learning.'],
@@ -217,7 +217,7 @@ export const SCENES = [
       { title: 'Holds', items: [
         'There are many Git questions, and their share is steady.',
         'Undoing work is a real need.',
-        'Long-time users can still get stuck.',
+        'Long-time Stack Overflow users can still get stuck.',
         'The data is public, and we could check it ourselves.',
       ] },
       { title: 'Does not hold as written', items: [

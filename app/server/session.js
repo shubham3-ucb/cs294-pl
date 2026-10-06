@@ -34,7 +34,7 @@ const T = {
   merging: 'Finish or cancel the merge first.',
   mainOnly: 'Switch to main first.',
   boss: 'The boss is cleaning the Wall. Watch.',
-  moved: 'Someone in your lab changed this note meanwhile. Press again.',
+  moved: 'Someone in your lab changed this branch meanwhile. Press again.',
   busy: 'Busy, press again.',
   refused: "Refused: the Wall has cards your main doesn't. Press Get & combine first.",
   refusedChoose: "Refused: the Wall has cards your main doesn't. Choose a way to get them: Get & combine (merge) or Replay on top (rebase). Then send again.",
@@ -1225,7 +1225,7 @@ const ACTIONS = {
     me.branch = note;
     const r = {
       porcelain: `git switch ${note}`,
-      explain: `In real Git, \`git switch ${note}\` writes \`ref: refs/heads/${note}\` into \`.git/HEAD\`. Here your pin (HEAD) is yours alone, so each person can be on a different note, and each branch keeps its own draft.`,
+      explain: `In real Git, \`git switch ${note}\` writes \`ref: refs/heads/${note}\` into \`.git/HEAD\`. Here your pin (HEAD) is yours alone, so each person can be on a different branch, and each branch keeps its own draft.`,
       commands: [],
     };
     return reply(lab, me, r, { action: `Switch to ${note}`, concepts: ['switch'] }, { message: `You're on ${note} now.` });
@@ -1350,7 +1350,7 @@ const ACTIONS = {
   // goes back to main (here each person has a pin; real Git refuses a branch checked out elsewhere).
   async deleteNote(me, lab, { note }) {
     const name = String(note ?? '');
-    if (name === 'main') return fail('main stays. Pick another note.');
+    if (name === 'main') return fail('main stays. Pick another branch.');
     if (!tipOf(await git.graph(lab.id), name)) return fail('That branch does not exist.');
     if (name === me.branch) return fail(`You're on ${name}. Switch to main first.`);
     if (lab.merging[name]) return fail(T.merging);
@@ -1606,7 +1606,7 @@ async function settle(lab, note, pick, who) {
   }
 }
 
-// Cancel open merges and drop unsaved parts on the branchs rescue touches.
+// Cancel open merges and drop unsaved parts on the branches rescue touches.
 async function clearNotes(lab, notes) {
   for (const note of notes) {
     if (lab.merging[note]) must(await git.abort(lab, note));

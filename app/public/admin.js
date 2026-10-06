@@ -109,7 +109,7 @@ $('labs').addEventListener('click', (e) => {
   if (!button) return;
   const lab = state.labs.find((l) => l.id === button.dataset.rescue);
   act('/api/admin/rescue', { labId: lab.id }, {
-    sure: `Rescue ${lab.name}? The app finishes this step for them with real Git. Open merges and unsaved parts on those notes are dropped.`,
+    sure: `Rescue ${lab.name}? The app finishes this step for them with real Git. Open merges and unsaved parts on those branches are dropped.`,
     button,
   });
 });

@@ -55,7 +55,7 @@ Some Next presses also act:
 
 What happens in the steps:
 
-- **Step 3.** After the fast-forward of fancy, each lab deletes the fancy note (`git branch -d`). The reveal asks which cards were made on fancy. No card records it.
+- **Step 3.** After the fast-forward of fancy, each lab deletes the fancy branch (`git branch -d`). The reveal asks which cards were made on fancy. No card records it.
 - **Step 4.** The first lab to send gets in. A refused lab chooses its way: Combine (merge) or Replay on top (rebase), and says why in one line. The console tile shows "Chose: …"; if nobody picked one way, the reveal says what it would have done. A replayed card keeps its author and author time. It gets a new parent, so a new snapshot, a new committer time and a new ID. The original shows dashed: "only in your safety diary (reflog)". The reveal marks one change's path to main, with this class's own times ("made 10:21 → on the Wall 10:24 · 3 min").
 - **Step 5.** Each lab chooses **Undo this card** (revert) or **Move my branch back** (reset). Moving back, then sending, is refused by the Wall (non-fast-forward). If no lab moved back, the reveal says what would have happened.
 - **The paper** shows Step 4's paths as they were. After the squash, the Wall has none of those cards.
@@ -72,7 +72,7 @@ To see the student side, open the student link in another window and join. Your 
 ## If something goes wrong
 
 - **A page looks stuck.** Reload it; the name and lab come back. A grey dot means it is reconnecting by itself. When live updates go quiet, each page asks the server every 2 seconds.
-- **A lab is stuck.** Its status line turns red: "In a conflict for 2:10" or "No clicks for 2:00" (after 2 minutes), or "Refused twice in a row". First point the students at **Need a hint?**. Then press **Rescue** on the tile: it finishes the step for that lab with real Git (Steps 2–5, and the boss lab in Step 6). It drops open merges and unsaved parts on the notes it touches.
+- **A lab is stuck.** Its status line turns red: "In a conflict for 2:10" or "No clicks for 2:00" (after 2 minutes), or "Refused twice in a row". First point the students at **Need a hint?**. Then press **Rescue** on the tile: it finishes the step for that lab with real Git (Steps 2–5, and the boss lab in Step 6). It drops open merges and unsaved parts on the branches it touches.
 - **You pressed Next too early.** Press **Back**. Done things stay done: the Wall and the copies, the practice lab's card, the 🥸 card, the clean-up.
 - **Start over.** **Details → Reset session** wipes the session. Everyone joins again.
 - **The app or the link stopped.** Run `./host.sh` again. The session and key are kept; the link changes. Open the new Teacher link (it has the new QR). Students open the new link and type the same name.

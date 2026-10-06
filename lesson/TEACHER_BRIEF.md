@@ -24,7 +24,7 @@ Next → read **Say** → students work (watch "done" on the console, or the clo
 | 0:00 | Join | Type a name; the app picks the lab | — |
 | 0:03 | **0 Chaos** | Everyone edits one outfit, 90 s | Nothing was saved. *Ask:* what rule would fix it? → save every version, with a name |
 | 0:06 | **1 Save** · `git commit` | Each saves one card | A commit = a snapshot + parent + name + time. Git trusts your laptop's name and clock |
-| 0:12 | **2 Two ideas** · `git switch -c` | Pairs build fancy and sporty on branches | A branch is a branch pointing at a card. Nothing is copied |
+| 0:12 | **2 Two ideas** · `git switch -c` | Pairs build fancy and sporty on branches | A branch is a name pointing at a card. Nothing is copied |
 | 0:19 | **3 Combine** · `git merge` | **Predict**, merge fancy (fast-forward), delete it; predict, merge sporty (conflict on TOP, a person picks) | After a fast-forward and delete, no card says it was made on fancy |
 | 0:31 | Break | | |
 | 0:35 | **4 Share** · `push`, `pull`, `rebase` | Predict each send. First lab gets in; refused labs **choose** merge or rebase | Push only moves forward. Rebase replays a card: same change and author, new parent → new ID |

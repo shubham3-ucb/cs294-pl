@@ -1058,7 +1058,7 @@ async function classRun() {
   }));
   for (const name of LEADS) {
     await sees(S[name], '#mission .instruction', "The Wall is the class's shared copy of the history (a remote, like GitHub). Your lab holds a full copy of it, made with git clone.");
-    await sees(S[name], '#mission .instruction', `The Wall started from ${name === a1 ? 'your lab' : 'Lab 1'}'s outfit, so your lab's cards are now a copy of that history.`);
+    await sees(S[name], '#mission .fresh-line', name === a1 ? 'the same cards with the same IDs' : "holds Lab 1's history");
     await sees(S[name], '#mission .fresh-line', name === a1 ? STEPS[4].fresh.wallLab
       : "Your lab now starts from the Wall, which holds Lab 1's history. The cards your lab made in Steps 1 to 3 are not in this fresh copy.");
     await sees(S[name], '#actions .ways-head', "Get the Wall's cards: choose a way.");
@@ -1418,7 +1418,7 @@ async function classRun() {
   await ana.reload();
   await until('the edited line survives a reload', async () => (await ana.inputValue('.git7 [data-field="t:3"]')) === edited);
   await click(ana, '.git7 [data-copy]');
-  await sees(ana, '#toasts', 'Copied. Paste it into your branchs.');
+  await sees(ana, '#toasts', 'Copied. Paste it into your notes.');
   const copied = await ana.evaluate(() => navigator.clipboard.readText());
   assert.ok(copied.startsWith(`My Git in 7 lines\n0. ${anaLines[0]}\n`) && copied.includes(`3. ${edited}`) && copied.split('\n').length === 8,
     `the copy holds the 7 lines:\n${copied}`);
@@ -1429,9 +1429,9 @@ async function classRun() {
   for (const name of NAMES) assert.doesNotMatch(wall, new RegExp(`\\b${name}\\b`), 'the takeaway wall hides names');
   // What each lab did, in each student's wrap and on the console tiles.
   const did = {
-    1: { on: ['Save a card', 'Fast-forward a note', 'Solve a conflict', 'Undo with a fix card', 'Have a send refused', 'Replace the Wall'], off: ['Move a note back', 'Replay on top'] },
-    2: { on: ['Save a card', 'Solve a conflict', 'Have a send refused', 'Get & combine', 'Move a note back', 'Read the diary', 'Undo with a fix card'], off: ['Replace the Wall', 'Replay on top'] },
-    3: { on: ['Save a card', 'Solve a conflict', 'Have a send refused', 'Replay on top', 'Undo with a fix card'], off: ['Move a note back', 'Replace the Wall'] },
+    1: { on: ['Save a card', 'Fast-forward a branch', 'Solve a conflict', 'Undo with a fix card', 'Have a send refused', 'Replace the Wall'], off: ['Move a branch back', 'Replay on top'] },
+    2: { on: ['Save a card', 'Solve a conflict', 'Have a send refused', 'Get & combine', 'Move a branch back', 'Read the diary', 'Undo with a fix card'], off: ['Replace the Wall', 'Replay on top'] },
+    3: { on: ['Save a card', 'Solve a conflict', 'Have a send refused', 'Replay on top', 'Undo with a fix card'], off: ['Move a branch back', 'Replace the Wall'] },
   };
   for (const [id, { on, off }] of Object.entries(did)) {
     const p = S[LAB[id][0]];

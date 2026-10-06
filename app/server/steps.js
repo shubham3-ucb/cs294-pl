@@ -229,13 +229,13 @@ const AGAIN = { merge: 'Press **Get & combine**. Then **Send to Wall** again.', 
 const CHOOSE_WAY = 'Pick a way: press **Get & combine** (merge) or **Replay on top** (rebase). Then **Send to Wall** again.';
 const UNDO = `Click the ${DISGUISE} card. Press **Undo this card**.`;
 const CHOOSE_UNDO = `Click the ${DISGUISE} card and press **Undo this card**, or click the card right before it and press **Move my branch back here**.`;
-const SAVE_FIRST = H('Git keeps one working copy. Save your unsaved parts before you move your pin to another note.', SAVE);
+const SAVE_FIRST = H('Git keeps one working copy. Save your unsaved parts before you switch to another branch.', SAVE);
 
 // Steps 3–6 work on main: be on it, with no open merge.
 function onMain(v, me) {
   if (me.branch !== 'main') {
     if (unsaved(v, me.branch)) return SAVE_FIRST;
-    return H('This step works on main. Look at "You\'re on" to see which note your pin is on.', 'Press **Switch to** and pick **main**.');
+    return H('This step works on main. Look at "You\'re on" to see which branch you are on.', 'Press **Switch to** and pick **main**.');
   }
   const open = v.merging('main');
   return open ? finish(open) : null;
@@ -245,7 +245,7 @@ function onMain(v, me) {
 function buildNote(v, me, note) {
   if (me.branch !== note && unsaved(v, me.branch)) return SAVE_FIRST;
   if (!v.card(note)) return H('Your pair\'s idea needs its own branch, so that main stays as it is.', `Press **New branch**. Name it **${note}**.`);
-  if (me.branch !== note) return H(`Your pin is on another note. Your pair's work belongs on **${note}**.`, `Press **Switch to** and pick **${note}**.`);
+  if (me.branch !== note) return H(`You are on another branch. Your pair's work belongs on **${note}**.`, `Press **Switch to** and pick **${note}**.`);
   const open = v.merging(note);
   if (open) return finish(open);
   const now = { ...v.card(note), ...v.draft(note) };
@@ -332,7 +332,7 @@ export const STEPS = [
       git: 'A branch is a name that points at one card. Making one copies nothing. **New branch** runs `git switch -c`, and it always starts from main.',
     },
     instruction: 'Your lab has one branch so far: main. Each pair makes a branch for its own idea, changes the outfit on that branch, and saves.',
-    screen: 'Pair A builds fancy and Pair B builds sporty, each on its own branch (branch).',
+    screen: 'Pair A builds fancy and Pair B builds sporty, each on its own branch.',
     unlocks: ['branch', 'switch', 'pair'],
     tips: [
       { action: 'branch', text: 'A branch keeps one idea apart from main.' },
@@ -360,7 +360,7 @@ export const STEPS = [
     },
     bonus: 'Press **Switch to** main and then back again, and watch the outfit change. Look, but do not edit.',
     behind: {
-      text: 'A branch (branch) is a tiny file holding one card\'s ID. Making one copies nothing. Your pin (HEAD) shows which note you are on. Switch refuses while you have unsaved parts, because Git keeps one working copy.',
+      text: 'A branch is a tiny file holding one card\'s ID. Making one copies nothing. Your pin (HEAD) shows which branch you are on. Switch refuses while you have unsaved parts, because Git keeps one working copy.',
       cmds: ['git switch -c', 'git switch'],
     },
   },
@@ -404,7 +404,7 @@ export const STEPS = [
     },
     bonus: 'Open the merge card. Why does it have two parents?',
     behind: {
-      text: 'If main has nothing new since the split, `git merge` only moves main\'s note forward: a fast-forward. Otherwise Git compares both sides with the card where they split. A part changed differently on both sides is a conflict, and a person picks. `git branch -d` deletes a note only if the branch you are on already has its cards.',
+      text: 'If main has nothing new since the split, `git merge` only moves main forward: a fast-forward. Otherwise Git compares both sides with the card where they split. A part changed differently on both sides is a conflict, and a person picks. `git branch -d` deletes a branch only if the branch you are on already has its cards.',
       cmds: ['git merge', 'git branch -d'],
     },
   },
@@ -413,7 +413,7 @@ export const STEPS = [
     title: 'Share your work through the Wall',
     // What students read first: what is happening, what to do, and the Git behind it.
     story: {
-      now: 'The Wall is the class\'s shared copy of the history (a remote, like GitHub). Your lab holds a full copy of it, made with `git clone`. The Wall started from {wallLab}\'s outfit, so your lab\'s cards are now a copy of that history.',
+      now: 'The Wall is the class\'s shared copy of the history (a remote, like GitHub). Your lab holds a full copy of it, made with `git clone`.',
       job: 'Make your lab\'s one change, press **Save card**, then **Send to Wall**. Before each send, say whether you think the Wall will accept it.',
       git: '**Send to Wall** runs `git push`. **Get & combine** runs `git pull`. **Replay on top** runs `git pull --rebase`.',
     },
@@ -689,10 +689,10 @@ const SCRIPT = [
   }),
   reveal(2, 3, {
     reveal: { cards: [CARDS.branch], note: ONE_REPO_LINE },
-    say: 'A branch is a tiny file holding one card\'s ID. Your pin (HEAD) says which note you are on. Saving moves only that branch.',
+    say: 'A branch is a tiny file holding one card\'s ID. Your pin (HEAD) says which branch you are on. Saving moves only that branch.',
     do: 'Read the line under the card once: it is the app\'s one simplification. Switch refuses unsaved parts, as Git does with one working copy.',
     ask: { q: 'Where is the original outfit now? Did anything get copied?', a: 'Still on main\'s card. Nothing was copied.' },
-    board: '2. A branch (branch) is a label on one card. Saving moves it.',
+    board: '2. A branch is a label on one card. Saving moves it.',
   }),
   task(3, 8, {
     say: 'The client wants one outfit with both ideas in it. One person presses and everyone watches. Before Merge runs, the app asks what Git will do, and everyone in your lab can predict.',
@@ -770,8 +770,8 @@ const SCRIPT = [
   },
   {
     id: 'exit', kind: 'exit', step: 6, minutes: 3, title: 'Exit question', tools: [],
-    line: 'Answer on your own, in two sentences, in the app.',
-    say: 'Answer on your own, in two sentences, in the app.',
+    line: 'Answer on your own, in two sentences.',
+    say: 'Answer on your own, in two sentences.',
     do: 'After a minute, show the answers. Read two aloud. Then give the answer.',
     ask: {
       q: 'A password reached the Wall. Two labs pulled. Does Undo this card (revert) remove it? If not, what would?',

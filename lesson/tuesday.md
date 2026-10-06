@@ -181,7 +181,7 @@ Checked in: #1, the reveals of Steps 1, 2 and 4. #2, every Merge and Send in Ste
 
 **Watch for (A):** Before a pair edits, the "You're on:" chip shows their own note.
 
-**Watch for:** **Switch to** refuses while the note you're on has unsaved parts: "Save card first: Git keeps one working copy and won't drop your unsaved parts." That is Git's behaviour, not a bug. The draft is shared, so a lab-mate's unsaved part holds everyone on that note.
+**Watch for:** **Switch to** refuses while the branch you're on has unsaved parts: "Save card first: Git keeps one working copy and won't drop your unsaved parts." That is Git's behaviour, not a bug. The draft is shared, so a lab-mate's unsaved part holds everyone on that branch.
 
 ## 0:16 · Step 2 · How Git does it · `git branch`
 
@@ -194,7 +194,7 @@ Checked in: #1, the reveals of Steps 1, 2 and 4. #2, every Merge and Send in Ste
 - **What it does:** lets you try an idea without touching main.
 - **How Git does it:** a branch is a tiny file (`.git/refs/heads/<name>`) holding one commit ID. Committing moves it forward. HEAD records which branch you are on. Creating a branch copies nothing.
 
-**Say:** A branch is a tiny file holding one card's ID. Your pin (HEAD) says which note you're on. Saving moves only that note.
+**Say:** A branch is a tiny file holding one card's ID. Your pin (HEAD) says which branch you're on. Saving moves only that branch.
 
 **Do:** Read the line under the card once: it is the app's one simplification. Switch refuses unsaved parts, as Git does with one working copy.
 
@@ -204,9 +204,9 @@ Checked in: #1, the reveals of Steps 1, 2 and 4. #2, every Merge and Send in Ste
 
 **Hope to hear:** Still on main's card. Nothing was copied.
 
-**If silent:** Count the cards before and after you made the note.
+**If silent:** Count the cards before and after you made the branch.
 
-**Board:** 2. Branch (branch): a label on one card. Saving moves it.
+**Board:** 2. A branch is a label on one card. Saving moves it.
 
 ---
 
@@ -224,7 +224,7 @@ Checked in: #1, the reveals of Steps 1, 2 and 4. #2, every Merge and Send in Ste
 
 **If silent:** What did HAT look like before you split?
 
-**Students:** Lab-mates predict in their panel: "Before your lab merges fancy into main: What will Git do?" The presser predicts in the dialog, then Git runs. On main, merge **fancy**: main's note slides forward, no new card. Each predictor sees one line, e.g. "You predicted: merge, no conflict. Git: fast-forward. Why: main had no new card since the split, so Git only slid its note." The mission then says: "Delete the fancy note (`git branch -d fancy`)." They press **Delete branch**. Then predict and merge **sporty**. HAT 🎩 and SHOES 🥾 combine alone. TOP is red: the lab agrees on one, picks it, and presses **Finish merge**. A merge pressed again after Cancel asks nothing: Git already answered.
+**Students:** Lab-mates predict in their panel: "Before your lab merges fancy into main: What will Git do?" The presser predicts in the dialog, then Git runs. On main, merge **fancy**: main slides forward, no new card. Each predictor sees one line, e.g. "You predicted: merge, no conflict. Git: fast-forward. Why: main had no new card since the split, so Git only slid its branch." The mission then says: "Delete the fancy branch (`git branch -d fancy`)." They press **Delete branch**. Then predict and merge **sporty**. HAT 🎩 and SHOES 🥾 combine alone. TOP is red: the lab agrees on one, picks it, and presses **Finish merge**. A merge pressed again after Cancel asks nothing: Git already answered.
 
 **Watch for:** Delete fancy before merging it? Refused, like `git branch -d`: fancy has cards main doesn't.
 
@@ -241,7 +241,7 @@ Checked in: #1, the reveals of Steps 1, 2 and 4. #2, every Merge and Send in Ste
 - **What it does:** keeps a change made on one side. It stops for a person when both sides changed the same or neighbouring lines.
 - **How Git does it:** Git finds the merge base (the last common commit) and compares each side with it (a 3-way merge), then writes a merge commit with two parents. If your branch has nothing new (the other side already contains it), Git fast-forwards: only the label moves, and no merge commit is made.
 
-**Say:** The first merge only slid the note: a fast-forward, no new card. Then Git compared each side with the card where you split. Only TOP changed on both sides, so only TOP needed you.
+**Say:** The first merge only slid the branch: a fast-forward, no new card. Then Git compared each side with the card where you split. Only TOP changed on both sides, so only TOP needed you.
 
 **Do:** Read the prediction line aloud: who expected the fast-forward, who expected TOP? If asked: main's own safety diary still says "merge fancy: Fast-forward". It is local, it expires, and it never reaches the Wall.
 
@@ -349,7 +349,7 @@ Checked in: #1, the reveals of Steps 1, 2 and 4. #2, every Merge and Send in Ste
 
 **Watch for:** A lab that moved back is refused. That is the lesson. Of the labs that undid, the second to send is refused; its Get & combine has no red: both made the same fix. No lab chose to move back? The reveal says what would have happened.
 
-**Do (A, at a lab that moved back, after the refusal):** Ask: "Suppose nobody else had the 🥸 card. Your note left it. How would you find it again?" Then point them to **Safety diary**: it still lists 🥸. Moving the note deleted nothing.
+**Do (A, at a lab that moved back, after the refusal):** Ask: "Suppose nobody else had the 🥸 card. Your branch left it. How would you find it again?" Then point them to **Safety diary**: it still lists 🥸. Moving the branch deleted nothing.
 
 **Watch for:** Done when each lab undid 🥸 itself and the Wall shows no 🥸.
 
@@ -357,7 +357,7 @@ Checked in: #1, the reveals of Steps 1, 2 and 4. #2, every Merge and Send in Ste
 
 **Time:** 3 min.
 
-**Projector:** the `git revert / git reset` card, the class's accuracy for Step 5's sends, what each lab chose ("Chose: Lab 1 Undo this card (revert) · Lab 2 Move my branch back (reset) · …"), and, if no lab moved back: "No lab moved its note back. It would have been refused: the Wall still has the 🥸 card, and Get & combine brings it back."
+**Projector:** the `git revert / git reset` card, the class's accuracy for Step 5's sends, what each lab chose ("Chose: Lab 1 Undo this card (revert) · Lab 2 Move my branch back (reset) · …"), and, if no lab moved back: "No lab moved its branch back. It would have been refused: the Wall still has the 🥸 card, and Get & combine brings it back."
 
 **Card:** `git revert / git reset`
 - **What it is:** two kinds of undo.

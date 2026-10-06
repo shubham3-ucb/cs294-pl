@@ -169,10 +169,16 @@ def card(s, x, y, w, h, parts, fill=WHITE, line=LINE):
             iy += bh + Inches(0.1)
             continue
         if label:
-            text(s, x + Inches(0.2), iy, iw, Inches(0.22), label.upper(), size=11, bold=True, color=MUTED)
-            iy += Inches(0.24)
+            lh = label_h(label, iw)
+            text(s, x + Inches(0.2), iy, iw, lh, label.upper(), size=11, bold=True, color=MUTED)
+            iy += lh + Inches(0.02)
         iy += para(s, x + Inches(0.2), iy, iw, body, 15 if style == 'quote' else 14, italic=style == 'quote') + Inches(0.1)
     return iy - y
+
+
+def label_h(label, w):
+    """A card label's measured height: a long label wraps to two lines instead of running into the body."""
+    return height(label.upper(), 11, w, bold=True)
 
 
 def card_h(parts, w):
@@ -182,7 +188,7 @@ def card_h(parts, w):
         if style == 'model':
             h += height(body, 14, iw - Inches(0.2)) + Inches(0.52)
             continue
-        h += (Inches(0.24) if label else 0) + height(body, 15 if style == 'quote' else 14, iw) + Inches(0.1)
+        h += (label_h(label, iw) + Inches(0.02) if label else 0) + height(body, 15 if style == 'quote' else 14, iw) + Inches(0.1)
     return h + Inches(0.1)
 
 
@@ -288,7 +294,7 @@ def scene_slide(prs, app, sc):
         parts = [[(l['label'], l['hint'], 'body')] for l in app['labels']]
         y = cards(s, sc, y, parts, 3) + Inches(0.25)
         para(s, M, y, LINE_W, [f'On your laptop: {len(app["posts"])} posts, each with the question, the accepted answer, and the command the paper counted it for.',
-                               'Drawn at random from short, answered posts credited to the top-5 commands (analysis/thursday_numbers.py, seed 294).'], 16, color=MUTED, gap=Pt(4))
+                               'Drawn at random from short, answered posts counted for the five most-viewed commands.'], 16, color=MUTED, gap=Pt(4))
         return
     if sid == 'label-reveal':
         y = lines_block(s, sc, y, 15, CONTENT_W) - Inches(0.12)
@@ -329,7 +335,7 @@ def scene_slide(prs, app, sc):
         return
     if sid == 'design-reveal':
         y = lines_block(s, sc, y)
-        para(s, M, y, LINE_W, 'Each group reads its change, its study, its measure and threat, and its data. The app shows all of them.', 22, color=MUTED)
+        para(s, M, y, LINE_W, 'Each group reads its change, its test, its measure and risk, and its data. The app shows all of them.', 22, color=MUTED)
         ask(s, sc, y + Inches(1))
         return
     if sc.get('columns'):
