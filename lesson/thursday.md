@@ -1,6 +1,6 @@
 # Thursday · Git, Part 2: The Humans · lesson script
 
-80 min (76 + 4 buffer) · the app at `/thu`, same server as Tuesday · you press only **Next** · deck for the record: [`slides/thursday_app.pptx`](../slides/thursday_app.pptx)
+80 min (77 + 3 buffer) · the app at `/thu`, same server as Tuesday · you press only **Next** · deck for the record: [`slides/thursday_app.pptx`](../slides/thursday_app.pptx)
 Paper: Yang, Zhang, Pan, Xu, Zhou, Huang. *Do Developers Really Know How to Use Git Commands? A Large-Scale Study Using Stack Overflow.* ACM TOSEM 2022. Its data is public: [github.com/gitcommandstudy/gitcommands](https://github.com/gitcommandstudy/gitcommands).
 
 The console shows **Say**, **Ask** and **Hope to hear** for every scene, and a clock: time in this scene against its plan (red when over). This page is the plan around it. The short version for the day is [`TEACHER_BRIEF.md`](TEACHER_BRIEF.md).
@@ -36,30 +36,30 @@ Sarah's test: completing the activity teaches the concept, and you cannot comple
 | Clock | Min | Scene | Students do | Land this |
 |---|---|---|---|---|
 | 0:00 | 3 | Join | Type a first name | — |
-| 0:03 | 4 | Take the paper's survey | The form's Q2–Q7, word for word | You are respondent 93. |
-| 0:07 | 2 | The paper in one slide | Listen | Five RQs: four from Stack Overflow, one from a survey. |
-| 0:09 | 2 | What kind of study is this? | Vote | — |
-| 0:11 | 2 | Need-finding | — | Questions record getting stuck; when Git just worked, nobody asked. |
-| 0:13 | 2 | Stack Overflow posts are… | Vote | — |
-| 0:15 | 2 | Traces. Of asking. | — | Traces of asking, not of using. Nobody was watched. |
-| 0:17 | 3 | You and the paper's 92 | Compare | A level is a judgment, "how I learned" a memory; the sample came from Stack Overflow. |
-| 0:20 | 8 | Check the rule on 8 real posts | Label each post | — |
-| 0:28 | 4 | The rule and you | — | The rule counts "stuck", "needs it" and "not about it" the same. |
-| 0:32 | 5 | Code the comments yourself | Code 7 comments | — |
-| 0:37 | 3 | Coding without a method | — | No method, no second coder, no agreement: vibes. |
-| 0:40 | 5 | **Break** | — | Before Next: everyone on the /thu tab; "here" matches the room. |
-| 0:45 | 7 | Put one claim on trial | Groups of about 4, one claim each | — |
-| 0:52 | 5 | The verdicts | Reasons on their laptops | The experience claim survives because it is weak; three shrink. |
-| 0:57 | 9 | Design for the need that survived | Groups: change, study, measure + threat, data | — |
-| 1:06 | 3 | Your designs | Read them out | Push on the data: watch, trace, or ask? |
-| 1:09 | 2 | What Git and Jujutsu did | — | A new command makes new questions. Did it help? That needs an evaluative study. |
-| 1:11 | 2 | The paper: what holds, what doesn't | — | Holds: undo is a real need, the data is public. Doesn't: difficulty, ranking, learning, doubts, the title. |
-| 1:13 | 2 | Exit | One line each | — |
-| 1:15 | 1 | **Asking is not using.** | — | Check what your data records. |
-| 1:16 | 4 | Buffer | | |
+| 0:03 | 4 | Take the paper's survey | The real questions | You are respondent 93. |
+| 0:07 | 3 | How the study was done | Listen | Collect 80,370 questions; measure views and accepted answers; survey 92. |
+| 0:10 | 2 | Who is in this study? | Vote | — |
+| 0:12 | 2 | People who asked. Nobody was watched. | — | Asking shows where people got stuck, not what they do. |
+| 0:14 | 2 | When does a question count for `git reset`? | Vote | — |
+| 0:16 | 2 | A word search | — | Even a command only in the answer counts. |
+| 0:18 | 2 | What they found | Listen | Five findings; we check them. |
+| 0:20 | 3 | You and the paper's 92 | Compare | Self-ratings and memories are shaky; the 92 came via Stack Overflow. |
+| 0:23 | 8 | Read 8 real posts | Label each: stuck / needs it / not about it | — |
+| 0:31 | 4 | What the word search missed | — | The rule counts fixes as problems. |
+| 0:35 | 5 | Sort 7 survey comments | Sort into the paper’s 6 groups | — |
+| 0:40 | 3 | Did you agree? | — | No method, no agreement reported. |
+| 0:43 | 5 | **Break** | Back on /thu | Groups form on Next. |
+| 0:48 | 7 | Put one claim on trial | Groups: what was measured, what it shows | — |
+| 0:55 | 5 | The verdicts | Reasons on laptops | Experience holds (weakly); three shrink. |
+| 1:00 | 9 | Design a better undo | Groups: fix, test, measure + risk, data | — |
+| 1:09 | 3 | Your designs | Read them out | Which can you test by watching? |
+| 1:12 | 2 | What holds, what doesn't | — | Fair to the authors. |
+| 1:14 | 2 | One idea to take home | One line each | — |
+| 1:16 | 1 | **Asking is not using.** | — | Check what your data really records. |
+| 1:17 | 3 | Buffer |  |  |
 
 **Never cut:** the 8 labels · the coding · the verdicts · the design · the exit.
-**Running late:** "What Git and Jujutsu did" becomes one sentence; "Your designs" takes two groups; "You and the paper's 92" takes 2 minutes.
+**Running late:** "Your designs" takes two groups; "You and the paper's 92" takes 2 minutes; "What they found" is read in one breath.
 
 ## At the verdicts: why each claim shrinks
 

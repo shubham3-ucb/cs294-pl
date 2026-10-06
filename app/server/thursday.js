@@ -427,7 +427,7 @@ export function exportMarkdown() {
     if (a.learnOther) out.push(`- ${who(pid)} (learned, other): ${a.learnOther}`);
     if (a.tip) out.push(`- ${who(pid)} (tip): ${a.tip}`);
   }
-  for (const id of ['kind', 'data']) {
+  for (const id of ['who', 'rule']) {
     const r = results(id);
     out.push('', `## Vote: ${sceneById(id).title}`, '', ...r.options.map((o, i) => `- ${o}: ${r.counts[i]}`));
   }

@@ -124,7 +124,7 @@ const SURVEY_NUMBER = { area: 2, degree: 3, years: 4, level: 5, learn: 6, tip: 7
 // ---------- A vote ----------
 function drawVote(s) {
   app.innerHTML = `${top()}${intro(s)}<div class="s-vote">${s.options.map((o, i) =>
-    `<button data-i="${i}" class="${st.me.vote === i ? 'on' : ''}">${esc(o)}</button>`).join('')}</div><p class="s-msg" id="m"></p>`;
+    `<button data-i="${i}" class="${st.me.vote === i ? 'on' : ''}">${md(o)}</button>`).join('')}</div><p class="s-msg" id="m"></p>`;
   app.querySelectorAll('.s-vote button').forEach((b) => {
     b.onclick = async () => {
       const r = await send({ value: Number(b.dataset.i) });

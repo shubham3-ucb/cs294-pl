@@ -81,14 +81,15 @@ function table(rows, cls = '') {
   const [first, ...rest] = rows;
   const header = first[0] === '' ? `<tr>${first.map((c) => `<th>${md(c)}</th>`).join('')}</tr>` : '';
   const body = (header ? rest : rows).map((r) => `<tr>${r.map((c) => `<td>${md(c)}</td>`).join('')}</tr>`).join('');
-  return `<table class="t-table ${header ? 'ranks' : ''} ${cls}">${header}${body}</table>`;
+  const big = rows.length <= 3 ? 'big' : '';
+  return `<table class="t-table ${header ? 'ranks' : ''} ${big} ${cls}">${header}${body}</table>`;
 }
 
 const count = (p) => (p ? `<p class="t-count">${p.done} <small>of ${p.of} ${p.unit === 'groups' ? 'groups done' : 'done'}</small></p>` : '');
 
 function voteBars(r, correct) {
   return `<ul class="t-bars">${r.options.map((o, i) => `<li class="${i === correct ? 'right' : ''}">
-    <span>${esc(o)}</span><span class="bar"><i style="width:${pct(r.counts[i], r.n)}%"></i></span><b>${r.counts[i]}</b></li>`).join('')}</ul>`;
+    <span>${md(o)}</span><span class="bar"><i style="width:${pct(r.counts[i], r.n)}%"></i></span><b>${r.counts[i]}</b></li>`).join('')}</ul>`;
 }
 
 // Class vs paper, as shares of people.
@@ -117,8 +118,9 @@ function labelsResult(r) {
       <span class="names ${p.askerNamesIt ? '' : 'no'}">${p.askerNamesIt ? 'Yes' : 'Answer only'}</span>
       <span class="t-split">${split}</span><span class="t-split-num">${n ? `${pct(Math.max(...p.counts), n)}% agree` : '—'}</span></li>`;
   }).join('');
-  const key = r.labels.map((l, i) => `<i style="background:${LABEL_COLORS[i]}"></i>${esc(l.short)}`).join(' ');
-  return `<ul class="t-posts"><li class="h"><span>Post</span><span>Counted for</span><span>Asker names it</span><span class="legend">You: ${key}</span></li>${rows}</ul>`;
+  const key = r.labels.map((l, i) => `<span><i style="background:${LABEL_COLORS[i]}"></i>${esc(l.label)}</span>`).join('');
+  return `<ul class="t-posts"><li class="h"><span>Post</span><span>Counted for</span><span>Asker names it</span><span>You</span><span></span></li>${rows}</ul>
+    <p class="t-key">${key}</p>`;
 }
 
 // Coding Table 8: for each comment, the paper's category, and how many of you chose it; how much you agreed.
@@ -183,7 +185,7 @@ export function slideHtml(s, r, ctx = {}) {
       ${s.foot ? `<p class="t-foot">${md(s.foot)}</p>` : ''}${ask(s)}</div>`;
   }
   if (s.kind === 'vote') {
-    return `<div class="${k}">${head(s)}<ul class="t-options">${s.options.map((o) => `<li>${esc(o)}</li>`).join('')}</ul>${count(ctx.progress)}</div>`;
+    return `<div class="${k}">${head(s)}${lines(s.lines)}<ul class="t-options">${s.options.map((o) => `<li>${md(o)}</li>`).join('')}</ul>${count(ctx.progress)}</div>`;
   }
   if (s.kind === 'survey' || s.kind === 'label' || s.kind === 'code' || s.kind === 'exit') {
     return `<div class="${k}">${head(s)}${lines(s.lines)}${count(ctx.progress)}</div>`;

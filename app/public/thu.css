@@ -219,7 +219,7 @@ details[open] summary { margin-bottom: 10px; }
 
 .t-posts.codes li { grid-template-columns: minmax(0, 1fr) calc(var(--u) * 46) calc(var(--u) * 15) calc(var(--u) * 13); }
 .t-posts .cat { font-size: .88em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.t-posts li.h span { white-space: nowrap; }
+.t-posts.codes li.h span { white-space: nowrap; }
 .t-groups.designs .t-group p { -webkit-line-clamp: 2; }
 .s-offline { position: sticky; top: 0; z-index: 2; margin: 0; padding: 8px 16px; background: #FEF3C7; color: #92400E; font-size: 14px; text-align: center; }
 .s-late { background: #FEF3C7; color: #92400E; border-radius: 10px; padding: 8px 12px; font-size: 14px; }
@@ -241,3 +241,5 @@ details[open] summary { margin-bottom: 10px; }
 .t-col.no li::before { content: "✗"; color: var(--red); }
 .c-rehearsing { font-size: 13px; font-weight: 600; color: #fff; background: var(--purple); border-radius: 99px; padding: 3px 10px; }
 select { font: inherit; font-size: 14px; border: 1px solid var(--line); border-radius: 10px; padding: 7px 10px; background: #fff; }
+.t-table.big { font-size: calc(var(--u) * 3.6); }
+.t-table.big td { padding: calc(var(--u) * 2.4) calc(var(--u) * 1.6); }

@@ -31,7 +31,7 @@ for (let i = 0; i < SCENES.length; i++) {
 }
 const r = (id) => thu.results(id);
 assert.equal(r('survey').n, 8);
-assert.ok(r('kind').counts.reduce((a, b) => a + b) === 8 && r('data').counts.reduce((a, b) => a + b) === 8);
+assert.ok(r('who').counts.reduce((a, b) => a + b) === 8 && r('rule').counts.reduce((a, b) => a + b) === 8);
 assert.equal(r('labels').n, 8);
 assert.ok(r('labels').posts.every((p) => p.counts.reduce((a, b) => a + b) === 8), 'every post labelled by all 8');
 assert.equal(r('codes').n, 8);

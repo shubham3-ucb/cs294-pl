@@ -5,7 +5,7 @@ Two 80-minute classes, one app. You press **Next**; the class runs. Students use
 | | Tuesday · Outfit Lab | Thursday · The Humans |
 |---|---|---|
 | Paper | Just et al., *Switching to Git*, ISSRE 2016 | Yang et al., *Do Developers Really Know How to Use Git Commands?*, TOSEM 2022 |
-| Students do | Dress one character in groups of 4; every save, merge, send and undo is real Git; they **predict** before Git acts and **choose** how to fix | Take the paper's survey, label its real posts, code its comments, put its claims on trial, design a fix |
+| Students do | Dress one character in groups of 4; every save, merge, send and undo is real Git; they **predict** before Git acts and **choose** how to fix | See how the study was done, check its rule on real posts, sort its comments, put its claims on trial, design a better undo |
 | The one message | **For analysts, flat history is data loss** (developers gain easy bisect and revert) | **Asking is not using** (check what your data actually records) |
 | Links | `…/` · `…/admin?key=…` · `…/screen?key=…` | `…/thu` · `…/thu/admin?key=…` · `…/thu/screen?key=…` |
 
@@ -57,19 +57,18 @@ Next → read **Say** → students work (watch "done" on the console, or the clo
 | Time | Scene | Students do | You land |
 |---|---|---|---|
 | 0:00 | Join | Name | — |
-| 0:03 | **Be the data** | The paper's real survey (Q2–Q7) | You are respondent 93 |
-| 0:07 | The paper in one slide | Listen | 5 RQs: 4 from Stack Overflow posts, 1 from a survey |
-| 0:09 | **1 The question** | Vote: kind of study | Need-finding. Stack Overflow only records getting stuck |
-| 0:13 | **2 The data** | Vote: what are posts | Traces — of *asking*, not using. Nobody was watched |
-| 0:17 | You vs the paper's 92 | Compare | A self-rating is a judgment, "how I learned" a memory; the 92 were found via Stack Overflow |
-| 0:20 | **3 The analysis**: 8 posts | Label: stuck on it / needs it, can't name it / not about it | The rule counts all three the same; in 5 of 8 only the answer names the command |
-| 0:32 | Code 7 comments | Put the paper's Table 8 comments in its categories | The paper names no method, no second coder, no agreement |
-| 0:40 | Break | Back on /thu; groups form on Next | Check "here" = the room |
-| 0:45 | **4 Do you believe it?** | Groups: one claim each — what was measured, what it supports | Experience survives (it's weak); difficulty, learning, self-rating shrink |
-| 0:57 | **5 Design** | Why must people *ask* how to undo? One change + study + measure/threat + data | Asking finds needs; only an evaluative study shows a fix works |
-| 1:09 | What Git and Jujutsu did | — | `git switch`/`restore` (2019); `jj undo`. Did they help? Nobody measured |
-| 1:11 | **What holds, what doesn't** | — | Holds: many steady questions; undo is a real need; experienced devs can struggle; public data. Doesn't: "hardest commands", the ranking, "self-learning", Table 8 and "doubts", the title |
-| 1:13 | Exit + **Asking is not using.** | One line each | — |
+| 0:03 | **Warm-up** | The paper's real survey | You are respondent 93 |
+| 0:07 | **1 The study**: how it was done | Listen | Collect 80,370 questions · measure views and accepted answers · survey 92 |
+| 0:10 | Who is in this study? | Vote | People who *asked*. Nobody was watched |
+| 0:14 | When does a question count for `git reset`? | Vote | A word search: even a command only in the answer counts |
+| 0:18 | What they found · you vs the 92 | Listen, compare | Five findings; self-ratings are shaky |
+| 0:23 | **2 Check it yourself**: 8 posts | Label: stuck / needs it / not about it | The rule counts fixes as problems |
+| 0:35 | Sort 7 survey comments | Sort into the paper's 6 groups | No method, no agreement reported |
+| 0:43 | Break | Back on /thu | Check "here" = the room |
+| 0:48 | **3 Judge it**: one claim per group | What was measured · what it shows | Experience holds (weakly); three shrink |
+| 1:00 | **4 Design** a better undo | Fix · test · measure + risk · data | Asking finds needs; only a test shows a fix works |
+| 1:12 | What holds, what doesn't | — | Fair to the authors |
+| 1:14 | Exit + **Asking is not using.** | One line each | — |
 
 **The paper in five lines (Thursday)**
 - 80,370 Stack Overflow questions (2008–2020) that mention a Git command, plus a survey of 92 developers.

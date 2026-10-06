@@ -222,8 +222,6 @@ def scene_slide(prs, app, sc):
     if sid == 'claims-reveal':
         extra = 'Each claim: what they measured, and why it shrinks.\n' + '\n'.join(
             f'- "{c["quote"]}" Measured: {c["measured"]} {c["why"]}' for c in app['claims'])
-    if sid == 'label-reveal':
-        extra = 'On screen in the app, not on this slide: ' + plain(sc['lines'][2])
     if sid == 'claims':
         extra = 'The hint each group sees:\n' + '\n'.join(f'- "{c["quote"]}" Look at: {c["look"]}' for c in app['claims'])
     if sid == 'claims-reveal':
@@ -265,14 +263,14 @@ def scene_slide(prs, app, sc):
     if kind == 'vote':
         options(s, y + Inches(0.1), sc['options'])
         return
-    if kind == 'reveal' and sc['shows'] in ('kind', 'data'):
+    if kind == 'reveal' and any(x['id'] == sc['shows'] and x['kind'] == 'vote' for x in app['scenes']):
         vote = next(x for x in app['scenes'] if x['id'] == sc['shows'])
         y = options(s, y + Inches(0.05), vote['options'], sc['correct'], compact=True) + Inches(0.1)
         y = lines_block(s, sc, y, 19)
         ask(s, sc, y)
         return
-    if sid == 'paper':
-        table(s, y, sc['table'], [Inches(3.6), CONTENT_W - Inches(3.6)], size=17)
+    if sc.get('table') and kind == 'slide':
+        table(s, y, sc['table'], [Inches(2.8), CONTENT_W - Inches(2.8)], size=20)
         return
     if sid == 'survey-reveal':
         y = lines_block(s, sc, y, 18)
@@ -293,7 +291,7 @@ def scene_slide(prs, app, sc):
                                'Drawn at random from short, answered posts credited to the top-5 commands (analysis/thursday_numbers.py, seed 294).'], 16, color=MUTED, gap=Pt(4))
         return
     if sid == 'label-reveal':
-        y = lines_block(s, {**sc, 'lines': sc['lines'][:2]}, y, 15, CONTENT_W) - Inches(0.12)
+        y = lines_block(s, sc, y, 15, CONTENT_W) - Inches(0.12)
         rows = [['Post', 'Counted for', 'Asker names it']] + [
             [f'{p["title"]} ({p["views"]:,} views)', f'`{p["command"]}`', 'Yes' if p['askerNamesIt'] else 'Answer only'] for p in app['posts']]
         y = table(s, y, rows, [CONTENT_W - Inches(4.2), Inches(2.2), Inches(2.0)], size=12, header=True, first_bold=False, pad=Inches(0.05))

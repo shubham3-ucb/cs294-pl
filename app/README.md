@@ -81,10 +81,10 @@ To see the student side, open the student link in another window and join. Your 
 
 The same server runs Thursday at `/thu`: students `/thu`, teacher `/thu/admin?key=KEY`, projector `/thu/screen?key=KEY` (`./host.sh` prints all three). Same key, same presenter mode: **Start presenting**, then only **Next**. Lesson script: [thursday.md](../lesson/thursday.md).
 
-21 scenes, 76 minutes plus 4 of buffer, in the order of Sarah's User Studies lecture: the research question, the data, the analysis, do we believe it, a design insight.
+21 scenes, 77 minutes plus 3 of buffer: how the study was done, check it yourself, judge it, design.
 
 - **Take the paper's survey.** The authors' published form, Q2–Q7 word for word. The reveal puts the class beside the paper's 92 respondents.
-- **Two votes.** What kind of study, and what Stack Overflow posts are. The reveal shows the class's votes and the answer.
+- **How the study was done**, then **two votes**: who is in the study, and when a question counts for a command. The reveal shows the class's votes and the answer.
 - **Label 8 real posts.** Each shows the command the paper counted it for, the question and the accepted answer. Three labels: stuck on it, needs it but can't name it, not about it. The 8 are drawn at random from the paper's data ([`analysis/thursday_numbers.py`](../analysis/thursday_numbers.py), which also computes every number the paper does not print).
 - **Code 7 comments.** The paper's Table 8 examples, into its 6 categories. The reveal shows agreement with the paper and among the class.
 - **Groups of about 4** form when you press Next after the break, from everyone seen in the last 10 minutes (never a group of 1 when 2 or more are there). **Re-form groups** (under People) shuffles them again and clears group answers. Each group puts one claim on trial, then designs one change with a study, a measure and one threat. One shared answer per group; one person types. Late or returning students join the smallest group.

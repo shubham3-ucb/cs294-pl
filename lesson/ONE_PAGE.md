@@ -29,30 +29,30 @@
 
 # Thursday · Git, Part 2: The Humans · one page
 
-80 min (76 + 4 buffer) · the app at `/thu` · press only **Next** (→ / Space; ← = Back) · groups of about 4 form at the break. Sarah's order: the question, the data, the analysis, do we believe it, a design insight. Read Say and Ask from the teacher page; the clock turns red when a scene runs over.
+80 min (77 + 3 buffer) · the app at `/thu` · press only **Next** (→ / Space; ← = Back) · groups of about 4 form at the break. How the study was done, check it yourself, judge it, design. Read Say and Ask from the teacher page; the clock turns red when a scene runs over.
 
 | Time | Scene | The one question | Hope to hear |
 |---|---|---|---|
 | 0:00 | Join. First name only. | — | — |
-| 0:03 | Take the paper's survey: the form's real questions. | — | — |
-| 0:07 | The paper in one slide: five RQs. | — | — |
-| 0:09 | Vote, then reveal: need-finding. | Is the question interesting? | Yes, if it tells designers which needs to design for. |
-| 0:13 | Vote, then reveal: traces, of asking. | Can this data answer "do developers know how to use Git commands?" | No. It shows what people asked, not what they can do. |
-| 0:17 | You and the paper's 92. | Your level, and how you learned: which would you trust? | Neither fully: a judgment and a memory; the sample came from Stack Overflow. |
-| 0:20 | Label 8 real posts, 8 min. | — | — |
-| 0:28 | The rule and you. | Did they measure "developers find this command hard"? | They measured "appears near a question": stuck, needs it, and not about it, all the same. |
-| 0:32 | Code 7 of the paper's comments, 5 min. | — | — |
-| 0:37 | Coding without a method. | What would make Table 8 trustworthy? | A named method, a codebook, two coders and their agreement. |
-| 0:40 | **Break, 5 min.** Everyone back on /thu; groups form on Next. | — | — |
-| 0:45 | Put one claim on trial, 7 min. | — | — |
-| 0:52 | The verdicts. | Which claim survives best, and why? | Experience survives as written, because it is weak. Three shrink. |
-| 0:57 | Design for the need that survived, 9 min. | — | — |
-| 1:06 | Your designs. | Which could you test by watching people? Which threat is hardest? | A visible measure, like time to recover. A learning effect. |
-| 1:09 | What Git and Jujutsu did. | Which data would convince Git's maintainers? | Observation or traces of real use. Not a survey. |
-| 1:11 | The paper: what holds, what doesn't. | Fair to the authors? | Need-finding from public data is useful; counts of asking are not difficulty or skill. |
-| 1:13 | Exit, alone: one new idea for building tools for people. | — | — |
-| 1:15 | **Asking is not using.** | — | — |
-| 1:16 | **Buffer, 4 min.** | — | — |
+| 0:03 | Take the paper's survey. | — | — |
+| 0:07 | How the study was done. | — | — |
+| 0:10 | Vote: who is in this study? | What would watching show that asking can't? | What people actually do, including mistakes they never ask about. |
+| 0:14 | Vote: when does a question count for `git reset`? | What could go wrong? | The fix in the answer gets counted as the problem. |
+| 0:18 | What they found. | — | — |
+| 0:20 | You and the paper's 92. | Would you trust your own answers? | Not fully: a rating is a judgment, "how I learned" a memory. |
+| 0:23 | Read 8 real posts, 8 min. | — | — |
+| 0:31 | What the word search missed. | Did they measure what's hard? | No. Where a command's name appears. |
+| 0:35 | Sort 7 survey comments, 5 min. | — | — |
+| 0:40 | Did you agree? | Would another team get the same groups? | Maybe not: name a method, report agreement. |
+| 0:43 | **Break, 5 min.** Everyone back on /thu; groups form on Next. | — | — |
+| 0:48 | Put one claim on trial, 7 min. | — | — |
+| 0:55 | The verdicts. | Which claim holds up best? | Experience, because it is weak. Three shrink. |
+| 1:00 | Design a better undo, 9 min. | — | — |
+| 1:09 | Your designs. | Which could you test by watching people? | A visible measure: time to recover. |
+| 1:12 | What holds, what doesn't. | — | — |
+| 1:14 | One idea to take home. | — | — |
+| 1:16 | **Asking is not using.** | — | — |
+| 1:17 | **Buffer, 3 min.** | — | — |
 
 **Never cut:** the 8 labels · the coding · the verdicts · the design · the exit.
 

@@ -159,7 +159,7 @@ async function main() {
       } else if (scene.kind === 'vote') {
         for (const [i, s] of students.entries()) {
           const j = i % 6;
-          const pick = id === 'kind' ? (j < 4 ? 0 : 1) : (j < 3 ? 1 : j < 5 ? 2 : 0);
+          const pick = id === 'who' ? (j < 4 ? 1 : 0) : (j < 3 ? 1 : j < 5 ? 2 : 0);
           await s.page.click(`.s-vote button[data-i="${pick}"]`);
           await s.page.waitForSelector('.s-vote button.on');
         }
