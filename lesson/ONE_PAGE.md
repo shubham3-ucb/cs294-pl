@@ -5,23 +5,23 @@
 | Time | Scene | The one question | Hope to hear |
 |---|---|---|---|
 | 0:00 | Join. Name only; the app picks the lab. | — | — |
-| 0:03 | Step 0 · Everyone, one outfit. 90 s, then "Hands off." | What did your outfit look like a minute ago? Who changed the shoes? | No idea. Nothing was saved. |
-| 0:04:30 | Step 0 reveal. Learning objectives, in plain words. | What rule would fix this? | Save every version, with a name on it. |
-| 0:08 | Step 1 · Save card. Reveal: `git commit` + "Git stores the name and clock your laptop gives it. It checks neither." | Why do arrows point back, never forward? | The next card doesn't exist yet. Cards never change. |
-| 0:15 | Step 2 · fancy and sporty. Reveal: `git branch`. | Where is the original outfit now? Did anything get copied? | Still on main's card. Nothing was copied. |
-| 0:22 | Step 3 · Fast-forward fancy, delete the fancy note, then the TOP conflict. Reveal: `git merge`. | Which cards were made on fancy? | No way to tell. Git does not record the branch a commit was made on. |
-| 0:33 | **Break, 4 min.** "Break. Back in 4 minutes." Write the return time. | — | — |
-| 0:37 | Step 4 · Next puts one lab's outfit on the Wall. First lab wins; refused labs combine (merge) or replay on top (rebase). Reveal: `git push / git pull`, `git rebase`, and each change's path to main with this class's times. | The replayed card has the same change, author and author time. Why does it have a new ID? | Its parent is new, so its snapshot is too: it now includes the Wall's change. Its committer time is new. The ID is a hash of all of it. |
-| 0:50 | Step 5 · Next puts the 🥸 card on the Wall and in the labs. Undo it, or move back and be refused. Reveal: `git revert / git reset`. | Why is adding a fix card safe, but moving back is not? | A fix card only adds. Moving back drops a shared card. |
-| 0:59 | Step 6 · Next runs the 🥾 audit; the boss lab replaces the Wall. Reveal: Squash + `git push --force`, the audit again, then Empty the Wall's bin. | Who added the boots? Where does that answer still exist? | Not on the Wall. Only in the labs that kept the old cards. |
-| 1:07 | The paper: **flat history is data loss.** Code velocity: this class's Step 4 paths. Pairs, 2 min, in the app. | You run your company's Wall. Give one rule: the boss gets a clean history, and the auditor still knows who added the boots. | No force push to main. Or: squash only your own branch, before you share it. |
-| 1:12 | Exit question. On your own, in the app. | A password reached the Wall. Two labs pulled. Does Undo this card (revert) remove it? If not, what would? | No. Revert adds a card; the old one still holds the password, in every copy. Change the password. Then rewrite, force push and gc. |
-| 1:15 | What you built. Read the homework. | — | — |
+| 0:03 | Step 0 · Everyone, one outfit. 90 s, then "Hands off." | Who changed the shoes? What did it look like a minute ago? | No idea. Nothing was saved. |
+| 0:04:30 | Step 0 reveal. | What rule would fix this? | Save every version, with a name on it. |
+| 0:06:30 | Step 1 · Save card. Reveal: `git commit` + "Git stores the name and clock your laptop gives it. It checks neither." | Why do arrows point back, never forward? | The next card doesn't exist yet. Cards never change. |
+| 0:12 | Step 2 · fancy and sporty. Switch refuses unsaved parts. Reveal: `git branch`. | Where is the original outfit now? Did anything get copied? | Still on main's card. Nothing was copied. |
+| 0:19 | Step 3 · **Predict**, then merge fancy (fast-forward) and delete it; predict, then merge sporty (TOP conflict). Reveal: `git merge` + who predicted right. | Which cards were made on fancy? | No way to tell. Git does not record the branch a commit was made on. |
+| 0:31 | **Break, 4 min.** | — | — |
+| 0:35 | Step 4 · Predict each send. The first lab gets in; a refused lab **chooses** merge or rebase and says why. Reveal: `push / pull`, `rebase`, paths with this class's times, choices, accuracy. | The replayed card has the same change, author and author time. Why a new ID? | Its parent is new, so its snapshot is too; its committer time is new. The ID is a hash of all of it. |
+| 0:49 | Step 5 · The 🥸 card arrives. Each lab **chooses** Undo (revert) or Move back (reset); predict each send. Reveal: `revert / reset`. | Why is adding a fix card safe, but moving back is not? | A fix card only adds. Moving back drops a shared card. |
+| 0:59 | Step 6 · The 🥾 audit; the boss lab squashes and force-pushes. Reveal: the audit again, then Empty the Wall's bin. | Who added the boots? Where does that answer still exist? | Not on the Wall. Only in labs that kept the old cards. |
+| 1:07 | The paper: **for analysts, flat history is data loss.** Pairs, 2 min. | Your team squash-merges every feature branch and deletes it. What do you gain, and what can an auditor no longer answer? | Gain: one revertable card per feature, easy bisect. Lose: who wrote which part and when. |
+| 1:12 | Exit question, on your own. | A password reached the Wall. Two labs pulled. Does Undo this card (revert) remove it? If not, what would? | No. Change the password first. Then rewrite, force push and gc the Wall, and every lab re-clones. |
+| 1:15 | What you built: My Git in 7 lines. | — | — |
 | 1:17 | **Buffer, 3 min.** | — | — |
 
 **Never cut:** the Step 3 conflict · the refused sends in Steps 4 and 5 · both Step 6 scenes · the exit question.
 
-**Stuck lab:** students press **Stuck? Hint**. Still stuck: **Rescue** on its tile.
+**Stuck lab:** after 45 s students get **Stuck? Hint** (the idea first, then the exact click). Still stuck: **Rescue** on its tile.
 
 **Homework:** Yang et al., §3.2–3.5. For one finding, write down what they measured.
 

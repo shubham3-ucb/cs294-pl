@@ -1,13 +1,13 @@
 # CS294 · Git Week
 
 Teaching materials for Git week in UC Berkeley CS294 *Modern Programming Tools* (Shubham & Ananya).
-**Tuesday: Outfit Lab**, a web app where each lab dresses one character and every button runs real Git. **Thursday: The Humans**, where the class takes a study's own survey, re-checks its rule on its own data, and puts its claims on trial. Same app, and the teacher presses only Next.
+**Tuesday: Outfit Lab**, a web app where each lab dresses one character; every save, merge, send and undo runs real Git, and students predict what Git will do before it does. **Thursday: The Humans**, where the class takes a study's own survey, re-checks its rule on its own data, and puts its claims on trial. Same app, and the teacher presses only Next.
 
 ## What's covered
 
 ### Tuesday · Outfit Lab
 
-80 minutes, 7 steps. Each step: the class hits a problem, fixes it with one Git tool, then sees how Git does it on one technical card per tool. The paper is Just et al., *Switching to Git: the Good, the Bad, and the Ugly*, ISSRE 2016. Its message: **flat history is data loss.**
+80 minutes, 7 steps. Each step: the class hits a problem, fixes it with one Git tool, then sees how Git does it on one technical card per tool. The paper is Just et al., *Switching to Git: the Good, the Bad, and the Ugly*, ISSRE 2016. Its message, for analysts: **flat history is data loss**, against what developers gain from it (easy bisect and revert).
 
 | Step | What happens | Git tools | Paper |
 |---|---|---|---|
@@ -42,7 +42,7 @@ npm install
 npm start      # http://localhost:3000; the terminal prints the teacher link
 ```
 
-Needs Node 22+ and Git 2.45+. Teacher guide: [`app/README.md`](app/README.md). The class on one page: [`lesson/ONE_PAGE.md`](lesson/ONE_PAGE.md).
+Needs Node 22+ and Git 2.45+. **Teachers start with [`lesson/TEACHER_BRIEF.md`](lesson/TEACHER_BRIEF.md).** App guide: [`app/README.md`](app/README.md). Day of: [`lesson/DAY_OF.md`](lesson/DAY_OF.md).
 
 ## Host it for class
 
@@ -61,7 +61,7 @@ Thursday: open `/thu/admin?key=…`, then `/thu` in two or three private windows
 
 ![Outfit Lab demo](docs/demo.gif)
 
-The full class run, 4:50: [`demo/DEMO.mp4`](demo/DEMO.mp4). The teacher console, the projector and two students, with a caption naming each Git tool. Every caption with its frame: [`demo/DEMO_STORYBOARD.pdf`](demo/DEMO_STORYBOARD.pdf).
+The full class run, 4:50: [`demo/DEMO.mp4`](demo/DEMO.mp4) (recorded with the first Tuesday version, before predictions and choices). The teacher console, the projector and two students, with a caption naming each Git tool. Every caption with its frame: [`demo/DEMO_STORYBOARD.pdf`](demo/DEMO_STORYBOARD.pdf).
 
 | Student | Teacher console | Projector |
 |---|---|---|
@@ -71,6 +71,8 @@ The full class run, 4:50: [`demo/DEMO.mp4`](demo/DEMO.mp4). The teacher console,
 
 | | |
 |---|---|
+| [`lesson/TEACHER_BRIEF.md`](lesson/TEACHER_BRIEF.md) | **Start here.** Both days in 10 minutes: every step, what to land, the facts to know, hard questions |
+| [`lesson/DAY_OF.md`](lesson/DAY_OF.md) | Day-of checklist: tmux, displays, test join, Reset, export |
 | [`lesson/ONE_PAGE.md`](lesson/ONE_PAGE.md) | Both days, one page each: time, scene, the one question |
 | [`lesson/tuesday.md`](lesson/tuesday.md) | Tuesday script: Say, Do and Ask for every scene |
 | [`lesson/thursday.md`](lesson/thursday.md) | Thursday script: objectives, clock, the verdicts, every number with its source |

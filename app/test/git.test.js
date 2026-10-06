@@ -1055,13 +1055,24 @@ describe('rewrite', () => {
     assert.equal(r.labs['2'].author, 'Raj');
   });
 
-  test('a lab still on the old history gets the clean card with Get & combine', async () => {
+  // The exit question: rewrite + force push + gc cleans only the Wall. A lab that kept the old history merges it
+  // back on its next Get & combine, and its next send puts the old cards on the Wall again.
+  test('a lab still on the old history gets the clean card with Get & combine, and merges the old cards back', async () => {
     const labs = await beforeTheBoss();
+    const raj = sh('wall', 'log', '--format=%H', '--author=Raj', 'main');
+    await git.pull(labs[0], ANA); // the boss gets the Wall first, as in class
     const clean = await git.squashForcePush(labs[0], ANA);
+    await git.gcWall();
+    assert.equal(fails('wall', 'cat-file', '-e', raj), true, "gc removed Raj's card from the Wall");
     const r = await git.pull(labs[1], RAJ);
-    assert.equal(r.nothing, undefined);
+    assert.equal(r.merged, true, 'the old history and the clean card share only Start: a merge card');
     const g = await git.graph('2');
     assert.equal(g.refs['refs/remotes/wall/main'], clean.id);
+    assert.deepEqual(r.parents.slice(1), [clean.id]);
+    assert.equal(fails('2', 'merge-base', '--is-ancestor', raj, 'refs/heads/main'), false, "Raj's card is still in Lab 2's main");
+    const sent = await git.push(labs[1]);
+    assert.ok(!sent.rejected && !sent.already, 'the send is a fast-forward of the clean card');
+    assert.equal(fails('wall', 'merge-base', '--is-ancestor', raj, 'refs/heads/main'), false, "Raj's card is back on the Wall");
   });
 });
 

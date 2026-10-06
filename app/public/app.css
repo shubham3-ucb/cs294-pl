@@ -53,6 +53,8 @@ code { font-family: var(--mono); font-size: .86em; }
 .form-error { color: var(--red); font-size: 15px; min-height: 22px; margin-top: -12px; }
 .form-error:empty { display: none; }
 .join-note { font-size: 15px; color: var(--muted); margin-top: -12px; }
+.join-thu { font-size: 14px; color: var(--muted); margin-top: -10px; }
+.join-thu a { color: var(--muted); text-underline-offset: 3px; }
 
 .primary {
   border: 0; border-radius: 14px; background: var(--purple); color: #fff; font-weight: 600;
@@ -150,6 +152,26 @@ code { font-family: var(--mono); font-size: .86em; }
 .hint { display: grid; gap: 6px; justify-items: start; background: #fff; border-radius: 14px; padding: 14px 16px; animation: rise 240ms var(--ease) both; }
 .hint p:not(.label) { font-size: 16.5px; }
 .hint .linkish { font-size: 14px; color: var(--muted); }
+.hint-links { display: flex; flex-wrap: wrap; gap: 6px 16px; }
+.hint .linkish.more { color: var(--purple); }
+
+/* Predict before you act: my last prediction against Git's answer, and the lab's next action to predict. */
+.verdict { font-size: 15.5px; line-height: 1.45; background: #fff; border-radius: 12px; padding: 10px 14px; border-left: 4px solid var(--green); }
+.verdict.wrong { border-left-color: #E8A33D; }
+.predict-box { display: grid; gap: 8px; background: #fff; border-radius: 14px; padding: 14px 16px; }
+.predict-box p:not(.label) { font-size: 15.5px; line-height: 1.4; }
+.predict-chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(108px, 1fr)); gap: 6px; }
+.chip {
+  border: 2px solid var(--line); background: #fff; border-radius: 10px; padding: 5px 8px; font-size: 13.5px; font-weight: 550; line-height: 1.25;
+  color: var(--ink); text-align: center; transition: border-color 120ms, background 120ms;
+}
+.chip:hover { border-color: #C9C9D1; }
+.chip.on { border-color: var(--purple); background: var(--lavender); color: var(--purple); }
+.dialog.predict .predict-q { font-size: 19px; font-weight: 600; margin-top: -10px; }
+.predict-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.predict-options .opt { justify-content: center; text-align: center; padding: 11px 12px; font-weight: 600; }
+.predict-options .opt:hover { border-color: var(--purple); background: var(--lavender); }
+.fresh-line { font-size: 15.5px; line-height: 1.45; color: #5B4A75; border-left: 3px solid color-mix(in srgb, var(--purple) 35%, white); padding-left: 12px; }
 .hinted { outline: 3px solid var(--purple) !important; outline-offset: 4px; animation: nudge 1.8s ease-in-out infinite; }
 .done-box { display: grid; gap: 10px; }
 .done-line { font-size: 17px; font-weight: 650; color: var(--green); background: #fff; border-radius: 12px; padding: 12px 16px; animation: rise 320ms var(--ease) both; }
@@ -178,6 +200,7 @@ code { font-family: var(--mono); font-size: .86em; }
 .reveal-sentence { font-size: 24px; line-height: 1.3; font-weight: 700; letter-spacing: -.015em; }
 .reveal-behind { display: grid; gap: 4px; font-size: 16px; color: #4A4A52; }
 .reveal-behind b { font-size: 12.5px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--purple); }
+.reveal-fact { font-size: 16px; line-height: 1.45; color: #3C3C44; background: var(--soft); border-radius: 12px; padding: 10px 14px; }
 
 /* Questions, takeaways, My Git in 7 lines */
 .qa { display: grid; gap: 18px; margin-top: 22px; }
@@ -345,6 +368,12 @@ details[open] > summary::before { transform: rotate(90deg); }
 .act.way.mine:hover { filter: brightness(1.06); }
 .act.way.mine .act-cmd { color: rgba(255, 255, 255, .78); }
 .act.way.mine .new-tag { background: rgba(255, 255, 255, .22); color: #fff; }
+.way-line { font-size: 14px; line-height: 1.4; color: #4A4A52; pointer-events: none; }
+.way-line b { font-weight: 650; color: var(--ink); }
+.act.way.mine .way-line, .act.way.mine .way-line b { color: rgba(255, 255, 255, .92); }
+.why { display: grid; gap: 6px; font-size: 14px; color: var(--muted); }
+.why input { font-size: 15px; padding: 8px 12px; border: 2px solid var(--line); border-radius: 10px; outline: none; background: #fff; }
+.why input:focus { border-color: var(--purple); }
 
 /* ---------- One full-width card: the paper, the exit question, the wrap ---------- */
 
@@ -359,7 +388,8 @@ details[open] > summary::before { transform: rotate(90deg); }
 .gbu .bad h3 { color: #B45309; }
 .gbu .ugly h3 { color: var(--red); }
 .gbu ul, .lived ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: 16px; }
-.paper-message { font-size: 44px; line-height: 1.1; font-weight: 800; letter-spacing: -.03em; margin: 14px 0 4px; }
+.paper-message { font-size: 40px; line-height: 1.1; font-weight: 800; letter-spacing: -.03em; margin: 14px 0 0; }
+.paper-tradeoff { font-size: 18px; line-height: 1.45; color: #4A4A52; max-width: 760px; margin-bottom: 4px; }
 .lived { background: var(--lavender); border-radius: 16px; padding: 18px 22px; }
 .lived h3, .velocity h3 { color: var(--purple); }
 .velocity { display: grid; gap: 10px; background: var(--soft); border-radius: 16px; padding: 18px 22px; }
@@ -621,6 +651,7 @@ button.id-chip:hover { background: var(--lavender); color: var(--purple); }
   .scene { padding: 24px 16px 64px; }
   .gbu { grid-template-columns: minmax(0, 1fr); }
   .paper-message, .wrap-line { font-size: 30px; }
+  .predict-options { grid-template-columns: minmax(0, 1fr); }
   .choices { grid-template-columns: repeat(4, minmax(62px, 1fr)); }
   .card-top { grid-template-columns: 1fr; justify-items: start; }
   /* A reveal on a phone: the card, then the question, then the cards it explains. */

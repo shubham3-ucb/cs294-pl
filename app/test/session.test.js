@@ -1,6 +1,7 @@
 // The class session (server/session.js) with real Git: lab assignment, the practice lab, the scene
-// script, answers, takeaways and export. A bot plays whole classes by following only the hints,
-// so every step is proven finishable without a teacher.
+// script, answers, takeaways and export, predictions, the labs' own choices, the Switch refusal and the
+// two-level hints. A bot plays whole classes by following only the hints' clicks, so every step is proven
+// finishable without a teacher.
 import { after, before, describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -11,7 +12,9 @@ const DATA = fs.mkdtempSync(path.join(os.tmpdir(), 'outfit-lab-session-'));
 process.env.DATA_DIR = DATA;
 delete process.env.LABS;
 const session = await import('../server/session.js');
-const { SCENES, STEPS, DONE_LINE, CARDS, TRUST_LINE } = await import('../server/steps.js');
+const {
+  SCENES, STEPS, DONE_LINE, CARDS, TRUST_LINE, ONE_REPO_LINE, SWITCH_UNSAVED, PAPER, NOT_CHOSEN, UNDO_NOT_CHOSEN, WAYS,
+} = await import('../server/steps.js');
 const { movesFor } = await import('../server/bots.js'); // the rehearsal bots' hint reader: each hint names one click
 
 before(() => session.boot());
@@ -48,7 +51,7 @@ async function playStep(pids) {
     for (const pid of pids) {
       const st = await session.state(pid);
       if (!st.me.hint) continue;
-      for (const [action, input] of movesFor(st.me.hint, st)) {
+      for (const [action, input] of movesFor(st.me.hint.click, st)) {
         const r = await session.act(action, { pid, ...input });
         if (!r.ok) refusals.push(r.error);
         acted = true;
@@ -87,8 +90,7 @@ async function playClass(pids) {
 }
 
 const REFUSED = /^Refused: /;
-const REFUSED_MERGE = "Refused: the Wall has cards your main doesn't. Use Combine (merge): press Get & combine, then send again.";
-const REFUSED_REBASE = "Refused: the Wall has cards your main doesn't. Use Replay on top (rebase): press Replay on top, then send again.";
+const REFUSED_CHOOSE = "Refused: the Wall has cards your main doesn't. Choose a way to get them: Get & combine (merge) or Replay on top (rebase). Then send again.";
 const refusals = (met) => Object.entries(met).filter(([k]) => /^\d$/.test(k)).flatMap(([, list]) => list);
 
 // ---------- Tests ----------
@@ -159,6 +161,9 @@ describe('the scene script', () => {
       'task-3', 'reveal-3', 'break', 'task-4', 'reveal-4', 'task-5', 'reveal-5', 'task-6', 'reveal-6', 'paper', 'exit', 'wrap']);
     const last = SCENES.at(-1);
     assert.equal(last.at + last.minutes, 77, '77 minutes of class + 3 of buffer = 80');
+    const at = Object.fromEntries(SCENES.map((s) => [s.id, [s.at, s.minutes]]));
+    assert.deepEqual([at['reveal-0'], at['task-1'], at['reveal-1']], [[4.5, 2], [6.5, 3], [9.5, 2.5]], 'Steps 0–1 are 3 minutes shorter');
+    assert.deepEqual([at['task-3'][1], at['task-4'][1], at['task-5'][1]], [8, 9, 7], 'the 3 minutes go to predicting and choosing');
     const { session: s } = await adminState();
     assert.equal(s.scene.id, 'join');
     assert.deepEqual(s.scene.next, { n: 1, title: 'Step 0 · Everyone, one outfit', note: null });
@@ -183,14 +188,18 @@ describe('the scene script', () => {
         assert.match(s.board, new RegExp(`^${s.step}\\. `), s.id);
         assert.equal(s.takeawayStep, s.step);
       }
-      const texts = [s.say, s.do, s.ask?.q, s.ask?.a, s.reveal?.sentence, s.reveal?.behind, s.reveal?.note, s.line,
+      const shown = [s.say, s.do, s.ask?.q, s.reveal?.sentence, s.reveal?.behind, s.reveal?.note, s.line,
         ...(s.reveal?.cards ?? []).flatMap((c) => [c.is, c.does, c.how])];
-      for (const text of texts.filter(Boolean)) {
+      for (const text of [...shown, s.ask?.a].filter(Boolean)) {
         assert.doesNotMatch(text, /monster|\bface\b|\bbody\b|\blegs\b|tentacle|mustache/i, `${s.id}: ${text}`);
+      }
+      // The words the room hears or reads (the folded answer is the teacher's note).
+      for (const text of shown.filter(Boolean)) {
         assert.doesNotMatch(text, /\b(simply|basically|clearly|obviously|easy|magic|seamless|robust)\b/i, `${s.id}: ${text}`);
       }
     }
     assert.equal(SCENES.find((s) => s.id === 'reveal-1').reveal.note, TRUST_LINE);
+    assert.equal(SCENES.find((s) => s.id === 'reveal-2').reveal.note, ONE_REPO_LINE, 'Step 2 names the one-repo simplification');
     assert.equal(TRUST_LINE, 'Git stores the name and clock your laptop gives it. It checks neither.');
     assert.equal(CARDS.rebase.how, 'for each of your commits, Git applies its change to the new base and writes a new commit. The new parent gives it a new ID. Author and author date are kept. The originals become unreachable and stay in your reflog for a while.');
     for (const step of STEPS) {
@@ -211,13 +220,14 @@ describe('a whole class, by hints alone', () => {
     for (let i = 0; i < 5; i++) ok(await session.admin('back', {}));
 
     const met = await playClass([me]);
-    assert.ok(met[4].includes(REFUSED_REBASE), 'Step 4: the practice lab got there first, so the send was refused');
+    assert.ok(met[4].includes(REFUSED_CHOOSE), 'Step 4: the practice lab got there first, so the send was refused, and the lab chooses');
     assert.ok(met[5].some((e) => /still has the 🥸 card/.test(e)), 'Step 5: moving back was refused');
     assert.ok(refusals(met).every((e) => REFUSED.test(e)), `only refused sends: ${refusals(met)}`);
 
     const a = await adminState();
     assert.ok(a.feed.some((e) => e.who === 'Practice lab' && e.action === 'Send to Wall'));
-    assert.equal(a.labs[0].way, 'rebase', 'the one real lab replays on top: merge was felt in Step 3');
+    assert.equal(a.labs[0].way, 'rebase', 'the one real lab chose to replay on top (the bot rule for a lone refusable lab)');
+    assert.equal(a.labs[0].undo, 'reset', 'a lab alone moved its note back first (the bot rule), and met the refusal');
     assert.ok(a.feed.some((e) => e.labId === '1' && e.action === 'Replay on top' && /→/.test(e.outcome)));
     assert.ok(a.feed.some((e) => e.labId === '1' && e.action === 'Delete sticky note fancy'));
     const paths = met.integration.paths;
@@ -251,7 +261,7 @@ describe('a whole class, by hints alone', () => {
     await reset();
     const pids = await joinAll(['Ana', 'Ben', 'Cat', 'Dan', 'Eve', 'Fay', 'Gus', 'Hal', 'Ivy']);
     const met = await playClass(pids);
-    assert.ok(met[4].includes(REFUSED_MERGE) && met[4].includes(REFUSED_REBASE), 'Step 4: one refused lab merges, the next replays');
+    assert.equal(met[4].filter((e) => e === REFUSED_CHOOSE).length, 2, 'Step 4: each refused lab is told to choose a way; the app assigns none');
     assert.ok(refusals(met).every((e) => REFUSED.test(e)), `only refused sends: ${refusals(met)}`);
 
     const st = await session.state(pids[0]);
@@ -260,7 +270,8 @@ describe('a whole class, by hints alone', () => {
     assert.equal(st.me.answers.exit, 'answer exit');
 
     const a = await adminState();
-    assert.deepEqual(a.labs.map((l) => l.way ?? 'first').sort(), ['first', 'merge', 'rebase'], 'the first lab to send just sent');
+    assert.deepEqual(a.labs.map((l) => l.way ?? 'first').sort(), ['first', 'merge', 'rebase'], 'the first lab to send just sent; the others chose');
+    assert.deepEqual(a.labs.map((l) => l.undo), ['revert', 'reset', 'revert'], 'Step 5: each lab chose its own undo');
     const paths = met.integration.paths;
     assert.equal(paths.length, 3);
     assert.equal(paths[0].labId, a.labs.find((l) => !l.way).id, 'in the order they reached the Wall');
@@ -288,6 +299,9 @@ describe('a whole class, by hints alone', () => {
     assert.match(md, /### Step 3 · Make one outfit from both\n\n\*\*Ask:\*\* Which cards were made on fancy\?/);
     assert.match(md, /- Gus \(Lab \d\): takeaway 6/);
     assert.match(md, /### Gus · Lab \d\n\nMy Git in 7 lines:\n0\. takeaway 0\n1\. takeaway 1/);
+    assert.match(md, /## Predictions\n\n### Step 3 · Make one outfit from both\n\nPredicted right: \d+ of \d+ · merge fancy \d+\/\d+ · merge sporty \d+\/\d+/);
+    assert.match(md, /- \w+ \(Lab \d\) \(pressed\): You predicted: conflict on TOP\. Git: conflict on TOP\. ✓/);
+    assert.match(md, /## Choices\n\n- Lab 1 · Step 4: /);
   });
 });
 
@@ -353,12 +367,12 @@ describe('Step 3: delete the fancy note', () => {
     assert.equal((await session.act('deleteNote', { pid: ana, note: 'main' })).error, 'main stays. Pick another note.');
     let st = await session.state(ana);
     assert.equal(st.me.mission, null);
-    assert.equal(st.me.hint, 'Press **Merge fancy into main**.');
+    assert.equal(st.me.hint.click, 'Press **Merge fancy into main**.');
 
-    ok(await session.act('merge', { pid: ana, from: 'fancy' }));
+    ok(await session.act('merge', { pid: ana, from: 'fancy', guess: 'ff' }));
     st = await session.state(ana);
     assert.equal(st.me.mission, 'Delete the fancy note (`git branch -d fancy`).');
-    assert.equal(st.me.hint, 'Press **Delete sticky note** and pick **fancy**.');
+    assert.equal(st.me.hint.click, 'Press **Delete sticky note** and pick **fancy**.');
     const r = ok(await session.act('deleteNote', { pid: ana, note: 'fancy' }));
     assert.equal(r.result.message, 'Deleted the fancy note. Its cards stay.');
     assert.equal(r.op.porcelain, 'git branch -d fancy');
@@ -367,7 +381,7 @@ describe('Step 3: delete the fancy note', () => {
     assert.equal(st.me.branch, 'main', "Ben's pin went back to main");
     assert.equal(st.lab.branches.fancy, undefined);
     assert.deepEqual(st.lab.goals.map((g) => g.done), [true, true, false]);
-    assert.equal(st.me.hint, 'Press **Merge sporty into main**.');
+    assert.equal(st.me.hint.click, 'Press **Merge sporty into main**.');
     assert.equal((await session.act('deleteNote', { pid: ana, note: 'fancy' })).error, 'That sticky note does not exist.');
   });
 
@@ -394,8 +408,13 @@ describe('Steps 4 and 5: the Wall', () => {
       const says = st.lab.id === wallLab ? "It starts as your lab's outfit" : `It starts as Lab ${wallLab}'s outfit`;
       assert.match(st.session.steps[4].instruction, new RegExp(`${says}, so your lab's cards are now a copy of it\\.`));
     }
+    for (const pid of pids) {
+      const st = await session.state(pid);
+      assert.equal(st.session.steps[4].fresh, st.lab.id === wallLab ? STEPS[4].fresh.wallLab : `Your lab now starts from Lab ${wallLab}'s Wall. Your own Steps 1–3 cards are not in this fresh copy.`,
+        'Step 4 says plainly what the fresh copy of the Wall holds');
+    }
     await playStep(pids);
-    for (const pid of pids) assert.doesNotMatch((await session.state(pid)).me.mission, /refused/, 'done: no way in the mission');
+    for (const pid of pids) assert.doesNotMatch((await session.state(pid)).me.mission, /refused|chose/, 'done: no way in the mission');
   });
 
   test('entering Step 5 gives every lab the card; a lab that gets the fix from another lab still undoes it itself', async () => {
@@ -417,30 +436,189 @@ describe('Steps 4 and 5: the Wall', () => {
     }
     const [one, two, three] = a.labs.map((l) => pids.find((pid) => session.labOf(pid) === l.id));
     const st = await session.state(three);
-    assert.equal(st.session.steps[5].instruction, "A 🥸 card reached the Wall. Remove it without breaking anyone's copy.");
-    assert.match(st.me.mission, /^Your lab has it now\. /);
+    assert.equal(st.session.steps[5].instruction, "A 🥸 card reached the Wall. Remove it without breaking anyone's copy. Your lab chooses how. Predict before each send.");
+    assert.match(st.me.mission, /^Your lab has it now\. Choose: /);
+    assert.match(st.me.hint.click, /press \*\*Undo this card\*\*, or click the card right before it and press \*\*Move my note back here\*\*\.$/, 'the hint offers both undos');
     // Lab 1 undoes and sends. Labs 2 and 3 take that fix with Get & combine before undoing anything.
     for (let i = 0; i < 10 && (await session.state(one)).me.hint; i++) {
       const now = await session.state(one);
-      for (const [action, input] of movesFor(now.me.hint, now)) ok(await session.act(action, { pid: one, ...input }));
+      for (const [action, input] of movesFor(now.me.hint.click, now)) ok(await session.act(action, { pid: one, ...input }));
     }
     assert.equal((await session.state(one)).lab.done, true);
     for (const pid of [two, three]) ok(await session.act('pull', { pid }));
     let mine = await session.state(three);
     assert.equal(mine.lab.done, false, 'no 🥸 left, but this lab has not undone anything');
     assert.deepEqual(mine.lab.goals.map((g) => g.done), [false, true]);
-    assert.equal(mine.me.hint, 'Click the 🥸 card. Press **Undo this card**.');
+    assert.equal(mine.me.hint.click, 'Click the 🥸 card. Press **Undo this card**.', 'its 🥸 is already fixed: only a fix card makes sense');
     // Lab 3 follows its hint: the change is already undone, and that counts as its undo.
-    const [[action, input]] = movesFor(mine.me.hint, mine);
+    const [[action, input]] = movesFor(mine.me.hint.click, mine);
     assert.equal(ok(await session.act(action, { pid: three, ...input })).result.message, 'Already undone. Nothing to change.');
     mine = await session.state(three);
     assert.equal(mine.lab.done, true);
     assert.equal(mine.me.mission, null, 'done: the mission goes');
-    // Lab 2 (it moves back first) is rescued: Rescue undoes the card for it.
+    // Lab 2 is rescued: Rescue undoes the card for it.
     ok(await session.admin('rescue', { labId: session.labOf(two) }));
     assert.equal((await session.state(two)).lab.done, true);
     await reset();
     ok(await session.admin('labs', { count: 'auto' })); // the next tests count labs from the headcount again
+  });
+});
+
+// ---------- Predict before you act; students choose; Switch keeps unsaved parts; hints give the idea first ----------
+
+const inLab = (pids, id) => pids.filter((pid) => session.labOf(pid) === id);
+const verdictOf = async (pid) => (await session.state(pid)).me.verdict?.line;
+
+describe('predict before you act', () => {
+  test('Step 3: Merge waits for a prediction; lab-mates may predict; Git scores everyone; the console and reveal count', async () => {
+    await reset();
+    const [ana, ben, cat] = await joinAll(['Ana', 'Ben', 'Cat']);
+    for (let i = 0; i < 5; i++) await next(); // Step 2's task
+    await playStep([ana, ben, cat]);
+    for (let i = 0; i < 2; i++) await next(); // Step 3's task
+    for (const pid of [ana, ben, cat]) ok(await session.act('switch', { pid, branch: 'main' }));
+    let st = await session.state(ben);
+    assert.deepEqual(st.lab.moments.map((m) => [m.id, m.kind, m.target, m.mine]), [['3:1:merge:fancy', 'merge', 'fancy', null], ['3:1:merge:sporty', 'merge', 'sporty', null]]);
+    assert.equal(st.lab.moments[0].q, 'What will Git do?');
+    assert.deepEqual(st.lab.moments[0].options.map((o) => o.words),
+      ['Fast-forward', 'Merge, no conflict', 'Conflict on HAT', 'Conflict on GLASSES', 'Conflict on TOP', 'Conflict on SHOES']);
+    ok(await session.act('predict', { pid: ben, moment: '3:1:merge:fancy', guess: 'ff' }));
+    ok(await session.act('predict', { pid: cat, moment: '3:1:merge:fancy', guess: 'clean' }));
+    assert.equal((await session.act('predict', { pid: cat, moment: '3:1:merge:fancy', guess: 'maybe' })).ok, false);
+    assert.equal((await session.state(cat)).lab.moments[0].mine, 'clean');
+    const main = st.lab.branches.main;
+    const first = await session.act('merge', { pid: ana, from: 'fancy' });
+    assert.deepEqual([first.ok, first.error, first.predict], [false, 'Predict first.', '3:1:merge:fancy'], "Git waits for the presser's prediction");
+    assert.equal((await session.state(ana)).lab.branches.main, main, 'nothing ran');
+    ok(await session.act('merge', { pid: ana, from: 'fancy', guess: 'conflict:top' }));
+    assert.equal(await verdictOf(ana), 'You predicted: conflict on TOP. Git: fast-forward. Why: main had no new card since the split, so Git only slid its note.');
+    assert.equal(await verdictOf(ben), 'You predicted: fast-forward. Git: fast-forward. ✓');
+    assert.equal((await session.act('predict', { pid: ben, moment: '3:1:merge:fancy', guess: 'ff' })).error, 'Git already answered this one.');
+    assert.deepEqual((await session.state(cat)).lab.moments.map((m) => m.target), ['sporty'], 'next to predict: merge sporty');
+    let a = await adminState();
+    assert.deepEqual(a.session.predictions, {
+      step: 3, right: 1, total: 3, waiting: 0, parts: [{ label: 'merge fancy', right: 1, total: 3 }], line: 'Predicted right: 1 of 3 · merge fancy 1/3',
+    });
+    ok(await session.act('deleteNote', { pid: ana, note: 'fancy' }));
+    ok(await session.act('predict', { pid: cat, moment: '3:1:merge:sporty', guess: 'conflict:top' }));
+    assert.equal((await adminState()).session.predictions.waiting, 1, 'the console sees a prediction waiting for Git');
+    assert.equal(ok(await session.act('merge', { pid: ben, from: 'sporty', guess: 'clean' })).result.conflict, true);
+    assert.equal(await verdictOf(cat), 'You predicted: conflict on TOP. Git: conflict on TOP. ✓');
+    assert.match(await verdictOf(ben), /^You predicted: merge, no conflict\. Git: conflict on TOP\. Why: TOP changed on both sides since the split;/);
+    // After Cancel, merging again asks nothing: Git already answered.
+    ok(await session.act('abort', { pid: ben }));
+    const again = ok(await session.act('merge', { pid: ana, from: 'sporty' }));
+    assert.equal(again.result.conflict, true);
+    const open = (await session.state(ana)).lab.merging.main;
+    ok(await session.act('resolve', { pid: ana, monster: { ...open.auto, top: 'tie' } }));
+    await next(); // reveal-3
+    a = await adminState();
+    assert.deepEqual(a.projector.scene.facts, ['Predicted right: 2 of 5 · merge fancy 1/3 · merge sporty 1/2'], 'the projector shows the accuracy');
+    assert.deepEqual((await session.state(cat)).session.scene.facts, a.projector.scene.facts, 'and so does the app');
+  });
+
+  test('Steps 4–5: Send waits for a prediction; refused labs choose a way and say why; the reveals show choices and the way nobody chose', async () => {
+    await reset();
+    const pids = await joinAll(['Ana', 'Ben', 'Cat', 'Dan']);
+    for (let i = 0; i < 10; i++) await next(); // Step 4's task
+    const [one, two] = [inLab(pids, '1'), inLab(pids, '2')];
+    ok(await session.act('draft', { pid: one[0], part: 'hat', value: 'crown' }));
+    ok(await session.act('commit', { pid: one[0] }));
+    assert.equal((await session.act('push', { pid: one[0] })).predict, '4:1:push:1');
+    assert.deepEqual((await session.state(one[1])).lab.moments[0].options.map((o) => o.words), ['Yes', "No, the Wall has cards we don't"]);
+    ok(await session.act('predict', { pid: one[1], moment: '4:1:push:1', guess: 'refused' }));
+    ok(await session.act('push', { pid: one[0], guess: 'accepted' }));
+    assert.equal(await verdictOf(one[0]), 'You predicted: accepted. Git: accepted. ✓');
+    assert.equal(await verdictOf(one[1]), "You predicted: refused. Git: accepted. Why: the Wall's newest card was already in your main's history, so the Wall only moved forward.");
+    assert.equal((await session.state(one[0])).lab.moments[0].id, '4:1:push:2', 'the next send is a new prediction');
+
+    ok(await session.act('draft', { pid: two[0], part: 'shoes', value: 'skates' }));
+    ok(await session.act('commit', { pid: two[0] }));
+    assert.equal((await session.act('push', { pid: two[0], guess: 'accepted' })).error, REFUSED_CHOOSE);
+    let st = await session.state(two[0]);
+    assert.equal(st.me.verdict.line, "You predicted: accepted. Git: refused (fetch first). Why: the Wall has cards your main doesn't, so the send is not a fast-forward.");
+    assert.match(st.me.mission, /The Wall refused your send\. Choose how to get its cards: \*\*Combine \(merge\)\*\* or \*\*Replay on top \(rebase\)\*\*/);
+    assert.equal(st.lab.way, null, 'the app assigns no way');
+    assert.equal(st.me.hint.click, 'Pick a way: press **Get & combine** (merge) or **Replay on top** (rebase). Then **Send to Wall** again.');
+    assert.deepEqual(st.session.steps[4].choices.ways, WAYS, 'both ways, one plain line each');
+    assert.equal((await session.act('why', { pid: two[0], text: 'early' })).ok, false, 'why waits for a choice');
+    ok(await session.act('rebase', { pid: two[1] }));
+    st = await session.state(two[0]);
+    assert.equal(st.lab.way, 'rebase');
+    assert.match(st.me.mission, /Your lab chose \*\*Replay on top \(rebase\)\*\*/);
+    ok(await session.act('why', { pid: two[0], text: '  A straight line   reads better  ' }));
+    assert.equal((await session.state(two[1])).lab.why, 'A straight line reads better');
+    ok(await session.act('push', { pid: two[0], guess: 'accepted' }));
+    await next(); // reveal-4
+    let a = await adminState();
+    assert.equal(a.labs.find((l) => l.id === '2').why, 'A straight line reads better');
+    assert.deepEqual(a.projector.scene.facts, ['Predicted right: 2 of 4 · refused sends 0/1 · accepted sends 2/3',
+      'Chose: Lab 2 Replay on top (rebase) ("A straight line reads better")', NOT_CHOSEN.merge], 'what nobody chose is still explained');
+
+    await next(); // Step 5's task: both labs add a fix card
+    for (const pid of [one[0], two[0]]) {
+      const intern = (await session.state(pid)).lab.graph.commits.find((c) => c.author === 'The Intern');
+      ok(await session.act('revert', { pid, commit: intern.id }));
+    }
+    await next(); // reveal-5
+    a = await adminState();
+    assert.deepEqual(a.labs.map((l) => l.undo), ['revert', 'revert']);
+    assert.deepEqual(a.projector.scene.facts, ['Chose: Lab 1 Undo this card (revert) · Lab 2 Undo this card (revert)', UNDO_NOT_CHOSEN.reset],
+      'no lab moved back: the reveal still says what would have happened');
+    const md = await session.exportMarkdown();
+    assert.match(md, /- Lab 2 · Step 4: Replay on top \(rebase\), by \w+\. Why: A straight line reads better · Step 5: Undo this card \(revert\), by \w+/);
+    assert.match(md, /Lab 2 · send 1, pressed by \w+:\n- \w+ \(Lab 2\) \(pressed\): You predicted: accepted\. Git: refused \(fetch first\)\./);
+  });
+
+  test("the paper's Step 4 line says what replaying does when no lab replayed", async () => {
+    await reset();
+    await joinAll(['Ana', 'Ben']);
+    while ((await adminState()).session.scene.id !== 'paper') await next();
+    const { paper } = (await adminState()).projector.scene;
+    assert.equal(paper.lived.find((l) => l.step === 4).text, PAPER.lived[1].none);
+    assert.equal(paper.message, 'For analysts, flat history is data loss.');
+    assert.match(paper.tradeoff, /^Flat history helps developers find and revert a bad change \(bisect, revert\)\. It loses where a change came from and who made it\.$/);
+  });
+});
+
+describe('Step 2: Switch keeps unsaved parts', () => {
+  test('Switch refuses to leave unsaved parts behind, as Git does with one working copy', async () => {
+    await reset();
+    const [ana, ben] = await joinAll(['Ana', 'Ben']);
+    for (let i = 0; i < 5; i++) await next(); // Step 2's task
+    ok(await session.act('branch', { pid: ana, name: 'fancy' }));
+    ok(await session.act('draft', { pid: ana, part: 'hat', value: 'tophat' }));
+    assert.equal((await session.act('switch', { pid: ana, branch: 'main' })).error, SWITCH_UNSAVED);
+    assert.equal((await session.state(ana)).me.branch, 'fancy');
+    ok(await session.act('switch', { pid: ben, branch: 'fancy' }), 'main has nothing unsaved: Ben may come');
+    assert.equal((await session.act('switch', { pid: ben, branch: 'main' })).error, SWITCH_UNSAVED, "the draft is shared: Ana's part holds Ben too");
+    assert.deepEqual((await session.state(ben)).me.hint, { idea: 'Git keeps one working copy. Save your unsaved parts before you move your pin.', click: 'Press **Save card**.' },
+      "Ben's note is sporty: his hint saves first");
+    ok(await session.act('commit', { pid: ana }));
+    ok(await session.act('switch', { pid: ana, branch: 'main' }));
+  });
+});
+
+describe('hints: the idea first, then the click', () => {
+  test('every hint has an idea and a click; "Stuck? Hint" waits 45 s after the step starts, or after a refusal', async () => {
+    await reset();
+    const [ana] = await joinAll(['Ana']);
+    for (let i = 0; i < 3; i++) await next(); // Step 1's task
+    const st = await session.state(ana);
+    assert.deepEqual(st.me.hint, {
+      idea: 'A card records one saved version. Change one part first, then save it.',
+      click: 'Click **change** on one part. Pick a new one. Then press **Save card**.',
+    });
+    assert.ok(Math.abs(st.me.hintAt - 45e3 - st.now) < 2000, 'the button comes 45 s after the step starts');
+    for (let i = 0; i < 7; i++) await next(); // Step 4's task: the practice lab sends first
+    ok(await session.act('draft', { pid: ana, part: 'hat', value: 'crown' }));
+    ok(await session.act('commit', { pid: ana }));
+    assert.equal((await session.act('push', { pid: ana, guess: 'accepted' })).error, REFUSED_CHOOSE);
+    const refusedAt = (await adminState()).feed.find((e) => e.action === 'Send to Wall' && e.bad).t;
+    const after = await session.state(ana);
+    assert.equal(after.me.hintAt, refusedAt + 45e3, 'a refusal restarts the wait: think first');
+    assert.notEqual(after.me.hint.idea, after.me.hint.click);
+    assert.doesNotMatch(after.me.hint.idea, /\*\*(Get & combine|Replay on top|Send to Wall)\*\*/, 'the idea names no button');
   });
 });
 
@@ -452,8 +630,8 @@ describe('rehearsal bots', () => {
     await playStep([ana, ben]);
     for (let i = 0; i < 2; i++) await next(); // Step 3's task
     for (const pid of [ana, ben]) ok(await session.act('switch', { pid, branch: 'main' }));
-    ok(await session.act('merge', { pid: ana, from: 'fancy' }));
-    const both = await Promise.all([ana, ben].map((pid) => session.act('merge', { pid, from: 'sporty' })));
+    ok(await session.act('merge', { pid: ana, from: 'fancy', guess: 'ff' }));
+    const both = await Promise.all([ana, ben].map((pid) => session.act('merge', { pid, from: 'sporty', guess: 'conflict:top' })));
     assert.deepEqual(both.map((r) => r.ok).sort(), [false, true]);
     assert.match(both.find((r) => r.ok).result.message, /^TOP changed on both sides\./);
     assert.equal(both.find((r) => !r.ok).error, 'Finish or cancel the merge first.');

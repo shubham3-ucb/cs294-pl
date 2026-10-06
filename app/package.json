@@ -2,7 +2,7 @@
   "name": "outfit-lab",
   "version": "1.0.0",
   "private": true,
-  "description": "Dress one character together. Every button runs real Git.",
+  "description": "Dress one character together. Every save, merge, send and undo runs real Git.",
   "type": "module",
   "engines": {
     "node": ">=22"

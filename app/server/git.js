@@ -1,4 +1,4 @@
-// The Git engine. Every button runs real Git plumbing here, on real repos:
+// The Git engine. Every save, merge, send and undo runs real Git plumbing here, on real repos:
 // DATA_DIR/wall.git (bare, "like GitHub") and DATA_DIR/labs/<id> (one repo per lab, no worktree).
 // Each operation returns { ...result, commands: [{cmd, out, code}], porcelain, explain }:
 // the plumbing it ran, what you would type in your own copy, and one plain explanation.

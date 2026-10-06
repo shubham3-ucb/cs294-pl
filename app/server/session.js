@@ -7,7 +7,9 @@ import * as git from './git.js';
 import { emoji, palette, PARTS, START } from '../public/monster.js';
 import {
   STEPS, SCENES, UNLOCK, CONCEPTS, FIXED_LINE, DONE_LINE, PAIR_NOTES, PAIR_PARTS, LAB_CHANGES, SABOTAGE, AUDIT, PAPER, WRAP_LINE,
-  COPY_LINE, MERGE_LINE, TAKEAWAY_STEPS, ANSWER_MAX, TAKEAWAY_MAX, missionFor,
+  COPY_LINE, MERGE_LINE, TAKEAWAY_STEPS, ANSWER_MAX, TAKEAWAY_MAX, missionFor, SWITCH_UNSAVED,
+  PREDICT, PREDICT_STEPS, predictCopy, validGuess, isRight, verdict, accuracyLine, ACCURACY_PART,
+  WAYS, WHY_Q, WHY_MAX, NOT_CHOSEN, UNDO_WAYS, UNDO_NOT_CHOSEN, choiceLine,
 } from './steps.js';
 
 const DATA_DIR = path.resolve(process.env.DATA_DIR || './data');
@@ -21,8 +23,11 @@ const PRACTICE = { pid: 'practice', name: 'Practice lab' };
 const FEED_MAX = 300;
 const SAVE_DELAY_MS = 250;
 const WALL_SAMPLE = 12; // takeaways on the projector at the wrap
-const FORMAT = 4; // session.json from another version starts a fresh session
+const FORMAT = 5; // session.json from another version starts a fresh session
 const DISGUISE = emoji(SABOTAGE.part, SABOTAGE.value);
+// "Stuck? Hint" waits this long after a step starts for a student, or after the lab's latest refusal or conflict:
+// time to think first. HINT_DELAY (seconds) shortens it for the browser tests.
+const HINT_DELAY_MS = (/^\d+(\.\d+)?$/.test(process.env.HINT_DELAY ?? '') ? Number(process.env.HINT_DELAY) : 45) * 1e3;
 
 const T = {
   unsaved: "You have unsaved parts. Press Save card first. Git won't overwrite them.",
@@ -32,8 +37,8 @@ const T = {
   moved: 'Someone in your lab changed this note meanwhile. Press again.',
   busy: 'Busy, press again.',
   refused: "Refused: the Wall has cards your main doesn't. Press Get & combine first.",
-  refusedMerge: "Refused: the Wall has cards your main doesn't. Use Combine (merge): press Get & combine, then send again.",
-  refusedRebase: "Refused: the Wall has cards your main doesn't. Use Replay on top (rebase): press Replay on top, then send again.",
+  refusedChoose: "Refused: the Wall has cards your main doesn't. Choose a way to get them: Get & combine (merge) or Replay on top (rebase). Then send again.",
+  refusedWay: (way) => `Refused: the Wall has cards your main doesn't. Get them your lab's way (${WAYS[way].name}), then send again.`,
   refusedMovedBack: `Refused: the Wall still has the ${DISGUISE} card. Open the Safety diary, then press Get & combine.`,
   rejoin: 'Please join again.',
   closed: 'Someone already finished or cancelled this merge.',
@@ -189,7 +194,9 @@ async function fresh(fixed) {
     stepLab: {}, // 4: whose main went to the Wall · 6: the boss lab
     wallMet: false, // Step 4's one-time send + clone ran
     practiced: false, // the practice lab sent its Step 4 card
-    ways: {}, // Step 4: labId → 'merge' | 'rebase', how each refused lab gets the Wall's cards (in refusal order)
+    ways: {}, // Step 4: labId → {way: 'merge' | 'rebase', by, why, t}, the way the lab chose to get the Wall's cards
+    undos: {}, // Step 5: labId → {way: 'revert' | 'reset', by, t}, how the lab chose to undo the Intern's card
+    moments: {}, // predictions, by moment id ("3:2:merge:sporty", "4:2:push:1"): {step, labId, kind, target, guesses, outcome}
     integration: null, // the Wall's integration paths at the end of Step 4, for the paper (the squash erases them)
     sabotaged: false, // the Intern's card went to the Wall (admin button or entering Step 5)
     handedOut: false, // Step 5 was entered: every lab level with the Wall got the Intern's card
@@ -262,17 +269,18 @@ const peopleIn = (id) => Object.values(S.people).filter((p) => p.labId === id);
 const byJoin = (a, b) => a.joinedAt - b.joinedAt;
 const randomOf = (items) => items[crypto.randomInt(items.length)];
 
-// Step 5: a lab that tries Move my note back first. A class of one lab tries both, back first.
-const movesBack = (lab) => Number(lab.id) % 2 === 0 || realLabs().length === 1;
-
-// Step 4: the first lab to send just sends. Each refused lab gets a way, in the order the Wall refuses them:
-// Combine (merge), then Replay on top (rebase), alternating. When only one lab can be refused (one real lab
-// next to the practice lab, or two labs), it replays: merge was already felt in Step 3. Kept once given.
-function assignWay(lab) {
+// Step 4: the lab's way to get the Wall's cards is its own choice: the first Get & combine or Replay on top
+// that had to combine two lines (not a fast-forward). Step 5: its first Undo on the Intern's card, or Move back.
+// Kept once chosen; the practice lab never chooses.
+function chooseWay(lab, way, who) {
   if (S.step !== 4 || lab.practice || S.ways[lab.id]) return;
-  const refusable = Object.keys(S.labs).length - 1;
-  S.ways[lab.id] = refusable === 1 || Object.keys(S.ways).length % 2 === 1 ? 'rebase' : 'merge';
+  S.ways[lab.id] = { way, by: who.name, byPid: who.pid, why: '', t: now() };
 }
+function chooseUndo(lab, way, who) {
+  if (S.step !== 5 || lab.practice || S.undos[lab.id]) return;
+  S.undos[lab.id] = { way, by: who.name, byPid: who.pid, t: now() };
+}
+const wayOf = (lab) => S.ways[lab.id]?.way ?? null;
 
 // The real lab with the fewest people; a tie is broken at random.
 function smallestLab() {
@@ -375,8 +383,7 @@ function labView(lab, graph, wallGraph) {
   return {
     labId: lab.id,
     isBoss: isBoss(lab),
-    movesBack: movesBack(lab),
-    way: () => S.ways[lab.id] ?? null,
+    way: () => wayOf(lab),
     card: (note) => byId.get(tipOf(graph, note))?.monster ?? null,
     draft: (note) => lab.drafts[note] ?? {},
     merging: (note) => lab.merging[note] ?? null,
@@ -443,6 +450,131 @@ function labMonster(lab, graph) {
   return { ...index(graph).get(tipOf(graph, 'main'))?.monster, ...lab.drafts.main };
 }
 
+// ---------- Predictions: Step 3's merges, Steps 4–5's sends ----------
+// A moment is one lab action the class predicts: "3:2:merge:sporty", "4:2:push:1". The presser's guess travels
+// with the action; anyone else in the lab may guess while the moment is open. Git's answer closes it and scores
+// every guess. A send that changes nothing ("already on the Wall") leaves the moment open.
+
+const MERGE_TARGETS = Object.values(PAIR_NOTES);
+const PUSH_STEPS = [4, 5];
+
+// The lab's open moment for an action, made on first use; null when nothing is predicted (or Git answered).
+function moment(lab, kind, target = null) {
+  if (lab.practice) return null;
+  if (kind === 'merge') {
+    if (S.step !== 3 || !MERGE_TARGETS.includes(target)) return null;
+    const id = `3:${lab.id}:merge:${target}`;
+    const m = (S.moments[id] ??= { id, step: 3, labId: lab.id, kind, target, guesses: {}, outcome: null });
+    return m.outcome ? null : m;
+  }
+  if (!PUSH_STEPS.includes(S.step)) return null;
+  for (let n = 1; ; n++) {
+    const id = `${S.step}:${lab.id}:push:${n}`;
+    const m = (S.moments[id] ??= { id, step: S.step, labId: lab.id, kind, target: null, n, guesses: {}, outcome: null });
+    if (!m.outcome) return m;
+  }
+}
+
+// The lab's open moments, in the order they come (fancy before sporty).
+const openMoments = (lab) => (S.step === 3 ? MERGE_TARGETS.map((t) => moment(lab, 'merge', t)) : [moment(lab, 'push')]).filter(Boolean);
+
+const mergeOutcome = (r) => (r.fastForward ? { result: 'ff' } : r.merged ? { result: 'clean' } : r.conflict ? { result: 'conflict', parts: r.conflicts } : null);
+const pushOutcome = (r) => (r.rejected ? { result: 'refused', reason: r.reason } : r.already ? null : { result: 'accepted' });
+
+// Git answered: close the moment and score each guess.
+function settleMoment(m, outcome, who) {
+  if (!m || m.outcome || !outcome) return;
+  m.outcome = { ...outcome, t: now(), by: who.name, byPid: who.pid };
+  for (const g of Object.values(m.guesses)) g.right = isRight(g.guess, m.outcome);
+}
+
+// The presser's guess, sent with the action: kept even if the action then waits (an open merge, unsaved parts).
+function takeGuess(m, me, guess) {
+  if (!m || guess == null || guess === '') return null;
+  if (!validGuess(m.kind, String(guess))) return fail('Pick one of the answers.');
+  m.guesses[me.pid] = { guess: String(guess), t: now(), pressed: true };
+  return null;
+}
+
+// The action runs only once the presser has predicted.
+function needGuess(m, me) {
+  if (!m) return null;
+  if (!m.guesses[me.pid]) return fail(PREDICT.first, { predict: m.id, tone: 'info' });
+  m.guesses[me.pid].pressed = true;
+  return null;
+}
+
+// My latest scored prediction in this step: one line, for the panel (and the resolver).
+function myVerdict(lab, pid) {
+  const last = Object.values(S.moments)
+    .filter((m) => m.labId === lab.id && m.step === S.step && m.outcome && m.guesses[pid])
+    .sort((a, b) => a.outcome.t - b.outcome.t).at(-1);
+  if (!last) return null;
+  const g = last.guesses[pid];
+  return { moment: last.id, kind: last.kind, target: last.target, right: g.right, line: verdict(g.guess, last.outcome) };
+}
+
+// The class's predictions in a step, real labs only: right of total, by part, and guesses still waiting for Git.
+function accuracy(step) {
+  const real = new Set(realLabs().map((l) => l.id));
+  const parts = Object.fromEntries(Object.entries(ACCURACY_PART).map(([key, label]) => [key, { label, right: 0, total: 0 }]));
+  let right = 0;
+  let total = 0;
+  let waiting = 0;
+  for (const m of Object.values(S.moments)) {
+    if (m.step !== step || !real.has(m.labId)) continue;
+    const guesses = Object.values(m.guesses);
+    if (!m.outcome) { waiting += guesses.length; continue; }
+    const part = parts[m.kind === 'merge' ? m.target : m.outcome.result];
+    for (const g of guesses) {
+      part.total += 1;
+      total += 1;
+      if (g.right) { part.right += 1; right += 1; }
+    }
+  }
+  if (!total && !waiting) return null;
+  const shown = Object.values(parts).filter((p) => p.total);
+  return { step, right, total, waiting, parts: shown, line: total ? accuracyLine({ right, total, parts: shown }) : null };
+}
+
+// What the Step 3–5 reveals add under the cards: the class's accuracy, then (Steps 4–5) what each lab chose,
+// and what a way nobody chose would have done.
+function factsFor(scene) {
+  if (scene.kind !== 'reveal' || !PREDICT_STEPS.includes(scene.step)) return [];
+  const out = [];
+  const acc = accuracy(scene.step);
+  if (acc?.total) out.push(acc.line);
+  const [chosen, names, missing] = scene.step === 4 ? [S.ways, WAYS, NOT_CHOSEN] : scene.step === 5 ? [S.undos, UNDO_WAYS, UNDO_NOT_CHOSEN] : [];
+  if (!chosen) return out;
+  const rows = realLabs().filter((l) => chosen[l.id]).map((l) => ({ name: l.name, way: names[chosen[l.id].way].name, why: chosen[l.id].why }));
+  if (rows.length) out.push(choiceLine(rows));
+  for (const way of Object.keys(names)) if (!realLabs().some((l) => chosen[l.id]?.way === way)) out.push(missing[way]);
+  return out;
+}
+
+// The paper: Step 4's lived line says what would happen when no lab replayed on top.
+function paperFor() {
+  const replayed = Object.values(S.ways).some((w) => w.way === 'rebase');
+  return { ...PAPER, lived: PAPER.lived.map(({ none, ...line }) => (none && !replayed ? { ...line, text: none } : line)) };
+}
+
+// "Stuck? Hint" shows once the step has run HINT_DELAY for me (I may have joined late), and again HINT_DELAY
+// after my lab's latest refusal or conflict.
+function hintAt(lab, me) {
+  const stuck = S.feed.find((e) => e.labId === lab.id && e.bad && e.t >= S.stepStartedAt)?.t ?? 0;
+  return Math.max(S.stepStartedAt, me.joinedAt ?? 0, stuck) + HINT_DELAY_MS;
+}
+
+// Step 4, for the rehearsal bots: the labs in the order the Wall first refused them in this step.
+export function refusedOrder() {
+  const out = [];
+  for (let i = S.feed.length - 1; i >= 0; i--) {
+    const e = S.feed[i];
+    if (e.labId && e.t >= S.stepStartedAt && DID.refused(e) && !out.includes(e.labId)) out.push(e.labId);
+  }
+  return out;
+}
+
 // ---------- State for clients ----------
 
 // Step 6's boss lab: the admin's pick, else the first real lab with someone online.
@@ -462,10 +594,13 @@ function stepFor(n, lab) {
     // Only where the lab presses something: in Step 6 only for the boss lab.
     fixedLine: [3, 4, 5].includes(n) || (n === 6 && boss) ? FIXED_LINE : null,
     instruction: fillBoss((boss && s.bossInstruction) || s.instruction).replaceAll('{wallLab}', wallLab),
+    // Step 4: what the fresh copy of the Wall holds, so no lab thinks its history vanished silently.
+    fresh: s.fresh && lab && S.wallMet ? (lab.id === S.stepLab[4] ? s.fresh.wallLab : s.fresh.other.replaceAll('{wallLab}', wallLab)) : null,
     screen: fillBoss(s.screen),
     unlocks: s.unlocks,
     tips: n === 6 && !boss ? [] : s.tips, // only the boss lab gets the replace button
     mainLocked: s.mainLocked ?? null,
+    choices: n === 4 ? { ways: WAYS, whyQ: WHY_Q, whyMax: WHY_MAX } : null, // Step 4: the two ways, one line each
     bonus: s.bonus ?? null,
     doneLine: DONE_LINE,
     behind: s.behind,
@@ -486,7 +621,8 @@ function sceneFor(n) {
     answerable: s.answerable,
     takeawayStep: s.takeawayStep,
     reveal: s.reveal ?? null,
-    paper: s.kind === 'paper' ? PAPER : null,
+    facts: factsFor(s),
+    paper: s.kind === 'paper' ? paperFor() : null,
     wrap: s.kind === 'wrap' ? { line: WRAP_LINE } : null,
   };
 }
@@ -632,6 +768,7 @@ export const state = (pid) => work(async () => {
   const hint = labDone ? null : STEPS[S.step].hint(view, { pair: me.pair, branch: me.branch, saved: !!lab.by[me.pid]?.save, both });
   return {
     ok: true,
+    now: now(), // the server's clock: the page times the hint from it
     session: await publicSession(lab),
     me: {
       pid: me.pid,
@@ -642,11 +779,13 @@ export const state = (pid) => work(async () => {
       branch: me.branch,
       mission: missionFor(S.step, lab.id, me.pair, {
         solo, both, fancyMerged: view.mainHasIdea('fancy'), fancyLeft: !!view.card('fancy'), way: view.way(), done: labDone,
-        got: view.gotSabotage(), movesBack: movesBack(lab), refused: didThisStep(lab, DID.refused),
+        got: view.gotSabotage(), undo: S.undos[lab.id]?.way ?? null, refused: didThisStep(lab, DID.refused),
       }),
       // The name New sticky note suggests: my pair's, or the next one not made yet when I do both.
       pairNote: both ? (Object.values(PAIR_NOTES).find((n) => !tipOf(graph, n)) ?? PAIR_NOTES.B) : PAIR_NOTES[me.pair],
-      hint,
+      hint, // {idea, click}: the page shows the idea first, the click on a second press
+      hintAt: hintAt(lab, me),
+      verdict: myVerdict(lab, me.pid),
       answers: myAnswers(me.pid),
       gitIn7: gitIn7(me.pid),
     },
@@ -654,7 +793,14 @@ export const state = (pid) => work(async () => {
       id: lab.id,
       name: lab.name,
       color: lab.color,
-      way: S.ways[lab.id] ?? null,
+      way: wayOf(lab),
+      why: S.ways[lab.id]?.why ?? '',
+      undo: S.undos[lab.id]?.way ?? null,
+      // What the lab can predict now; mine = my guess. The presser predicts in a dialog, the others in the panel.
+      moments: openMoments(lab).map((m) => ({
+        id: m.id, kind: m.kind, target: m.target, ...predictCopy(m.kind, m.target),
+        mine: m.guesses[me.pid]?.guess ?? null, count: Object.keys(m.guesses).length,
+      })),
       members: membersOf(lab),
       branches: branchesOf(graph),
       drafts: lab.drafts,
@@ -739,7 +885,9 @@ export const adminState = (joinUrl) => work(async () => {
       name: lab.name,
       color: lab.color,
       practice: lab.practice,
-      way: S.ways[lab.id] ?? null,
+      way: wayOf(lab),
+      why: S.ways[lab.id]?.why ?? '',
+      undo: S.undos[lab.id]?.way ?? null,
       members: membersOf(lab),
       goals,
       done: labDone,
@@ -772,6 +920,7 @@ export const adminState = (joinUrl) => work(async () => {
       show: S.show,
       stepLab: S.stepLab,
       ready: readiness(labs),
+      predictions: PREDICT_STEPS.includes(S.step) ? accuracy(S.step) : null, // live, Steps 3–5
       concepts: CONCEPTS,
     },
     labs,
@@ -799,7 +948,7 @@ export const exportMarkdown = () => work(async () => {
       out.push(`Takeaways (${lines.length}):`, ...lines.map((p) => `- ${who(p.pid)}: ${quoteLine(S.takeaways[p.pid][s.takeawayStep].text)}`), '');
     }
   }
-  out.push('## By person', '');
+  out.push(...predictionsMarkdown(who), '## By person', '');
   for (const p of people) {
     out.push(`### ${p.name} · ${labName(p.labId)}`, '', 'My Git in 7 lines:');
     for (const line of gitIn7(p.pid)) out.push(`${line.step}. ${line.text ? quoteLine(line.text) : '—'}`);
@@ -808,6 +957,35 @@ export const exportMarkdown = () => work(async () => {
   }
   return out.join('\n');
 });
+
+// Every prediction, per step and per moment, with the class's accuracy; then what each lab chose (Steps 4–5).
+function predictionsMarkdown(who) {
+  const out = ['## Predictions', ''];
+  for (const step of PREDICT_STEPS) {
+    const acc = accuracy(step);
+    out.push(`### Step ${step} · ${STEPS[step].title}`, '', acc?.line ?? 'No predictions.', '');
+    const moments = Object.values(S.moments).filter((m) => m.step === step && m.outcome && Object.keys(m.guesses).some(person))
+      .sort((a, b) => a.outcome.t - b.outcome.t);
+    for (const m of moments) {
+      const what = m.kind === 'merge' ? `merge ${m.target}` : `send ${m.n}`;
+      out.push(`${labName(m.labId)} · ${what}${m.outcome.by ? `, pressed by ${m.outcome.by}` : ''}:`);
+      for (const [pid, g] of Object.entries(m.guesses).filter(([pid]) => person(pid))) {
+        out.push(`- ${who(pid)}${g.pressed ? ' (pressed)' : ''}: ${verdict(g.guess, m.outcome)}`);
+      }
+      out.push('');
+    }
+  }
+  out.push('## Choices', '');
+  for (const lab of realLabs()) {
+    const w = S.ways[lab.id];
+    const u = S.undos[lab.id];
+    const by = (c) => (c.by ? `, by ${c.by}` : '');
+    out.push(`- ${lab.name} · Step 4: ${w ? `${WAYS[w.way].name}${by(w)}${w.why ? `. Why: ${quoteLine(w.why)}` : ''}` : '—'}`
+      + ` · Step 5: ${u ? `${UNDO_WAYS[u.way].name}${by(u)}` : '—'}`);
+  }
+  out.push('');
+  return out;
+}
 
 // ---------- Records: concepts, feed, last op ----------
 
@@ -878,6 +1056,12 @@ function drop(pids) {
     delete S.people[pid];
     delete S.takeaways[pid];
     for (const given of Object.values(S.answers)) delete given[pid];
+    // Their predictions go; a choice or a press they made stays, without their name.
+    for (const m of Object.values(S.moments)) {
+      delete m.guesses[pid];
+      if (m.outcome?.byPid === pid) m.outcome.by = null;
+    }
+    for (const c of [...Object.values(S.ways), ...Object.values(S.undos)]) if (c.byPid === pid) c.by = null;
     online.delete(pid);
   }
 }
@@ -898,7 +1082,7 @@ export const leave = (pids) => alone(async () => {
 // ---------- Student actions ----------
 
 // Reading, answering and writing takeaways are not clicks on the lab's outfit.
-const QUIET = new Set(['inspect', 'reflog', 'answer', 'takeaway']);
+const QUIET = new Set(['inspect', 'reflog', 'answer', 'takeaway', 'predict', 'why']);
 
 export const act = (action, input) => work(async () => {
   const me = person(input.pid);
@@ -923,8 +1107,8 @@ function blocked(lab, note) {
 
 const partsOf = (conflicts) => conflicts.map((p) => p.toUpperCase()).join(', ');
 
-// The Wall's refusal, in words that name the next move (Step 4: the lab's way).
-const refusal = (lab) => (S.step === 4 && { merge: T.refusedMerge, rebase: T.refusedRebase }[S.ways[lab.id]]) || T.refused;
+// The Wall's refusal, in words that name the next move (Step 4: the lab's way, or a choice of two).
+const refusal = (lab) => (S.step !== 4 ? T.refused : wayOf(lab) ? T.refusedWay(wayOf(lab)) : T.refusedChoose);
 
 // "Replayed your card on top of the Wall's: 1a2b3c4 is now 5d6e7f8, a new ID."
 function replayed(r) {
@@ -1028,9 +1212,11 @@ const ACTIONS = {
   },
 
   // Switch runs no git: your pin lives in the session, and each note keeps its own draft.
+  // Like git switch, it refuses to leave unsaved parts behind: Git keeps one working copy.
   async switch(me, lab, { branch }) {
     const note = String(branch ?? '');
     if (!tipOf(await git.graph(lab.id), note)) return fail('That sticky note does not exist.');
+    if (note !== me.branch && Object.keys(lab.drafts[me.branch] ?? {}).length) return fail(SWITCH_UNSAVED);
     me.branch = note;
     const r = {
       porcelain: `git switch ${note}`,
@@ -1040,15 +1226,17 @@ const ACTIONS = {
     return reply(lab, me, r, { action: `Switch to ${note}`, concepts: ['switch'] }, { message: `You're on ${note} now.` });
   },
 
-  // Merges always go into main ("Merge [note] into main").
-  async merge(me, lab, { from }) {
+  // Merges always go into main ("Merge [note] into main"). Step 3: predict first (guess: what Git will do).
+  async merge(me, lab, { from, guess }) {
     if (me.branch !== 'main') return fail(T.mainOnly);
     const into = 'main';
     from = String(from ?? '');
     if (from === into || !tipOf(await git.graph(lab.id), from)) return fail('Pick another sticky note to merge.');
-    const stop = blocked(lab, into);
+    const m = moment(lab, 'merge', from);
+    const stop = takeGuess(m, me, guess) || blocked(lab, into) || needGuess(m, me);
     if (stop) return stop;
     const r = await git.merge(lab, into, from, authorOf(me));
+    settleMoment(m, mergeOutcome(r), me);
     if (r.nothing) return reply(lab, me, r, null, { message: `${into} already has ${from}. Nothing to merge.` });
     const message = r.fastForward ? `${into} slid forward to ${short(r.id)}. No new card.`
       : r.merged ? `Merged. New card ${short(r.id)} has two parents.`
@@ -1090,14 +1278,18 @@ const ACTIONS = {
     return reply(lab, me, r, { action: 'Cancel merge', outcome: `${note} unchanged` }, { message });
   },
 
-  async push(me, lab) {
+  // Steps 4–5: predict first (guess: will the Wall accept it?).
+  async push(me, lab, { guess }) {
     if (me.branch !== 'main') return fail(T.mainOnly);
     if (S.step === 6 && !isBoss(lab)) return fail(T.boss, { tone: 'info' }); // nothing to do but watch: no sticky red toast
+    const m = moment(lab, 'push');
+    const stop = takeGuess(m, me, guess) || needGuess(m, me);
+    if (stop) return stop;
     const unsaved = Object.keys(lab.drafts.main ?? {}).length > 0;
     const r = await git.push(lab, { force: false });
+    settleMoment(m, pushOutcome(r), me);
     if (r.rejected) {
       lab.refusedInARow += 1;
-      assignWay(lab);
       const entry = { action: 'Send to Wall', outcome: `refused (${r.reason})`, bad: true, concepts: ['rejected'] };
       const error = (await movedOffSabotage(lab)) ? T.refusedMovedBack : refusal(lab);
       return { ...reply(lab, me, r, entry), ok: false, error };
@@ -1117,6 +1309,7 @@ const ACTIONS = {
     const movedOff = await movedOffSabotage(lab);
     const r = await git.pull(lab, authorOf(me));
     if (!r.moved) lab.refusedInARow = 0;
+    if (r.merged || r.conflict) chooseWay(lab, 'merge', me);
     if (r.nothing) {
       return reply(lab, me, r, { action: 'Get & combine', outcome: 'nothing new', concepts: ['pull'] }, { message: 'Nothing new on the Wall.' });
     }
@@ -1138,6 +1331,7 @@ const ACTIONS = {
     if (stop) return stop;
     const r = await git.rebase(lab, authorOf(me));
     if (!r.moved) lab.refusedInARow = 0;
+    if (r.rebased || r.conflict) chooseWay(lab, 'rebase', me);
     if (r.nothing) {
       return reply(lab, me, r, { action: 'Replay on top', outcome: 'nothing new', concepts: ['rebase'] }, { message: 'Nothing new on the Wall.' });
     }
@@ -1172,6 +1366,7 @@ const ACTIONS = {
     if (stop) return stop;
     const r = await git.revert(lab, note, String(commit ?? ''), authorOf(me));
     const action = `Undo card ${short(commit)}`;
+    if (!r.refused && !r.moved && index(await git.graph(lab.id)).get(String(commit))?.author === INTERN.name) chooseUndo(lab, 'revert', me);
     // Logged, so a lab whose fix came from another lab (Get & combine) still counts its own undo (Step 5's goal).
     if (r.nothing) return reply(lab, me, r, { action, outcome: 'already undone' }, { message: 'Already undone. Nothing to change.' });
     if (r.conflict) {
@@ -1188,6 +1383,7 @@ const ACTIONS = {
     const stop = blocked(lab, note);
     if (stop) return stop;
     const r = await git.reset(lab, note, String(commit ?? ''), authorOf(me));
+    if (!r.refused && !r.moved && note === 'main') chooseUndo(lab, 'reset', me);
     return reply(lab, me, r, { action: 'Move my note back here', outcome: `${note} → ${short(commit)}`, concepts: ['reset'] },
       { message: `${note} moved back to ${short(commit)}.${sendNext(note)}` });
   },
@@ -1220,6 +1416,25 @@ const ACTIONS = {
     if (r.already) return reply(lab, me, r, null, { message: 'The Wall already has one clean card.' });
     return reply(lab, me, r, { action: 'Replace the Wall with one card', outcome: `forced ${short(r.id)}`, bad: true, concepts: ['force'] },
       { message: `The Wall now has one clean card: ${short(r.id)}.`, wall: true });
+  },
+
+  // Predict the lab's next merge (Step 3) or send (Steps 4–5) before anyone presses. Changeable until Git answers.
+  async predict(me, lab, { moment: id, guess }) {
+    const m = openMoments(lab).find((x) => x.id === String(id ?? ''));
+    if (!m) return fail('Git already answered this one.', { tone: 'info' });
+    if (!validGuess(m.kind, String(guess ?? ''))) return fail('Pick one of the answers.');
+    m.guesses[me.pid] = { guess: String(guess), t: now(), pressed: m.guesses[me.pid]?.pressed ?? false };
+    bump(lab.id);
+    return done(PREDICT.waiting, { guess: String(guess) });
+  },
+
+  // Step 4: one line on why the lab chose its way (optional, editable by anyone in the lab).
+  async why(me, lab, { text }) {
+    const w = S.ways[lab.id];
+    if (S.step !== 4 || !w) return fail('Your lab has not chosen a way yet.');
+    w.why = tidy(text, WHY_MAX);
+    bump(lab.id);
+    return done(w.why ? 'Saved.' : 'Removed.', { text: w.why });
   },
 
   // The pause question, answered in the app (optional, editable). Empty text removes the answer.
@@ -1401,7 +1616,9 @@ async function saveParts(lab, note, parts, who) {
 }
 
 async function mergeIn(lab, from, pick, who) {
+  const m = moment(lab, 'merge', from);
   const r = must(await git.merge(lab, 'main', from, who));
+  settleMoment(m, mergeOutcome(r), who); // anyone who predicted this merge still gets Git's answer
   if (r.nothing) return;
   log(lab, who, { ...mergeEntry(r, from, 'main'), concepts: [] }, r);
   await settle(lab, 'main', pick, who);
@@ -1417,10 +1634,12 @@ async function deleteIn(lab, note, who) {
   log(lab, who, { action: `Delete sticky note ${note}`, outcome: `was ${short(r.id)}` }, r);
 }
 
-// Get the Wall's cards the lab's way: Replay on top for a Step 4 lab told to rebase, else Get & combine.
+// Get the Wall's cards the lab's way: Replay on top for a Step 4 lab that chose it, else Get & combine
+// (a Step 4 lab that had not chosen yet is then logged as combining).
 async function getIn(lab, pick, who) {
-  const replay = S.step === 4 && S.ways[lab.id] === 'rebase';
+  const replay = S.step === 4 && wayOf(lab) === 'rebase';
   const r = must(await (replay ? git.rebase(lab, who) : git.pull(lab, who)));
+  if (r.merged || r.rebased || r.conflict) chooseWay(lab, replay ? 'rebase' : 'merge', who);
   if (r.nothing) return;
   log(lab, who, { ...(replay ? rebaseEntry(r) : pullEntry(r)), concepts: [] }, r);
   await settle(lab, 'main', pick, who);
@@ -1428,12 +1647,17 @@ async function getIn(lab, pick, who) {
 
 // Send; if refused, get the Wall's cards once and send again.
 async function send(lab, pick, who) {
-  let r = await git.push(lab, { force: false });
+  const pushed = async () => {
+    const m = moment(lab, 'push');
+    const out = await git.push(lab, { force: false });
+    settleMoment(m, pushOutcome(out), who);
+    return out;
+  };
+  let r = await pushed();
   if (r.rejected) {
-    assignWay(lab);
     log(lab, who, { action: 'Send to Wall', outcome: `refused (${r.reason})`, bad: true }, r);
     await getIn(lab, pick, who);
-    r = await git.push(lab, { force: false });
+    r = await pushed();
   }
   if (r.rejected || r.already) return;
   lab.refusedInARow = 0;
@@ -1488,6 +1712,7 @@ const RESCUE = {
     const intern = [...history(byId, main)].find((id) => byId.get(id).author === INTERN.name);
     if (intern && (byId.get(main).monster[SABOTAGE.part] === SABOTAGE.value || !labView(lab, graph, null).undidSabotage())) {
       const r = must(await git.revert(lab, 'main', intern, who));
+      chooseUndo(lab, 'revert', who);
       const outcome = r.nothing ? 'already undone' : r.conflict ? 'conflict' : `fix card ${short(r.id)}`;
       log(lab, who, { action: `Undo card ${short(intern)}`, outcome }, r);
       await settle(lab, 'main', theirs, who);

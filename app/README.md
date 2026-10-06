@@ -1,6 +1,6 @@
 # Outfit Lab · teacher guide
 
-Each lab dresses one character together (HAT, GLASSES, TOP, SHOES). Every button runs real Git on the server.
+Each lab dresses one character together (HAT, GLASSES, TOP, SHOES). Every save, merge, send and undo runs real Git on the server. Before each merge and send, students predict what Git will do; the reveal shows how many predicted right.
 You press **Next**. The class walks one fixed script of 19 scenes, and the projector is the slide deck.
 
 Lesson script: [tuesday.md](../lesson/tuesday.md) · one page: [ONE_PAGE.md](../lesson/ONE_PAGE.md) · what the app does: [SPEC.md](SPEC.md)
@@ -56,8 +56,8 @@ Some Next presses also act:
 What happens in the steps:
 
 - **Step 3.** After the fast-forward of fancy, each lab deletes the fancy note (`git branch -d`). The reveal asks which cards were made on fancy. No card records it.
-- **Step 4.** The first lab to send gets in. Refused labs get their way in the app, in the order the Wall refuses them: Combine (merge), then Replay on top (rebase), alternating. When only one lab can be refused, it replays. A replayed card keeps its author and author time. It gets a new parent, so a new snapshot, a new committer time and a new ID. The original shows dashed: "only in your safety diary (reflog)". The reveal marks one change's path to main, with this class's own times ("made 10:21 → on the Wall 10:24 · 3 min").
-- **Step 5.** Labs 2, 4 and 6 try **Move my note back** first, and the Wall refuses their send. A class of one lab tries both, back first.
+- **Step 4.** The first lab to send gets in. A refused lab chooses its way: Combine (merge) or Replay on top (rebase), and says why in one line. The console tile shows "Chose: …"; if nobody picked one way, the reveal says what it would have done. A replayed card keeps its author and author time. It gets a new parent, so a new snapshot, a new committer time and a new ID. The original shows dashed: "only in your safety diary (reflog)". The reveal marks one change's path to main, with this class's own times ("made 10:21 → on the Wall 10:24 · 3 min").
+- **Step 5.** Each lab chooses **Undo this card** (revert) or **Move my note back** (reset). Moving back, then sending, is refused by the Wall (non-fast-forward). If no lab moved back, the reveal says what would have happened.
 - **The paper** shows Step 4's paths as they were. After the squash, the Wall has none of those cards.
 - **The wrap.** Each student sees **My Git in 7 lines**: one takeaway per step, 0–6, editable, with Copy. The projector shows the takeaway wall without names. **Export answers** (under Details) downloads every answer and takeaway as Markdown.
 

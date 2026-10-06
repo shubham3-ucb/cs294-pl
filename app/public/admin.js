@@ -3,8 +3,10 @@
 import { renderGraph, velocity } from '/graph.js';
 import { emoji, renderMonsterCard } from '/monster.js';
 import {
-  api, live, esc, md, clock, key, move, presenterKeys, renderSlide, tickSlide, qrSrc, shortUrl, channel, PROJECTOR_WINDOW,
+  api, live, esc, md, clock, key, needKey, move, presenterKeys, renderSlide, tickSlide, qrSrc, shortUrl, channel, PROJECTOR_WINDOW,
 } from '/screen.js';
+
+if (needKey()) await new Promise(() => {}); // no key: the page says how to get in, and nothing else runs
 
 const $ = (id) => document.getElementById(id);
 const DISGUISE = emoji('glasses', 'disguise');
@@ -16,8 +18,9 @@ const STUCK_MS = 120e3;
 const COUNTS = [['save', 'card', 'cards'], ['merge', 'merge', 'merges'], ['conflict', 'conflict solved', 'conflicts solved'],
   ['rejected', 'refused send', 'refused sends'], ['rebase', 'replay', 'replays'], ['revert', 'undo', 'undos']];
 
-// Step 4: how a refused lab gets the Wall's cards, as its mission names it.
+// Step 4: the way a lab chose to get the Wall's cards. Step 5: how it chose to undo the Intern's card.
 const WAYS = { merge: 'Combine (merge)', rebase: 'Replay on top (rebase)' };
+const UNDOS = { revert: 'Undo this card (revert)', reset: 'Move my note back (reset)' };
 
 // The scene's tools, in the main card only when the scene needs them. Rescue sits on the lab tiles,
 // Show answers with the question.
@@ -166,6 +169,7 @@ function render(next) {
   row('say', md(s.say ?? ''));
   row('do', md(s.do ?? ''));
   row('board', md(s.board ?? ''));
+  row('predictions', predictionsHTML());
   renderPaths();
   $('ask-q').closest('.row').hidden = !s.ask;
   if (s.ask) {
@@ -224,6 +228,14 @@ function renderAnswers() {
     `<li><b>${esc(a.name)}</b> <span class="muted">${esc(labName(a.labId))}</span> · ${esc(a.text)}</li>`).join(''));
 }
 
+// Steps 3–5, live: how many predictions Git has answered, how many were right, and how many still wait.
+function predictionsHTML() {
+  const p = state.session.predictions;
+  if (!p || !working()) return '';
+  const waiting = p.waiting && scene().kind === 'task' ? `<span class="muted"> · ${p.waiting} waiting for Git</span>` : '';
+  return `${p.line ? esc(p.line) : '<span class="muted">No answers from Git yet.</span>'}${waiting}`;
+}
+
 // Step 4's reveal and the paper: each lab's change, when it was made and when it reached the Wall, to read aloud.
 function renderPaths() {
   const paths = state.session.integration?.paths ?? [];
@@ -271,7 +283,8 @@ function renderComing() {
   $('coming-note').textContent = note;
 }
 
-// One tile per lab: people, the outfit, goal checks, a status line (filled in by tick), Step 4's way, and Rescue.
+// One tile per lab: people, the outfit, goal checks, a status line (filled in by tick), the lab's choice
+// (Step 4's way, Step 5's undo), and Rescue.
 function renderTiles() {
   const box = $('labs');
   const ids = state.labs.map((l) => l.id).join();
@@ -287,7 +300,8 @@ function renderTiles() {
       : !lab.members.length ? 'Nobody yet'
         : `${lab.members.length} ${lab.members.length === 1 ? 'person' : 'people'}${offline ? ` · ${offline} offline` : ''}`;
     const rescue = s.tools.includes('rescue') && !lab.practice && !lab.done && (s.step !== 6 || state.session.bossLab === lab.id);
-    const way = s.step === 4 && WAYS[lab.way] ? `<p class="way">Way: ${WAYS[lab.way]}</p>` : '';
+    const way = s.step === 4 && WAYS[lab.way] ? `<p class="way">Chose: ${WAYS[lab.way]}${lab.why ? ` · "${esc(lab.why)}"` : ''}</p>`
+      : s.step === 5 && UNDOS[lab.undo] ? `<p class="way">Chose: ${UNDOS[lab.undo]}</p>` : '';
     const counts = s.kind === 'wrap' && !lab.practice ? `<p class="counts">${COUNTS.map(([id, one, many]) => {
       const n = lab.concepts?.[id] ?? 0;
       return `${n} ${n === 1 ? one : many}`;

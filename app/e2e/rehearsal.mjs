@@ -1,7 +1,8 @@
 // Rehearse with bots, in a real browser: the teacher starts 9 bots in the console (Details), then
 // presses only Next. The bots join by name (3 labs of 3) and play every scene through the student
-// actions: deleting fancy, the TOP conflict, the refused send and the lab's way back (Combine or Replay on
-// top), Undo on the disguise card, the boss's clean-up, every answer and every takeaway. Next is pressed
+// actions: predictions before every Merge and Send (some right, some wrong), deleting fancy, the TOP conflict,
+// the refused send and a way back each lab chooses (Combine or Replay on top), an undo each lab chooses (Undo
+// this card or Move my note back), the boss's clean-up, every answer and every takeaway. Next is pressed
 // only when the console shows the scene is complete: all labs done, or every bot answered and wrote its
 // takeaway. Then Stop rehearsal and Reset remove the bots. Own server on 127.0.0.1:E2E_PORT+2 (3104),
 // fresh DATA_DIR under /tmp, ADMIN_KEY=test, always stopped. Any console error, page error, 5xx or server
@@ -112,6 +113,15 @@ async function run() {
         assert.equal(paths.length, 3, "Step 4's reveal: each lab's change has a path to main");
         assert.equal(paths.filter((p) => p.copy).length, 1, 'the replayed change starts at a copy');
       }
+      if (['reveal-3', 'reveal-4', 'reveal-5'].includes(scene.id)) {
+        // Bots predict too, one in three naively: the reveal shows a mix, on the console and the projector.
+        const st = await adminState();
+        const p = st.session.predictions;
+        assert.ok(p && p.total > 0 && p.right > 0 && p.right < p.total, `${scene.id}: a mix of right and wrong predictions (${p?.line})`);
+        assert.equal(st.projector.scene.facts[0], p.line, `${scene.id}: the reveal shows the accuracy`);
+        assert.equal(await page.textContent('#predictions'), p.line, `${scene.id}: the console shows it`);
+        console.log(`    ${p.line}`);
+      }
       if (n === SCENES.length - 1) break;
       await sleep(Math.max(0, 600 - (Date.now() - started))); // the console ignores a second press within 400 ms
       await page.click('#next');
@@ -135,15 +145,19 @@ async function run() {
       assert.ok(did(lab.id, /^Merge sporty into main$/, /^conflict: TOP$/), `${lab.name}: the TOP conflict`);
       assert.ok(did(lab.id, /^Finish merge$/, /^merge card/), `${lab.name}: resolved it`);
     }
-    // Step 4: the first lab to send just sends. The next is refused and combines; the last is refused and replays.
-    assert.deepEqual(real.map((l) => l.way ?? 'first').sort(), ['first', 'merge', 'rebase'], 'Step 4: one lab sent, one merged, one replayed');
+    // Step 4: the first lab to send just sends. The refused labs choose: the bots' mix is combine, then replay.
+    assert.deepEqual(real.map((l) => l.way ?? 'first').sort(), ['first', 'merge', 'rebase'], 'Step 4: one lab sent, one chose merge, one chose replay');
     const replayer = real.find((l) => l.way === 'rebase');
     assert.ok(did(replayer.id, /^Replay on top$/, /^[0-9a-f]{7} → [0-9a-f]{7}$/), `${replayer.name}: replayed its card as a new one`);
     assert.ok(did(real.find((l) => l.way === 'merge').id, /^Get & combine$/, /^merge card/), 'the refused lab that combines makes a merge card');
     // Step 5: every lab got the card on Next, and every lab undid it itself (Undo this card, or Move my note back).
     for (const lab of real) assert.ok(did(lab.id, /^(Undo card|Move my note back here$)/), `Step 5: ${lab.name} undid the disguise card`);
     assert.ok(real.some((lab) => did(lab.id, /^Undo card/)), 'Step 5: a lab undid it with a fix card');
-    assert.ok(did('2', /^Move my note back here$/) && did('2', /^Send to Wall$/, /^refused/), 'Step 5: Lab 2 moved back first, and was refused');
+    assert.ok(did('2', /^Move my note back here$/) && did('2', /^Send to Wall$/, /^refused/), 'Step 5: Lab 2 chose to move back first, and was refused');
+    assert.deepEqual(real.map((l) => l.undo), ['revert', 'reset', 'revert'], 'Step 5: each lab chose its undo (the bots by lab number)');
+    const exported = await fetch(`${BASE}/api/admin/export?key=${KEY}`).then((r) => r.text());
+    assert.match(exported, /## Predictions/);
+    assert.ok(/ ✓$/m.test(exported) && /Why: /.test(exported), 'the export lists right and wrong predictions');
     assert.ok(a.feed.some((e) => isBot(e.who) && e.action === 'Replace the Wall with one card'), 'Step 6: a bot in the boss lab replaced the Wall');
     assert.match(a.session.audits.before.rows[0].text, /^Wall: \S+ \(bot\) \(Lab \d\), [0-9a-f]{7}$/, 'before: the Wall knows which bot added the boots');
     assert.equal(a.session.audits.after.rows[0].text, 'Wall: not found');

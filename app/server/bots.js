@@ -1,9 +1,12 @@
 // Rehearse with bots: 2–12 bot students, so one person can run the whole class alone.
 // Bots join by name and act only through the session's student actions (join, state, act), with
-// human-like pauses. Each follows its own Stuck? Hint, so it does every step's mission: the TOP
-// conflict, deleting fancy, the refused send and the lab's way back (Get & combine, or Replay on top),
-// Undo on the disguise card, the boss's clean-up.
-// At questions and reveals it writes an answer and a takeaway from the sample text below.
+// human-like pauses. Each follows the click of its own Stuck? Hint (the hint's second level), so it does
+// every step's mission: the TOP conflict, deleting fancy, the refused send and a way back it chooses
+// (Get & combine or Replay on top), an undo it chooses (Undo this card or Move my note back), the boss's clean-up.
+// Bots predict, too: as lab-mates in the panel, and with every Merge and Send they press. One bot in three
+// guesses naively (no conflict; the Wall accepts), so the reveals show a mix of right and wrong.
+// Where a hint offers two ways, bots choose a mix: Step 4 by the order the Wall refused their labs, Step 5 by
+// lab number. At questions and reveals it writes an answer and a takeaway from the sample text below.
 // Names end in "(bot)". Stop rehearsal, Reset or a restart removes them.
 import crypto from 'node:crypto';
 import { PALETTE, PARTS, palette } from '../public/monster.js';
@@ -25,9 +28,10 @@ export const ANSWERS = {
   'reveal-4': ['Its parent is new, so the hash is new.', 'The ID hashes the parent ID too.', 'A new parent means a new card.', 'Same change, different card: the parent changed.'],
   'reveal-5': ["A fix card only adds, so nobody's copy breaks.", 'Moving back drops a card others already have.', 'The Wall still had the card, so it came back.', 'Revert adds; reset only moves my note.'],
   'reveal-6': ['Only in the labs that kept the old cards.', 'Not on the Wall anymore.', 'The other labs still know.', 'Gone from the Wall after gc.'],
-  paper: ['No force push to main.', 'Squash only your own branch, before sharing it.', 'Keep merge cards on main.', 'Protect main; rewrite only private notes.'],
-  exit: ['No. Revert adds a card; the old card still holds it. Change the password.', 'No, every copy still has it. Change it, then rewrite, force push and gc.',
-    'Revert is not enough. Rotate the password first.', 'No. Rotate the secret; a rewrite cannot reach the copies.'],
+  paper: ['Gain: one card per feature to revert. Lose: who wrote which part.', 'A short main and easy bisect; the auditor loses authors and times.',
+    'One clean card per feature. Who did what is gone once the branch is deleted.', 'Gain: a readable main. Lose: how the feature was built, and by whom.'],
+  exit: ['No. Revert adds a card; the old card still holds it. Change the password.', 'No, every copy still has it. Change it, then rewrite, force push, gc, and re-clone.',
+    'Revert is not enough. Rotate the password first.', 'No. Rotate the secret; a lab with the old cards would merge them back.'],
 };
 export const TAKEAWAYS = {
   0: ['Without saves, nobody knows who changed what.', 'Save every version, with a name on it.', 'One shared draft and no history is chaos.'],
@@ -36,7 +40,7 @@ export const TAKEAWAYS = {
   3: ['Merge compares both sides with the split card.', 'A fast-forward only slides the note.', 'No card records the branch it was made on.'],
   4: ['Push only moves the Wall forward.', 'Refused? Merge or rebase, then push.', 'Rebase copies my cards: new IDs.'],
   5: ["Shared mistake: revert, don't reset.", 'Reset is fine only if nobody has the card.', 'The reflog remembers where my note was.'],
-  6: ['Squash + force push: the Wall forgets who did what.', 'Force push skips the safety check.', 'Flat history is data loss.'],
+  6: ['Squash + force push: the Wall forgets who did what.', 'Force push skips the safety check.', 'For analysts, flat history is data loss.'],
 };
 
 const randomOf = (items) => items[crypto.randomInt(items.length)];
@@ -48,18 +52,57 @@ const done = (message) => ({ ok: true, result: { message } });
 const tipOf = (graph, note) => graph.refs[`refs/heads/${note}`];
 const intern = (st) => st.lab.graph.commits.find((c) => c.author === 'The Intern');
 
+function ancestorsOf(byId, id) {
+  const seen = new Set();
+  for (const todo = id ? [id] : []; todo.length;) {
+    const c = byId.get(todo.pop());
+    if (c && !seen.has(c.id)) { seen.add(c.id); todo.push(...c.parents); }
+  }
+  return seen;
+}
+
+// What Git will do, read off the lab's cards the way a student can: merge — compare both sides with the card
+// where they split; send — is the Wall's newest card (the live Wall) in main's history?
+function rightGuess(kind, st, target) {
+  const g = st.lab.graph;
+  const byId = new Map(g.commits.map((c) => [c.id, c]));
+  const mine = ancestorsOf(byId, tipOf(g, 'main'));
+  if (kind === 'push') return mine.has(tipOf(st.wall.graph, 'main')) ? 'accepted' : 'refused';
+  const theirs = ancestorsOf(byId, tipOf(g, target));
+  if (theirs.has(tipOf(g, 'main'))) return 'ff';
+  const common = [...mine].filter((id) => theirs.has(id));
+  const base = common.find((id) => !common.some((o) => o !== id && ancestorsOf(byId, o).has(id)));
+  const [b, o, t] = [base, tipOf(g, 'main'), tipOf(g, target)].map((id) => byId.get(id)?.monster ?? {});
+  const clash = PARTS.find((p) => o[p] !== b[p] && t[p] !== b[p] && o[p] !== t[p]);
+  return clash ? `conflict:${clash}` : 'clean';
+}
+
+// One bot in three guesses naively. Without a bot (the session tests), the guess is right.
+const NAIVE = { merge: 'clean', push: 'accepted' };
+const guessFor = (kind, st, bot, target) => (bot && bot.i % 3 === 2 ? NAIVE[kind] : rightGuess(kind, st, target));
+
+// Step 4: the first lab the Wall refused combines, the next replays, and so on; a lone refusable lab replays.
+function wayFor(st) {
+  if (st.session.labs.length - 1 <= 1) return 'rebase';
+  return session.refusedOrder().indexOf(st.lab.id) % 2 === 0 ? 'merge' : 'rebase';
+}
+
+// Step 5: even labs, and a lab alone, move back first (and meet the refusal); odd labs add a fix card.
+const undoFor = (st) => (st.session.labs.filter((l) => !l.practice).length === 1 || Number(st.lab.id) % 2 === 0 ? 'reset' : 'revert');
+
 // Any one part changed to something new.
 function anyChange(outfit, step) {
   const part = randomOf(PARTS);
   return { part, value: randomOf(palette(step)[part].filter((v) => v !== outfit[part])) };
 }
 
-// Every hint names one concrete click (session tests play whole classes with this, too).
-export function movesFor(hint, st) {
+// Every hint's click names one concrete move, or two ways to choose from (session tests play whole classes
+// with this, too). A Merge (Step 3) or a Send (Steps 4–5) carries the presser's prediction.
+export function movesFor(hint, st, bot = null) {
   const g = st.lab.graph;
   const note = st.me.branch;
   let m;
-  if ((m = /^First finish \*\*[a-z]+\*\*\. (.*)$/.exec(hint))) return movesFor(m[1], st);
+  if ((m = /^First finish \*\*[a-z]+\*\*\. (.*)$/.exec(hint))) return movesFor(m[1], st, bot);
   if ((m = /^Click \*\*change\*\* on (HAT|GLASSES|TOP|SHOES)\. Pick (\S+) /.exec(hint))) {
     const part = m[1].toLowerCase();
     return [['draft', { part, value: Object.keys(PALETTE[part]).find((slug) => PALETTE[part][slug] === m[2]) }]];
@@ -72,7 +115,7 @@ export function movesFor(hint, st) {
   if (hint === 'Press **Save card**.') return [['commit', {}]];
   if ((m = /^Press \*\*New sticky note\*\*\. Name it \*\*([a-z]+)\*\*\.$/.exec(hint))) return [['branch', { name: m[1] }]];
   if ((m = /^Press \*\*Switch to\*\* and pick \*\*([a-z]+)\*\*\.$/.exec(hint))) return [['switch', { branch: m[1] }]];
-  if ((m = /^Press \*\*Merge ([a-z]+) into main\*\*\.$/.exec(hint))) return [['merge', { from: m[1] }]];
+  if ((m = /^Press \*\*Merge ([a-z]+) into main\*\*\.$/.exec(hint))) return [['merge', { from: m[1], guess: guessFor('merge', st, bot, m[1]) }]];
   if ((m = /^Press \*\*Delete sticky note\*\* and pick \*\*([a-z]+)\*\*\.$/.exec(hint))) return [['deleteNote', { note: m[1] }]];
   if (hint.startsWith('Finish the merge')) {
     // A person picks one side of each conflict, never the disguise.
@@ -80,12 +123,15 @@ export function movesFor(hint, st) {
     const side = (part) => randomOf([open.ours[part], open.theirsMonster[part]].filter((v) => v !== SABOTAGE.value));
     return [['resolve', { monster: { ...open.auto, ...Object.fromEntries(open.conflicts.map((p) => [p, side(p)])) } }]];
   }
-  if (hint === 'Press **Send to Wall**.') return [['push', {}]];
+  if (hint === 'Press **Send to Wall**.') return [['push', { guess: guessFor('push', st, bot) }]];
+  if (hint.startsWith('Pick a way:')) return [[wayFor(st) === 'merge' ? 'pull' : 'rebase', {}]];
   if (hint.startsWith('Press **Get & combine**.')) return [['pull', {}]];
   if (hint.startsWith('Press **Replay on top**.')) return [['rebase', {}]];
   if (hint.startsWith('Open the **Safety diary**.')) return [['reflog', {}], ['pull', {}]];
-  if (hint.includes('Press **Move my note back here**.')) return [['reset', { commit: intern(st).parents[0] }]];
-  if (hint.includes('Press **Undo this card**.')) return [['revert', { commit: intern(st).id }]];
+  const undo = hint.includes('**Undo this card**');
+  const back = hint.includes('**Move my note back here**');
+  if (back && (!undo || undoFor(st) === 'reset')) return [['reset', { commit: intern(st).parents[0] }]];
+  if (undo) return [['revert', { commit: intern(st).id }]];
   if (hint.startsWith("Click the newest card in your lab's cards.")) return [['inspect', { repo: 'lab', commit: tipOf(g, 'main') }]];
   if (hint.startsWith('Click the newest card on the Wall.')) return [['inspect', { repo: 'wall', commit: tipOf(st.wall.graph, 'main') }]];
   if (hint === 'Press **Replace the Wall with one card**.') return [['squash', {}]];
@@ -93,12 +139,14 @@ export function movesFor(hint, st) {
   throw new Error(`A hint the bots cannot follow: ${hint}`);
 }
 
-// What a bot does now: Step 0's few changes, then its hint, then the open question and takeaway.
-// A third item 'write' means a longer pause first.
+// What a bot does now: Step 0's few changes, then a prediction while its lab's next merge or send is open,
+// then its hint's click, then the open question and takeaway. A third item 'write' means a longer pause first.
 function nextMoves(st, bot) {
   const { scene, step } = st.session;
-  if (scene.kind === 'task' && step === 0) return bot.chaos++ < CHAOS_CLICKS ? movesFor(st.me.hint, st) : [];
-  if (step > 0 && st.me.hint) return movesFor(st.me.hint, st);
+  if (scene.kind === 'task' && step === 0) return bot.chaos++ < CHAOS_CLICKS ? movesFor(st.me.hint.click, st, bot) : [];
+  const open = scene.kind === 'task' && !st.lab.done && st.lab.moments[0]; // the lab's next action, as the panel shows it
+  if (open && !open.mine) return [['predict', { moment: open.id, guess: guessFor(open.kind, st, bot, open.target) }]];
+  if (step > 0 && st.me.hint) return movesFor(st.me.hint.click, st, bot);
   const sample = (list) => list[bot.i % list.length];
   if (scene.answerable && !st.me.answers[scene.id]) return [['answer', { scene: scene.id, text: sample(ANSWERS[scene.id]) }, 'write']];
   const line = st.me.gitIn7.find((l) => l.step === scene.takeawayStep);

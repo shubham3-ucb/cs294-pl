@@ -12,7 +12,7 @@
   <section id="join" class="join" hidden>
     <form id="join-form" class="join-card" novalidate>
       <h1>Outfit Lab</h1>
-      <p class="lede">Dress one character together. Every button runs real Git.</p>
+      <p class="lede">Dress one character together. Every save, merge, send and undo runs real Git.</p>
       <label class="field">
         <span>Your name</span>
         <input id="join-name" name="name" maxlength="24" autocomplete="given-name" spellcheck="false">
@@ -20,6 +20,7 @@
       <button class="primary big" type="submit">Join</button>
       <p id="join-error" class="form-error" role="alert"></p>
       <p class="join-note">The app puts you in a lab.</p>
+      <p class="join-thu">Thursday's class? <a href="/thu">Open /thu</a></p>
     </form>
   </section>
 
@@ -109,6 +110,11 @@
   </dialog>
 
   <dialog id="diary-dialog" class="dialog" aria-label="Safety diary">
+    <button class="close" data-close aria-label="Close">×</button>
+    <div class="dialog-body"></div>
+  </dialog>
+
+  <dialog id="predict-dialog" class="dialog small predict" aria-label="Predict first">
     <button class="close" data-close aria-label="Close">×</button>
     <div class="dialog-body"></div>
   </dialog>

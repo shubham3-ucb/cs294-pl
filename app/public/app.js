@@ -82,7 +82,11 @@ let cardOpen = null; // {id, repo}
 let seenOp; // the last operation the student saw behind the door
 let resolver = { key: '', choices: {}, another: null };
 let changed = localStorage.getItem(KEY.changed) === '1';
-let hintOpen = false;
+let hintLevel = 0; // Stuck? Hint: 0 = the button, 1 = the idea, 2 = the exact click
+let hintIdea = null; // the idea last seen: a new situation shows its idea first
+let hintWasReady = false;
+let clockSkew = 0; // the server's clock minus this one: the hint is timed by the server
+let predictRun = null; // what runs once the student who pressed has predicted
 let lastHint = null;
 let ticks = []; // each goal's done flag when last drawn, so a new tick gets a small pop
 let pathLab = null; // the lab whose integration path the Wall shows, once the student picks one
@@ -113,6 +117,7 @@ function refresh() {
 async function load() {
   const next = await get('/api/state');
   if (!next.session) return;
+  if (next.now) clockSkew = next.now - Date.now();
   state = next;
   render();
 }
@@ -142,7 +147,8 @@ function setOnline(on) {
 // A refusal always says what to press next. An open merge has its Open button on the red bar.
 const nextMove = (error) => (error === MERGE_OPEN && V?.merging ? `${MERGE_OPEN} Press Open on the red bar.` : error);
 
-// Run a student action, show the server's words, refetch.
+// Run a student action, show the server's words, refetch. A Merge (Step 3) or a Send (Steps 4–5) the server
+// wants predicted first comes back with {predict}: the prediction dialog opens, and the action runs after it.
 async function act(path, body = {}, key = path) {
   if (busy.has(key)) return null;
   busy.add(key);
@@ -155,12 +161,32 @@ async function act(path, body = {}, key = path) {
     const { message, nothing, already } = res.result || {};
     if (message) toast(message, nothing || already ? 'info' : 'good');
     else clearBadToast();
-  } else {
+  } else if (!res.predict) {
     toast(nextMove(res.error) || 'Busy, press again.', res.tone || 'bad');
   }
   await refresh();
+  const asked = res.predict && state.lab?.moments?.find((m) => m.id === res.predict);
+  if (asked) askPredict(asked, (guess) => act(path, { ...body, guess }, key));
   if (res.result?.conflict) openResolver();
   return res;
+}
+
+// Merge and Send: predict first, in one tap, unless I already predicted in the panel.
+function predicted(kind, target, path, body = {}, key = path) {
+  const m = state.lab.moments?.find((x) => x.kind === kind && (kind !== 'merge' || x.target === target));
+  if (m && !m.mine) return askPredict(m, (guess) => act(path, { ...body, guess }, key));
+  return act(path, body, key);
+}
+
+function askPredict(m, run) {
+  predictRun = run;
+  patch(dialogBody('predict-dialog'), `
+    <p class="eyebrow">Predict first</p>
+    <h2>${esc(m.title)}</h2>
+    <p class="predict-q">${esc(m.q)}</p>
+    <div class="predict-options">${m.options.map((o) => `<button class="opt" data-guess="${esc(o.id)}">${esc(o.words)}</button>`).join('')}</div>
+    <p class="small muted">${esc(m.tip)} Git runs once you choose.</p>`);
+  show('predict-dialog');
 }
 
 // ---------- Derived values ----------
@@ -275,7 +301,9 @@ function render() {
     expanded.clear();
     closeDialogs();
   }
-  if (scene.id !== shown.scene) hintOpen = false;
+  if (scene.id !== shown.scene) hintLevel = 0;
+  const idea = state.me?.hint?.idea ?? null;
+  if (idea !== hintIdea) { if (hintLevel === 2) hintLevel = 1; hintIdea = idea; }
   if (shown.lab && shown.lab !== state.me.labId) toast(`You're in ${state.lab.name} now. The app keeps the labs even.`);
   const wasCard = V?.card;
   V = derive();
@@ -364,7 +392,8 @@ function renderReveal() {
       </article>`).join('')}
     ${r.sentence ? `<p class="reveal-sentence">${rich(r.sentence)}</p>` : ''}
     ${r.behind ? `<p class="reveal-behind"><b>Behind the door</b>${rich(r.behind)}</p>` : ''}
-    ${r.note ? `<p class="tech-note">${rich(r.note)}</p>` : ''}` : '');
+    ${r.note ? `<p class="tech-note">${rich(r.note)}</p>` : ''}
+    ${(V.scene.facts ?? []).map((f) => `<p class="reveal-fact">${esc(f)}</p>`).join('')}` : '');
 }
 
 // The break keeps the step's work on screen: labs can still finish.
@@ -383,7 +412,10 @@ function taskHTML() {
     <h1>${esc(s.title)}</h1>
     ${s.fixedLine ? `<p class="fixed-line">${esc(s.fixedLine)}</p>` : ''}
     <p class="instruction">${rich(s.instruction)}</p>
+    ${s.fresh ? `<p class="fresh-line">${esc(s.fresh)}</p>` : ''}
     ${missionBox()}
+    ${verdictHTML()}
+    ${predictHTML()}
     ${goals.length ? `<ul class="goals">${goals.map((g, i) => `<li class="${
       [g.done ? 'done' : i === next ? 'next' : '', V.just.has(i) ? 'just' : ''].join(' ').trim()}">${esc(g.text)}</li>`).join('')}</ul>` : ''}
     ${done ? doneHTML() : hintHTML()}
@@ -400,13 +432,41 @@ function missionBox() {
   return `<div class="mission-box"><p class="label">Your mission</p>${me.mission ? `<p>${rich(me.mission)}</p>` : ''}${pair}</div>`;
 }
 
-// "Stuck? Hint" reveals the next concrete click; while open it follows the lab live.
+// My latest prediction against Git's answer: "You predicted: conflict on TOP. Git: conflict on TOP. ✓"
+function verdictHTML() {
+  const v = state.me.verdict;
+  return v ? `<p class="verdict ${v.right ? 'right' : 'wrong'}">${esc(v.line)}</p>` : '';
+}
+
+// Anyone in the lab may predict the lab's next merge or send while it is pending (optional; the presser must).
+function predictHTML() {
+  const m = state.lab.moments?.[0];
+  if (!m || state.lab.done || V.scene.kind === 'reveal') return '';
+  return `<div class="predict-box"><p class="label">Predict</p>
+    <p>${esc(m.before)} <b>${esc(m.q)}</b></p>
+    <div class="predict-chips">${m.options.map((o) => `<button class="chip${o.id === m.mine ? ' on' : ''}" data-guess="${esc(o.id)}" data-moment="${esc(m.id)}"
+      aria-pressed="${o.id === m.mine}">${esc(o.words)}</button>`).join('')}</div>
+    ${m.mine ? `<p class="small muted">${esc(m.saved)}</p>` : ''}</div>`;
+}
+
+// "Stuck? Hint" waits a little (the server times it), then shows the idea first; a second press shows the exact
+// click. While open it follows the lab live; a new situation goes back to its idea.
+const hintReady = () => Boolean(state.me.hint) && Date.now() + clockSkew >= (state.me.hintAt ?? 0);
+const sameHint = (h) => h.idea === h.click;
+function shownClick() {
+  const h = state.me.hint;
+  return h && !V.card && hintReady() && (hintLevel === 2 || (hintLevel === 1 && sameHint(h))) ? h.click : null;
+}
 function hintHTML() {
-  const { hint } = state.me;
-  if (!hint) return '';
-  return hintOpen
-    ? `<div class="hint"><p class="label">Next</p><p>${rich(hint)}</p><button class="linkish" data-hint>Hide hint</button></div>`
-    : '<button class="hint-btn" data-hint>Stuck? Hint</button>';
+  const h = state.me.hint;
+  hintWasReady = hintReady();
+  if (!h || !hintWasReady) return '';
+  if (hintLevel === 0) return '<button class="hint-btn" data-hint="1">Stuck? Hint</button>';
+  if (hintLevel === 1 && !sameHint(h)) {
+    return `<div class="hint"><p class="label">Think about</p><p>${rich(h.idea)}</p>
+      <p class="hint-links"><button class="linkish more" data-hint="2">Show the exact click</button><button class="linkish" data-hint="0">Hide hint</button></p></div>`;
+  }
+  return `<div class="hint"><p class="label">Next</p><p>${rich(h.click)}</p><p class="hint-links"><button class="linkish" data-hint="0">Hide hint</button></p></div>`;
 }
 
 function doneHTML() {
@@ -422,7 +482,7 @@ const HINT_PICKS = [
 ];
 function showHint() {
   for (const el of document.querySelectorAll('.hinted')) el.classList.remove('hinted');
-  const hint = hintOpen && !V.card ? state.me.hint : null;
+  const hint = shownClick();
   if (hint && hint !== lastHint) {
     const found = HINT_PICKS.map(([id, re]) => [id, re.exec(hint)?.[1]]).filter(([, note]) => note);
     for (const [id, note] of found) picked[id] = note;
@@ -604,6 +664,7 @@ function paperHTML(p) {
     <p class="paper-source">${esc(p.source)}</p>
     <div class="gbu">${column('The Good', 'good', p.good)}${column('The Bad', 'bad', p.bad)}${column('The Ugly', 'ugly', p.ugly)}</div>
     <p class="paper-message">${esc(p.message)}</p>
+    <p class="paper-tradeoff">${esc(p.tradeoff)}</p>
     <div class="lived"><h3>You lived it</h3><ul>${p.lived.map((l) => `<li>${esc(l.text)}</li>`).join('')}</ul></div>
     ${velocityHTML()}`;
 }
@@ -695,12 +756,13 @@ function renderDraft() {
 
 function renderActions() {
   const box = $('actions');
-  if (box.contains(document.activeElement) && document.activeElement.tagName === 'SELECT') return; // keep an open dropdown
+  if (box.contains(document.activeElement) && ['SELECT', 'INPUT'].includes(document.activeElement.tagName)) return; // keep an open dropdown, a line being typed
   const shownActs = ACTIONS.filter((a) => V.unlocked(a.id)
     && (!a.pick || noteChoices(a.id).length)
     && (a.id !== 'squash' || state.session.bossLab === state.lab.id));
-  // The purple row: what this step adds, and the button the hint names first ("your mission"; purple alone means new).
-  const next = hintTargets(state.me.hint ?? '').map((sel) => /data-act="(\w+)"/.exec(sel)?.[1]).find(Boolean);
+  // The purple row: what this step adds, and, once the student asked for the exact click, the button it names
+  // ("your mission"; purple alone means new).
+  const next = hintTargets(shownClick() ?? '').map((sel) => /data-act="(\w+)"/.exec(sel)?.[1]).find(Boolean);
   // Off main, every main-only button reads "Switch to main first"; show that once.
   const offMain = (a) => a.mainOnly && V.note !== 'main';
   const fresh = shownActs.filter((a) => V.isNew(a.id) || a.id === next);
@@ -716,18 +778,31 @@ function renderActions() {
     ${old.length ? `<div class="actions-old">${row(old, false)}</div>` : ''}`);
 }
 
-// Step 4: the two ways to get the Wall's cards, side by side. After a refused send, the lab's way is marked.
+// Step 4: the two ways to get the Wall's cards, side by side, each with one plain line on what it will do.
+// The lab chooses; its choice is marked, with an optional one line on why.
 function waysHTML(ways) {
-  const mine = state.lab.done ? null : state.lab.way;
+  const { ways: copy, whyQ, whyMax } = V.s.choices;
+  const mine = state.lab.way;
   return `<div class="ways">
-      <p class="ways-head">Get the Wall's cards: <b>Combine (merge)</b> or <b>Replay on top (rebase)</b></p>
+      <p class="ways-head">${mine ? `Your lab chose <b>${esc(copy[mine].name)}</b>.` : "Get the Wall's cards: choose a way."}</p>
       <div class="ways-row">${ways.map((a) => {
-        const tag = a.way === mine ? 'your mission' : mine ? '' : 'new';
+        const tag = a.way === mine ? "your lab's choice" : mine ? '' : 'new';
         return `<button class="act way${a.way === mine ? ' mine' : ''}${busy.has(a.id) ? ' busy' : ''}" data-act="${a.id}">
             ${tag ? `<span class="new-tag">${tag}</span>` : ''}
-            <span class="act-words">${esc(a.words)}</span><code class="act-cmd">${esc(a.cmd)}</code></button>`;
+            <span class="act-words">${esc(a.words)}</span><code class="act-cmd">${esc(a.cmd)}</code>
+            <span class="way-line"><b>${esc(copy[a.way].name)}:</b> ${esc(copy[a.way].line)}</span></button>`;
       }).join('')}</div>
+      ${mine ? `<label class="why"><span>${esc(whyQ)}</span>
+        <input data-why maxlength="${whyMax}" value="${esc(state.lab.why)}" placeholder="One line · Enter saves" autocomplete="off"></label>` : ''}
     </div>`;
+}
+
+async function sendWhy(el) {
+  if (el.value.trim() === (state.lab.why ?? '')) return;
+  const res = await call('/api/why', { text: el.value });
+  if (!res.ok) toast(res.error || 'Busy, press again.', 'bad');
+  else toast(res.result.message, 'good');
+  await refresh();
 }
 
 // The notes a dropdown offers. Delete never offers main.
@@ -1132,8 +1207,11 @@ function renderResolver() {
     .map((line) => (/^(<{7}|={7}|>{7})/.test(line) ? `<span class="mark">${line}</span>` : line)).join('\n');
   const body = dialogBody('resolver-dialog');
   const behindOpen = body.querySelector('.resolver-behind')?.open;
+  const v = state.me.verdict;
+  const said = v && m.kind === 'merge' && v.kind === 'merge' && v.target === m.from ? `<p class="verdict ${v.right ? 'right' : 'wrong'}">${esc(v.line)}</p>` : '';
   patch(body, `
     <h2>${esc(w.title)}</h2>
+    ${said}
     <p>${w.why} Pick one. Git kept the ✓ parts.</p>
     <div class="resolver-sides">${w.sides.map(([label, monster, sub]) => `<div class="side">${slot(monster, 'small')}<span class="side-name">${esc(label)}</span>${
       sub ? `<span class="side-sub">${esc(sub)}</span>` : ''}</div>`).join('')}</div>
@@ -1302,9 +1380,16 @@ function wire() {
 
   $('tour-again').addEventListener('click', startTour);
 
-  $('panel').addEventListener('click', (e) => {
+  $('panel').addEventListener('click', async (e) => {
     if (e.target.closest('[data-pair]')) act('pair');
-    if (e.target.closest('[data-hint]')) { hintOpen = !hintOpen; render(); }
+    const level = e.target.closest('[data-hint]')?.dataset.hint;
+    if (level !== undefined) { hintLevel = Number(level); render(); }
+    const guess = e.target.closest('[data-guess]');
+    if (guess) {
+      const res = await call('/api/predict', { moment: guess.dataset.moment, guess: guess.dataset.guess });
+      if (!res.ok) toast(res.error || 'Busy, press again.', res.tone || 'bad');
+      await refresh();
+    }
   });
 
   $('qa').addEventListener('input', (e) => {
@@ -1339,7 +1424,13 @@ function wire() {
     const id = e.target.dataset.pick;
     if (id) picked[id] = e.target.value;
   });
-  $('actions').addEventListener('focusout', () => { if (V) setTimeout(renderActions); });
+  $('actions').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && e.target.matches('[data-why]')) { e.preventDefault(); e.target.blur(); }
+  });
+  $('actions').addEventListener('focusout', (e) => {
+    if (e.target.matches?.('[data-why]')) sendWhy(e.target);
+    if (V) setTimeout(renderActions);
+  });
   $('actions').addEventListener('click', (e) => {
     const btn = e.target.closest('[data-act]');
     if (!btn) return;
@@ -1348,9 +1439,9 @@ function wire() {
       branch: () => (popAnchor === btn ? closePopover() : openNewNote(btn)),
       switch: () => act('switch', { branch: pickFor('switch') }),
       tomain: () => act('switch', { branch: 'main' }),
-      merge: () => act('merge', { from: pickFor('merge') }),
+      merge: () => predicted('merge', pickFor('merge'), 'merge', { from: pickFor('merge') }),
       deleteNote: () => act('delete-note', { note: pickFor('deleteNote') }, 'deleteNote'),
-      push: () => act('push'),
+      push: () => predicted('push', null, 'push'),
       pull: () => act('pull'),
       rebase: () => act('rebase'),
       reflog: () => openDiary(),
@@ -1405,6 +1496,17 @@ function wire() {
     });
   }
 
+  // The prediction dialog: one tap, then the action runs.
+  $('predict-dialog').addEventListener('click', (e) => {
+    const choice = e.target.closest('[data-guess]');
+    if (!choice) return;
+    $('predict-dialog').close();
+    const run = predictRun;
+    predictRun = null;
+    run?.(choice.dataset.guess);
+  });
+  $('predict-dialog').addEventListener('close', () => { predictRun = null; });
+
   // The tour moves on with Next and Skip. A tip goes away on the next click anywhere, the click still counts.
   $('coach').addEventListener('click', (e) => {
     const what = e.target.closest('[data-coach]')?.dataset.coach;
@@ -1438,3 +1540,9 @@ function wire() {
 wire();
 listen();
 refresh();
+// "Stuck? Hint" appears when the server's time for it comes, without waiting for the next update.
+setInterval(() => {
+  if (!V || V.card || !state?.me?.hint) return;
+  const ready = hintReady();
+  if (ready !== hintWasReady) { hintWasReady = ready; renderPanel(); }
+}, 1000);

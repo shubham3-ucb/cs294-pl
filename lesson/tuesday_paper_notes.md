@@ -1,7 +1,9 @@
 # Tuesday paper: notes from the full text
 
 > **THE ONE MESSAGE (use these exact words everywhere: app, slides, projector, lesson):**
-> **Flat history is data loss.** The habits that make Git history clean (fast-forward, rebase, squash) erase where a change came from and who made it. Some of that cannot be recovered.
+> **For analysts, flat history is data loss.** It is the paper's claim for data miners and analysts (§3.1), and the same paragraph gives the other side.
+> **The trade-off, always next to it:** flat history helps developers find and revert a bad change (bisect, revert). It loses where a change came from and who made it.
+> The habits that make Git history clean (fast-forward, rebase, squash) erase that provenance. Some of it cannot be recovered (§8).
 
 **Just, Herzig, Czerwonka, Murphy. "Switching to Git: the Good, the Bad, and the Ugly." ISSRE 2016.** (Saarland University + Microsoft / Microsoft Research)
 Full text read (12 pp.). Everything below is from the paper. Numbers are the paper's own estimates.
@@ -19,8 +21,8 @@ Full text read (12 pp.). Everything below is from the paper. Numbers are the pap
 
 ## The Good (§3)
 - Cheap branches. Commit and revert locally (private restore points). Fine-grained merges.
-- Developers prefer **flat histories** (easy to find and revert a bad change), and teams set integration policies for that.
-- But for analysts, *"flat histories [are] data loss"*: integration strategies that flatten history drop provenance, i.e. where a change came from and the path it took to the release branch.
+- Developers prefer **flat histories**: they "provide excellent opportunities to find defect inducing code changes and to revert them", and teams set integration policies for that.
+- But "data miners and data analysts should consider flat histories as data loss" (§3.1): integration strategies that flatten history drop provenance, i.e. where a change came from and the path it took to the release branch.
 - Analysts want **explicit merge commits** (a merge card with two parents shows exactly what happened).
 
 ## The Bad, part I: analytics (§4)
@@ -42,7 +44,8 @@ Estimated over 9 open-source repos (Table 1: Android, Apache, BuildBot, CoreCLR,
 
 ## The Ugly (§6): integration paths
 - **Integration path** of change C into branch B = a path through the DAG from C's original commit to the commit that integrated C into B. There can be many.
-- **Code velocity** of C into B = the minimum, over all integration paths p, of Δtime(tail(p), head(p)).
+- **Code velocity** of C into B = the minimum, over all integration paths p, of Δtime(tail(p), head(p)) (§6.1).
+- The paper **defines** code velocity and an integration-path algorithm. It reports **no velocity numbers**. Say "Microsoft tracks code velocity", never "the paper measures it".
 - Microsoft's old algorithm (Tarvo et al.) assumed a centralized VCS and had to be **completely redesigned** for Git.
 - **New algorithm:** peel the DAG into layers ("tiers"). It needs **no timestamps**.
   - Tier 0: the global multi-graph.
@@ -59,13 +62,13 @@ Estimated over 9 open-source repos (Table 1: Android, Apache, BuildBot, CoreCLR,
 
 ## How the app shows each point (true by construction)
 - **Step 1:** a card = tree + parent + author + committer + message, and its ID = a SHA-1 (shown with `git cat-file -p`). Git takes your name and your laptop's clock on trust (§5.6–5.7).
-- **Step 3:** the first merge is a **fast-forward**: main's note slides, and no merge card is made. Then the lab deletes the fancy note (`git branch -d fancy`), and no card says which cards were made on fancy (§5.1). The second merge makes an **explicit merge card** with two parents, which is what analysts want (§3.1).
-- **Step 4:** a refused lab either combines (a merge card) or replays on top: **rebase** writes a new card with a new ID, and the original is only in that lab's reflog (§5.2). The reveal marks each change's **integration path**, from its card to the card its lab's send made main, with this class's own times: "how long did it take?" is code velocity (§6).
+- **Step 3:** students predict each merge first. The first merge is a **fast-forward**: main's note slides, and no merge card is made. Then the lab deletes the fancy note (`git branch -d fancy`), and no card says which cards were made on fancy (§5.1). The second merge makes an **explicit merge card** with two parents, which is what analysts want (§3.1).
+- **Step 4:** a refused lab chooses: combine (a merge card) or replay on top: **rebase** writes a new card with a new ID, and the original is only in that lab's reflog (§5.2). The reveal marks each change's **integration path**, from its card to the card its lab's send made main, with this class's own times: "how long did it take?" is what the paper calls code velocity (§6.1).
 - **Step 5:** a whole-card revert keeps "This reverts commit …" in the message, so analysts can trace it (§5.5).
-- **Step 6:** **squash** makes one new card with a new ID, so the individual cards and their authors are gone (§5.4). Force push makes the Wall forget them, and gc deletes them. The audit "who first added the 🥾 boots?" fails on the Wall but works in labs that kept their history (§8: some loss cannot be recovered).
+- **Step 6:** **squash** makes one new card with a new ID, so the individual cards and their authors are gone from the Wall (§5.4: with deleted feature branches, even author and timing). Force push makes the Wall forget them, and gc deletes them. The audit "who first added the 🥾 boots?" fails on the Wall but works in labs that kept their history (§8: some loss cannot be recovered). A lab that kept the old history merges it back on its next Get & combine: rewriting shared history needs every copy to go along.
 
 ## Safe one-liners for slides
 - "Git made developers faster. It also made history easier to lose."
-- "Flat history is data loss." (§3.1)
-- "Fast-forward forgets the branch. Rebase rewrites the patch. Squash drops the cards, even who made them."
+- "For analysts, flat history is data loss." (§3.1: data miners and analysts "should consider flat histories as data loss".) Always with: "For developers it helps: a bad change is quick to find and revert."
+- "Fast-forward forgets the branch. Rebase rewrites the patch. Squash can drop the cards and, once the branch is deleted, even who made them."
 - "Some loss cannot be recovered." (§8)

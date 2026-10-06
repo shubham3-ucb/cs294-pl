@@ -5,7 +5,30 @@
 import { renderGraph, velocity } from '/graph.js';
 import { emoji, renderMonsterCard } from '/monster.js';
 
-export const key = new URLSearchParams(location.search).get('key') || '';
+// The teacher key comes from ?key= once. It then lives in this tab's sessionStorage (a reload still works) and
+// leaves the address bar, so it is not on screen or in a shared screenshot.
+const KEY_STORE = 'outfitLab.adminKey';
+export const key = (() => {
+  const params = new URLSearchParams(location.search);
+  const given = params.get('key');
+  try {
+    if (given) {
+      sessionStorage.setItem(KEY_STORE, given);
+      params.delete('key');
+      history.replaceState(history.state, '', `${location.pathname}${params.size ? `?${params}` : ''}${location.hash}`);
+    }
+    return given || sessionStorage.getItem(KEY_STORE) || '';
+  } catch {
+    return given || '';
+  }
+})();
+
+// No key at all (a bookmark without it, a new tab): say how to get in.
+export function needKey() {
+  if (key) return false;
+  document.body.innerHTML = '<p class="no-key">Open the Teacher link from the server: it ends in <code>?key=…</code></p>';
+  return true;
+}
 
 export async function api(path, body) {
   try {
@@ -159,14 +182,20 @@ function markedPath(paths, state) {
   return paths.findLast((p) => way(p) === 'merge') ?? paths.find((p) => way(p) === 'rebase') ?? paths[0] ?? null;
 }
 
-// Step 4's reveal: the Wall with one lab's path marked, and every lab's times beside it.
-function pathsStage(integration, state) {
+// Steps 3–5's reveals: the class's prediction accuracy, then what each lab chose (Steps 4–5).
+const factsHtml = (facts) => (facts.length ? `<div class="sl-facts">${facts.map((line) => `<p>${esc(line)}</p>`).join('')}</div>` : '');
+
+// Step 4's reveal: the Wall with one lab's path marked, and every lab's times beside it, then the facts.
+function pathsStage(integration, state, facts) {
   const { paths } = integration;
   const marked = markedPath(paths, state);
   return `<div class="sl-stage paths">
     <div class="sl-wall"><p class="sl-label">The Wall${marked ? ` · ${esc(marked.name)}'s path to main (bold)` : ''}</p>
       <svg class="graph" data-wall data-path="${esc(marked?.cards.join(' ') ?? '')}" preserveAspectRatio="xMinYMin meet"></svg></div>
-    ${paths.length ? pathsHtml(paths, state, { marked, notes: true }) : '<p class="sl-note">No lab\'s change is on the Wall yet.</p>'}
+    <div class="sl-side">
+      ${paths.length ? pathsHtml(paths, state, { marked, notes: true }) : '<p class="sl-note">No lab\'s change is on the Wall yet.</p>'}
+      ${factsHtml(facts)}
+    </div>
   </div>`;
 }
 
@@ -219,11 +248,13 @@ const SLIDES = {
       bin && `The Wall's bin: ${bin.before} old card${bin.before === 1 ? '' : 's'}, now ${bin.after}.`,
     ].filter(Boolean);
     const integration = state.session.integration;
+    // Steps 3–5: the class's prediction accuracy; Steps 4–5: what each lab chose, and what a way nobody chose does.
+    const facts = scene.facts ?? [];
     return `${head(scene, state)}${ask}
       <div class="sl-cards${pair ? ' pair' : ''}">${r.cards.map(techCard).join('')}</div>
       ${r.note ? `<p class="sl-trust">${md(r.note)}</p>` : ''}
       ${evidence.map((line) => `<p class="sl-evidence">${esc(line)}</p>`).join('')}
-      ${integration ? pathsStage(integration, state) : ''}`;
+      ${integration ? pathsStage(integration, state, facts) : factsHtml(facts)}`;
   },
 
   break(scene, state) {
@@ -232,7 +263,7 @@ const SLIDES = {
       <p class="sl-line">Back at ${esc(timeOfDay(startedAt + minutes * 60e3))}</p></div>`;
   },
 
-  // Good / Bad / Ugly, this class's code velocity next to what they lived, then the one message.
+  // Good / Bad / Ugly, this class's code velocity next to what they lived, then the one message with its trade-off.
   // The paths are as they were at the end of Step 4; the line under them checks the Wall now.
   paper(scene, state) {
     const p = scene.paper;
@@ -249,7 +280,7 @@ const SLIDES = {
           ${gone ? '<p class="sl-gone">After the squash, the Wall has none of these cards.</p>' : ''}</div>` : ''}
         <div><p class="sl-label">What you lived</p><ul class="sl-lived">${p.lived.map((l) => `<li>${esc(l.text)}</li>`).join('')}</ul></div>
       </div>
-      <p class="sl-message">${esc(p.message)}</p>`;
+      <div class="sl-msg"><p class="sl-message">${esc(p.message)}</p><p class="sl-tradeoff">${esc(p.tradeoff)}</p></div>`;
   },
 
   exit(scene, state) {
@@ -319,6 +350,7 @@ export function tickSlide(root, state) {
 if (document.body.id === 'screen') startProjector();
 
 function startProjector() {
+  if (needKey()) return;
   const slide = document.getElementById('slide');
   const qr = document.getElementById('qr');
   let state = null;

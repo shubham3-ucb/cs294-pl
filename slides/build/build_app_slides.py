@@ -2,7 +2,7 @@
 """Outfit Lab deck: the record of Tuesday's class, one technical card per Git tool.
 
 Builds slides/tuesday_app.pptx (16:9, Google Slides ready): the title, the join slide, one slide per
-tool (the command, big, then WHAT IT IS, WHAT IT DOES, HOW GIT DOES IT), the paper and the wrap.
+tool (the command, big, then WHAT IT IS, WHAT IT DOES, HOW GIT DOES IT), the paper (two slides) and the wrap.
 All text comes from the app itself (app/server/steps.js: SCENES, STEPS, PAPER, WRAP_LINE;
 app/public/monster.js: the start outfit), read through node, so the deck and the projector cannot drift
 apart. Speaker notes are the scene's Say, Ask and Hope to hear.
@@ -269,7 +269,8 @@ def reveal(prs, app, scene, sizes, task):
 
 
 def paper(prs, app, scene):
-    """Good / Bad / Ugly, then what they lived, then the one message. Each band starts below the last."""
+    """Two slides. First: Good / Bad / Ugly, then the one message (the paper's claim, for analysts) and its
+    trade-off for developers. Second: what the class lived, and the pairs question. Each band starts below the last."""
     s = blank(prs, notes=notes(scene))
     p = app['paper']
     text(s, M, Inches(0.45), CONTENT_W, Inches(0.4), f"Tuesday's paper · {p['source']}", size=18,
@@ -283,15 +284,27 @@ def paper(prs, app, scene):
         x = M + i * (cw + gap)
         rule(s, x, Inches(1.6), cw, Inches(0.06), color)
         text(s, x, Inches(1.75), cw, Inches(0.3), label, size=18, bold=True, color=color)
-        col_h = max(col_h, stack(s, x, y, cw, p[label.lower()], 16, Pt(8)))
-    y += col_h + Inches(0.3)
-    text(s, M, y, CONTENT_W, Inches(0.3), 'WHAT YOU LIVED', size=LABEL_SIZE, bold=True, color=MUTED)
-    y += Inches(0.3)
-    y += stack(s, M, y, CONTENT_W, [plain(l['text']) for l in p['lived']], 16, Pt(3)) + Inches(0.25)
-    message = Inches(0.6)
-    if y + message > BOTTOM:
+        col_h = max(col_h, stack(s, x, y, cw, p[label.lower()], 18, Pt(8)))
+    y += col_h + Inches(0.35)
+    message = text_h(p['message'], 36, CONTENT_W, bold=True)
+    tradeoff = text_h(p['tradeoff'], 20, CONTENT_W)
+    if y + message + Inches(0.1) + tradeoff > BOTTOM:
         raise SystemExit('The paper slide overflows: shorten PAPER in app/server/steps.js.')
     text(s, M, y, CONTENT_W, message, p['message'], size=36, bold=True, color=PURPLE)
+    y += message + Inches(0.1)
+    text(s, M, y, CONTENT_W, tradeoff, p['tradeoff'], size=20, spacing=SPACING)
+
+    # What they lived, linked to the paper; then the question pairs answer in the app.
+    s = blank(prs, notes=notes(scene))
+    head(s, 'The paper', 'What you lived')
+    y = Inches(1.5)
+    y += stack(s, M, y, CONTENT_W, [plain(l['text']) for l in p['lived']], 22, Pt(10)) + Inches(0.5)
+    text(s, M, y, CONTENT_W, Inches(0.3), 'PAIRS, IN THE APP', size=LABEL_SIZE, bold=True, color=MUTED)
+    y += Inches(0.35)
+    question = text_h(plain(scene['ask']['q']), 24, CONTENT_W, bold=True)
+    if y + question > BOTTOM:
+        raise SystemExit('The paper slide overflows: shorten PAPER in app/server/steps.js.')
+    text(s, M, y, CONTENT_W, question, plain(scene['ask']['q']), size=24, bold=True, color=PURPLE, spacing=SPACING)
 
 
 def wrap(prs, app, scene):

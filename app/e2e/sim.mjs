@@ -19,7 +19,9 @@ import { isDeepStrictEqual } from 'node:util';
 import { chromium } from 'playwright';
 import { nameOf, palette } from '../public/monster.js';
 import { clockOf, velocity } from '../public/graph.js';
-import { SCENES, STEPS, CARDS, PAPER, WRAP_LINE, DONE_LINE, FIXED_LINE, TRUST_LINE, COPY_LINE, MERGE_LINE } from '../server/steps.js';
+import {
+  SCENES, STEPS, CARDS, PAPER, WRAP_LINE, DONE_LINE, FIXED_LINE, TRUST_LINE, COPY_LINE, MERGE_LINE, TAGLINE, SWITCH_UNSAVED, WAYS,
+} from '../server/steps.js';
 import { ANSWERS, TAKEAWAYS } from '../server/bots.js'; // sample answers and takeaways, so the screenshots read like a class
 
 const APP = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -35,12 +37,13 @@ const WAIT = 10_000;
 const NAMES = ['Ana', 'Raj', 'Mei', 'Priya', 'Tom', 'Lea', 'Sam', 'Kim', 'Ola']; // join order
 const MAIN_LOCKED = 'main keeps the outfit you have. Make or switch to a sticky note to edit.'; // Step 2
 const REFUSED = "Refused: the Wall has cards your main doesn't. Press Get & combine first.";
-const REFUSED_MERGE = "Refused: the Wall has cards your main doesn't. Use Combine (merge): press Get & combine, then send again.";
-const REFUSED_REBASE = "Refused: the Wall has cards your main doesn't. Use Replay on top (rebase): press Replay on top, then send again.";
+const REFUSED_CHOOSE = "Refused: the Wall has cards your main doesn't. Choose a way to get them: Get & combine (merge) or Replay on top (rebase). Then send again.";
 const REFUSED_MOVED_BACK = 'Refused: the Wall still has the 🥸 card. Open the Safety diary, then press Get & combine.';
 const BOSS_ONLY = 'The boss is cleaning the Wall. Watch.';
 const SENT = /^Sent! The Wall moved to [0-9a-f]{7}\.$/;
 const INK = '#111111'; // an integration path on the Wall: bold ink
+const HINT_DELAY = 1; // seconds before "Stuck? Hint" shows (45 in class); the server reads HINT_DELAY
+const HINT_TEXT = '#mission .hint > p:not(.label):not(.hint-links)'; // the idea, or the exact click
 const API = {
   commit: 'commit', switch: 'switch', tomain: 'switch', merge: 'merge', deleteNote: 'delete-note', push: 'push', pull: 'pull', rebase: 'rebase',
 };
@@ -63,7 +66,7 @@ let serverErr = '';
 let dataDir = '';
 async function startServer() {
   server = spawn(process.execPath, ['server/index.js'], {
-    cwd: APP, env: { ...process.env, PORT: String(PORT), HOST: '127.0.0.1', DATA_DIR: dataDir, ADMIN_KEY: KEY, LABS: '' },
+    cwd: APP, env: { ...process.env, PORT: String(PORT), HOST: '127.0.0.1', DATA_DIR: dataDir, ADMIN_KEY: KEY, LABS: '', HINT_DELAY: String(HINT_DELAY) },
   });
   server.stderr.on('data', (d) => { serverErr += d; });
   for (let i = 0; i < 100; i++) {
@@ -252,9 +255,53 @@ async function switchTo(p, note) {
   await sees(p, '#on-note', note);
 }
 
-async function mergeIn(p, note) {
+// Merge and Send: the press opens the prediction dialog (unless this student already predicted in the panel,
+// or Git already answered this merge); one tap on the guess runs Git. Checks the toast like hit().
+// shot: a screenshot name, taken while the dialog is open.
+async function predictPress(p, act, guess, { shot = null } = {}) {
+  const api = `/api/${API[act]}`;
+  const respond = () => p.waitForResponse((r) => new URL(r.url()).pathname === api);
+  let res = respond();
+  await click(p, `#actions [data-act="${act}"]`, { position: { x: 10, y: 10 } });
+  let waiting = true;
+  const asked = (async () => {
+    while (waiting) { if (await dialogOpen(p, 'predict-dialog')) return 'asked'; await sleep(40); }
+    return 'sent';
+  })();
+  let first = await Promise.race([res.then(() => 'sent'), asked]);
+  waiting = false;
+  let json = first === 'sent' ? await (await res).json() : null;
+  if (json?.predict) { // the page was a moment behind: the server asks, the dialog opens
+    await until(`${WHO.get(p)}'s prediction dialog opens`, () => dialogOpen(p, 'predict-dialog'));
+    first = 'asked';
+  }
+  if (first === 'asked') {
+    await sees(p, '#predict-dialog .eyebrow', /predict first/i);
+    if (shot) await snap(p, shot);
+    res = respond();
+    await click(p, `#predict-dialog [data-guess="${guess}"]`);
+    json = await (await res).json();
+  }
+  const words = json.ok ? json.result?.message : json.error;
+  if (words) {
+    assert.doesNotMatch(words, OLD_WORDS, 'a toast uses an old word');
+    await sees(p, '#toasts', words, `${WHO.get(p)} sees the toast "${words}"`);
+  }
+  return json;
+}
+const send = (p, guess = 'accepted') => predictPress(p, 'push', guess);
+
+// A lab-mate predicts the lab's next merge or send in the panel, before anyone presses.
+async function predictInPanel(p, guess) {
+  const chip = `#mission .predict-chips [data-guess="${guess}"]`;
+  const [res] = await Promise.all([p.waitForResponse((r) => new URL(r.url()).pathname === '/api/predict'), click(p, chip)]);
+  ok(await res.json(), `${WHO.get(p)}: predict ${guess}`);
+  await until(`${WHO.get(p)}'s prediction is marked`, () => p.$eval(chip, (b) => b.classList.contains('on')));
+}
+
+async function mergeIn(p, note, guess, opts) {
   await p.selectOption('#actions select[data-pick="merge"]', note);
-  return ok(await press(p, 'merge'), `${WHO.get(p)}: merge ${note}`);
+  return ok(await predictPress(p, 'merge', guess, opts), `${WHO.get(p)}: merge ${note}`);
 }
 
 async function deleteNote(p, note) {
@@ -274,11 +321,21 @@ const goalsDone = (p) => until(`${WHO.get(p)}: every goal ticks`, async () =>
   (await count(p, '#mission .goals li')) > 0 && (await count(p, '#mission .goals li:not(.done)')) === 0,
 () => textOf(p, '#mission .goals'));
 
-// "Stuck? Hint": open it and read the next click (bold and code marks are gone in the page).
+// "Stuck? Hint": it shows after HINT_DELAY. The first press shows the idea; "Show the exact click" shows the
+// next click (bold and code marks are gone in the page). Returns the click.
 async function hintOf(p) {
-  if (!(await shown(p, '#mission .hint'))) await click(p, '#mission [data-hint]');
+  await until(`${WHO.get(p)} sees Stuck? Hint`, async () => (await shown(p, '#mission .hint-btn')) || (await shown(p, '#mission .hint')),
+    () => textOf(p, '#mission'));
+  if (await shown(p, '#mission .hint-btn')) await click(p, '#mission .hint-btn');
   await until(`${WHO.get(p)} sees a hint`, () => shown(p, '#mission .hint'));
-  const hint = await textOf(p, '#mission .hint > p:not(.label)');
+  if (await shown(p, '#mission .hint .more')) {
+    const idea = await textOf(p, HINT_TEXT);
+    assert.doesNotMatch(idea, OLD_WORDS, 'a hint uses an old word');
+    await sees(p, '#mission .hint .label', /think about/i);
+    await click(p, '#mission .hint .more');
+    await until(`${WHO.get(p)} sees the exact click`, async () => !(await shown(p, '#mission .hint .more')) && (await textOf(p, HINT_TEXT)) !== idea);
+  }
+  const hint = await textOf(p, HINT_TEXT);
   assert.doesNotMatch(hint, OLD_WORDS, 'a hint uses an old word');
   return hint;
 }
@@ -442,9 +499,12 @@ async function arrive(n) {
     await sees(screen, '.sl-ask', s.ask.q);
   }
   if (s.kind === 'paper') {
-    for (const p of students()) await sees(p, '#scene-body .paper-message', 'Flat history is data loss.');
+    assert.equal(PAPER.message, 'For analysts, flat history is data loss.');
+    for (const p of students()) await sees(p, '#scene-body .paper-message', PAPER.message);
+    await sees(S[LEADS[0]], '#scene-body .paper-tradeoff', PAPER.tradeoff);
     for (const line of PAPER.lived) await sees(S[LEADS[0]], '#scene-body .lived', line.text);
-    assert.equal(await textOf(screen, '.sl-message'), 'Flat history is data loss.');
+    assert.equal(await textOf(screen, '.sl-message'), PAPER.message);
+    assert.equal(await textOf(screen, '.sl-tradeoff'), PAPER.tradeoff);
     for (const line of PAPER.lived) await sees(screen, '.sl-lived', line.text);
     for (const col of [...PAPER.good, ...PAPER.bad, ...PAPER.ugly]) await sees(screen, '.sl-cols', col);
   }
@@ -524,8 +584,9 @@ async function restart() {
   quiet = false;
 }
 
-// Follow "Stuck? Hint" and nothing else: each hint names one concrete click. Returns the refusals met.
-async function followHints(p, { moves = Infinity } = {}) {
+// Follow "Stuck? Hint" and nothing else: each hint's click names one concrete move, or two ways to choose from
+// (way: Step 4, 'merge' | 'rebase'; undo: Step 5, 'revert' | 'reset'). Each send is predicted (guess). Returns the refusals met.
+async function followHints(p, { moves = Infinity, way = 'merge', undo = 'revert', guess = 'accepted' } = {}) {
   const refusals = [];
   for (let i = 0; i < moves; i++) {
     if (await shown(p, '#mission .done-box')) return refusals;
@@ -542,7 +603,11 @@ async function followHints(p, { moves = Infinity } = {}) {
       r = await press(p, 'commit');
     } else if (hint === 'Press Send to Wall.') {
       await hinted(p, '#actions [data-act="push"]');
-      r = await press(p, 'push');
+      r = await send(p, guess);
+    } else if (/^Pick a way: press Get & combine \(merge\) or Replay on top \(rebase\)\. Then Send to Wall again\.$/.test(hint)) {
+      await hinted(p, '#actions [data-act="pull"]');
+      await hinted(p, '#actions [data-act="rebase"]');
+      r = await press(p, way === 'merge' ? 'pull' : 'rebase');
     } else if (/^Press Get & combine\./.test(hint)) {
       await hinted(p, '#actions [data-act="pull"]');
       r = await press(p, 'pull');
@@ -553,7 +618,7 @@ async function followHints(p, { moves = Infinity } = {}) {
       await hinted(p, '#actions [data-act="deleteNote"]');
       assert.equal(await p.inputValue('#actions select[data-pick="deleteNote"]'), m[1], 'the hint picked the note in the dropdown');
       r = await press(p, 'deleteNote');
-    } else if (/^Click the 🥸 card\. Press Undo this card\.$/.test(hint)) {
+    } else if (/^Click the 🥸 card\. Press Undo this card\.$/.test(hint) || (/Undo this card, or click the card right before it and press Move my note back here\.$/.test(hint) && undo === 'revert')) {
       await hinted(p, '#graph-scroll');
       await openCard(p, (await intern()).id);
       r = await hit(p, '#card-dialog [data-card-act="revert"]', 'revert');
@@ -566,7 +631,7 @@ async function followHints(p, { moves = Infinity } = {}) {
     }
     if (r && !r.ok) refusals.push(r.error);
     await until(`${WHO.get(p)}'s hint moves on from "${hint}"`, async () => (await shown(p, '#mission .done-box'))
-      || (await textOf(p, '#mission .hint > p:not(.label)')) !== hint);
+      || (await textOf(p, HINT_TEXT)) !== hint);
   }
   return refusals;
 }
@@ -587,17 +652,19 @@ async function classRun() {
     'reveal-4': [CARDS.push, CARDS.rebase], 'reveal-5': [CARDS.undo], 'reveal-6': [CARDS.squash],
   }, 'one technical card per tool, at its reveal');
   admin = await open('Teacher', `/admin?key=${KEY}`);
+  await until('the console drops the key from the address bar', () => admin.url() === `${BASE}/admin`, () => admin.url());
   const [popup] = await Promise.all([admin.waitForEvent('popup'), click(admin, '#present')]);
   screen = watch(popup, 'Projector');
   await screen.setViewportSize(PROJECTOR);
-  assert.match(screen.url(), /\/screen\?key=test$/, 'Start presenting opens the projector page');
+  await until('Start presenting opens the projector page, and the key leaves its address bar', () => screen.url() === `${BASE}/screen`, () => screen.url());
   await until('the projector shows the join slide', () => shown(screen, '#slide .sl.kind-join'));
   await sees(admin, '#scene-pos', new RegExp(`^Scene 1 of ${ORDER.length} `, 'i'));
   for (const name of NAMES) S[name] = await open(name, '/');
 
   // ---------- Join: name only; the app balances the labs ----------
   const first = S[NAMES[0]];
-  await sees(first, '#join .lede', 'Dress one character together. Every button runs real Git.');
+  await sees(first, '#join .lede', TAGLINE);
+  assert.equal(await first.getAttribute('#join .join-thu a', 'href'), '/thu', "a quiet link for Thursday's class");
   await settle(first);
   await first.screenshot({ path: `${SHOTS}/00-join-student.png`, fullPage: true });
   await phoneShot(first, '00-join');
@@ -778,6 +845,11 @@ async function classRun() {
     await switchTo(S[c], 'fancy');
     await pick(S[a], 'hat', 'tophat');
     await sees(S[c], '#draft [data-part="hat"]', new RegExp(`top hat.*changed by ${a}.*not saved`)); // one shared draft per note
+    if (lab === '1') { // Git keeps one working copy: Switch will not leave unsaved parts behind
+      await S[a].selectOption('#actions select[data-pick="switch"]', 'main');
+      assert.equal((await press(S[a], 'switch')).error, SWITCH_UNSAVED);
+      assert.equal(await textOf(S[a], '#on-note .note-chip'), 'fancy', `${a} is still on fancy`);
+    }
     await pick(S[c], 'top', 'tie');
     const saved = ok(await press(S[c], 'commit'), `${c}: save fancy`);
     assert.match(saved.result.message, new RegExp(`It includes ${a}'s HAT\\.$`), `${c}'s save names ${a}'s change`);
@@ -850,12 +922,14 @@ async function classRun() {
     assert.deepEqual(view.auto, ['hat', 'glasses', 'shoes'], 'the resolver ticks every part but TOP');
     assert.equal(view.finish, true, 'Finish merge waits for a choice');
   }
-  // Merge fancy: only main's note slides (a fast-forward). The mission then asks to delete the fancy note.
-  async function fastForward(p, lab) {
+  // Merge fancy, predicted first: only main's note slides (a fast-forward). The mission then asks to delete the fancy note.
+  async function fastForward(p, lab, guess, opts) {
     const fancy = tipIn(lab, 'fancy');
     assert.equal(await count(p, '#actions [data-act="deleteNote"]'), 0, `Lab ${lab}: no note to delete before a merge`);
-    const r = await mergeIn(p, 'fancy');
+    const r = await mergeIn(p, 'fancy', guess, opts);
     assert.equal(r.result.fastForward, true, `Lab ${lab}: fancy is a fast-forward`);
+    await sees(p, '#mission .verdict', guess === 'ff' ? 'You predicted: fast-forward. Git: fast-forward. ✓'
+      : 'Git: fast-forward. Why: main had no new card since the split, so Git only slid its note.');
     assert.equal(tipIn(lab), fancy);
     await sees(p, '#behind-body .last', 'Merge fancy into main → fast-forward');
     await sees(p, '#mission .mission-box', 'Delete the fancy note (git branch -d fancy).');
@@ -879,8 +953,15 @@ async function classRun() {
   const [a2, b2] = LAB[2];
   const [a3, b3] = LAB[3];
   await Promise.all([
-    (async () => { // Lab 1: only fancy can be deleted (git branch -d); deletes it; the next student finishes the merge.
-      const fancy = await fastForward(S[a1], '1');
+    (async () => { // Lab 1: lab-mates predict in the panel; only fancy can be deleted; the next student finishes the merge.
+      await sees(S[b1], '#mission .predict-box', 'Before your lab merges fancy into main: What will Git do?');
+      await predictInPanel(S[b1], 'ff');
+      await predictInPanel(S[c1], 'clean');
+      await phoneShot(S[c1], `${tag()}-predict`);
+      const fancy = await fastForward(S[a1], '1', 'ff', { shot: `${tag()}-predict-dialog-lab1` });
+      await sees(S[b1], '#mission .verdict.right', 'You predicted: fast-forward. Git: fast-forward. ✓');
+      await sees(S[c1], '#mission .verdict.wrong', 'You predicted: merge, no conflict. Git: fast-forward. Why: main had no new card since the split');
+      await sees(S[b1], '#mission .predict-box', 'Before your lab merges sporty into main');
       assert.equal(await hintOf(S[a1]), 'Press Delete sticky note and pick fancy.');
       await hinted(S[a1], '#actions [data-act="deleteNote"]');
       assert.deepEqual(await S[a1].$$eval('#actions select[data-pick="deleteNote"] option', (os) => os.map((o) => o.value)), ['fancy'],
@@ -889,8 +970,9 @@ async function classRun() {
       assert.equal(gone.result.message, 'Deleted the fancy note. Its cards stay.');
       await deleted(S[a1], '1', fancy);
       await sees(S[a1], '#behind-body', 'git branch -d fancy');
-      assert.equal((await mergeIn(S[a1], 'sporty')).result.conflict, true);
+      assert.equal((await mergeIn(S[a1], 'sporty', 'conflict:top')).result.conflict, true);
       await resolverIsGit(S[a1], '1');
+      await sees(S[a1], '#resolver-dialog .verdict.right', 'You predicted: conflict on TOP. Git: conflict on TOP. ✓');
       await snap(S[a1], `${tag()}-resolver-lab1`);
       await sees(S[b1], '#banner', 'Merging sporty into main. TOP needs a choice.');
       await phoneShot(S[b1], tag());
@@ -905,27 +987,31 @@ async function classRun() {
       await closeDialog(S[a1], 'card-dialog');
     })(),
     (async () => { // Lab 2: deletes fancy by its hint; the lead cancels the merge; the next student merges again, another top.
-      const fancy = await fastForward(S[a2], '2');
+      const fancy = await fastForward(S[a2], '2', 'clean');
       assert.deepEqual(await followHints(S[a2], { moves: 1 }), []);
       await deleted(S[a2], '2', fancy);
       const before = tipIn('2');
-      assert.equal((await mergeIn(S[a2], 'sporty')).result.conflict, true);
+      assert.equal((await mergeIn(S[a2], 'sporty', 'conflict:top')).result.conflict, true);
       await resolverIsGit(S[a2], '2');
       ok(await hit(S[a2], '#resolver-dialog [data-abort]', 'abort'), `${a2}: cancel merge`);
       assert.equal(tipIn('2'), before, 'Cancel merge leaves main unchanged');
       await until('the banner goes', async () => !(await shown(S[b2], '#banner')));
       assert.equal(await noteIn(S[a2], '#graph', 'main'), before);
-      assert.equal((await mergeIn(S[b2], 'sporty')).result.conflict, true);
+      // Merging again after Cancel asks nothing: Git already answered this merge.
+      assert.equal((await mergeIn(S[b2], 'sporty', 'ff')).result.conflict, true);
+      assert.equal(await dialogOpen(S[b2], 'predict-dialog'), false);
       await until(`${b2}'s resolver opens`, () => dialogOpen(S[b2], 'resolver-dialog'));
       await click(S[b2], '#resolver-dialog [data-another="top"]');
       await click(S[b2], '#resolver-dialog .choices [data-choose="top"][data-slug="blouse"]');
       await finish(S[b2]);
     })(),
     (async () => { // Lab 3: the lead merges and deletes fancy, the next student finishes from the banner.
-      const fancy = await fastForward(S[a3], '3');
+      const fancy = await fastForward(S[a3], '3', 'ff');
       ok(await deleteNote(S[a3], 'fancy'), `${a3}: delete fancy`);
       await deleted(S[a3], '3', fancy);
-      assert.equal((await mergeIn(S[a3], 'sporty')).result.conflict, true);
+      assert.equal((await mergeIn(S[a3], 'sporty', 'clean')).result.conflict, true);
+      await sees(S[a3], '#resolver-dialog .verdict.wrong', 'You predicted: merge, no conflict. Git: conflict on TOP. Why: TOP changed on both sides');
+      await click(S[a3], '#resolver-dialog [data-close]');
       await click(S[b3], '#banner [data-open-resolver]');
       await click(S[b3], '#resolver-dialog [data-choose="top"][data-slug="jersey"]');
       await finish(S[b3]);
@@ -933,11 +1019,15 @@ async function classRun() {
   ]);
   for (const name of LEADS) await goalsDone(S[name]);
   await sees(admin, '#ready', 'Labs done: 3/3');
+  const ACCURACY_3 = 'Predicted right: 5 of 8 · merge fancy 3/5 · merge sporty 2/3';
+  await sees(admin, '#predictions', ACCURACY_3);
   await shoot();
   checkClean('Step 3');
-  log('step 3: fast-forward, the fancy note deleted (only it offered), TOP-only conflict = Git markers, finished by a second student, cancel');
+  log('step 3: predicted first; fast-forward, the fancy note deleted (only it offered), TOP-only conflict = Git markers, finished by a second student, cancel');
 
   await next();
+  for (const p of LEADS.map((n) => S[n])) await sees(p, '#reveal .reveal-fact', ACCURACY_3);
+  await sees(screen, '.sl-facts', ACCURACY_3);
   await answer('reveal-3');
   await takeaways(3);
   await shoot();
@@ -952,7 +1042,7 @@ async function classRun() {
   await shoot();
   checkClean('Break');
 
-  // ---------- Step 4: the Wall; send; refused; Combine (merge) or Replay on top (rebase); send ----------
+  // ---------- Step 4: the Wall; predict, send; refused; the lab chooses Combine (merge) or Replay on top (rebase); send ----------
   const lab1Main = tipIn('1');
   await next();
   assert.equal(tipIn('wall'), lab1Main, "Lab 1's main is on the Wall");
@@ -969,31 +1059,51 @@ async function classRun() {
   for (const name of LEADS) {
     await sees(S[name], '#mission .instruction', "The Wall is the class's shared copy, like GitHub. Your lab already has a full copy of it (that is git clone).");
     await sees(S[name], '#mission .instruction', `It starts as ${name === a1 ? 'your lab' : 'Lab 1'}'s outfit, so your lab's cards are now a copy of it.`);
-    await sees(S[name], '#actions .ways', "Get the Wall's cards: Combine (merge) or Replay on top (rebase)");
+    await sees(S[name], '#mission .fresh-line', name === a1 ? STEPS[4].fresh.wallLab
+      : "Your lab now starts from Lab 1's Wall. Your own Steps 1–3 cards are not in this fresh copy.");
+    await sees(S[name], '#actions .ways-head', "Get the Wall's cards: choose a way.");
+    for (const w of Object.values(WAYS)) await sees(S[name], '#actions .ways', `${w.name}: ${w.line}`);
   }
   await until('the projector shows the Wall', async () => (await cardsIn(screen, '#slide [data-wall]')).some((c) => c.id === lab1Main));
-  // Lab 1 sends first: it just sends.
+  // Lab 1 predicts, and sends first: it just sends.
   await sees(S[a1], '#mission .mission-box', 'HAT → 👑');
   await pick(S[a1], 'hat', 'crown');
   ok(await press(S[a1], 'commit'), `${a1}: save`);
-  assert.match(ok(await press(S[a1], 'push'), 'Lab 1 sends').result.message, SENT);
-  // Lab 3 saves its change now. Lab 2, by hints alone, is refused first: its mission is Combine (merge).
+  assert.match(ok(await send(S[a1], 'accepted'), 'Lab 1 sends').result.message, SENT);
+  await sees(S[a1], '#mission .verdict.right', 'You predicted: accepted. Git: accepted. ✓');
+  // Lab 3 saves its change now. Lab 2, by hints alone, predicts "accepted", is refused, chooses Combine (merge).
   await pick(S[a3], 'glasses', 'shades');
   ok(await press(S[a3], 'commit'), `${a3}: save`);
   const original = tipIn('3');
-  assert.deepEqual(await followHints(S[a2]), [REFUSED_MERGE], 'Lab 2, following hints, is refused once, combines and sends');
-  await notSees(S[a2], '#mission .mission-box', 'Use Combine (merge)', `${a2}: done, so the mission no longer names the way`);
+  assert.deepEqual(await followHints(S[a2], { way: 'merge' }), [REFUSED_CHOOSE], 'Lab 2, following hints, is refused once, chooses to combine, and sends');
+  await notSees(S[a2], '#mission .mission-box', 'Your lab chose', `${a2}: done, so the mission no longer names the way`);
   const merge2 = commitIn('wall', tipIn('wall'));
   assert.equal(merge2.parents.length, 2, "Lab 2's Get & combine made a merge card with two parents");
-  // Lab 3 is refused second: its mission is Replay on top (rebase).
-  const refused3 = await press(S[a3], 'push');
-  assert.equal(refused3.error, REFUSED_REBASE, `${a3}: refused, and told to replay on top`);
-  await sees(S[a3], '#mission .mission-box', 'Use Replay on top (rebase)');
-  assert.equal(await hintOf(S[a3]), 'Press Replay on top. Then Send to Wall again.');
+  // Lab 3 looks at the Wall, predicts the refusal, and is refused: it chooses for itself.
+  const refused3 = await send(S[a3], 'refused');
+  assert.equal(refused3.error, REFUSED_CHOOSE, `${a3}: refused, and asked to choose a way`);
+  await sees(S[a3], '#mission .verdict.right', 'You predicted: refused. Git: refused (fetch first). ✓');
+  await sees(S[a3], '#mission .mission-box', 'The Wall refused your send. Choose how to get its cards: Combine (merge) or Replay on top (rebase).');
+  assert.equal(await count(S[a3], '#actions .way.mine'), 0, 'the app marks no way: the lab chooses');
+  assert.equal(await hintOf(S[a3]), 'Pick a way: press Get & combine (merge) or Replay on top (rebase). Then Send to Wall again.');
   await hinted(S[a3], '#actions [data-act="rebase"]');
-  await sees(S[a3], '#actions .way.mine', /your mission.*Replay on top/i);
+  await hinted(S[a3], '#actions [data-act="pull"]');
+  await click(S[a3], '#mission [data-hint="0"]'); // hide the hint for the screenshot of the choice
+  await toastsFade(S[a3]).catch(() => {});
+  await settle(S[a3]);
+  await S[a3].screenshot({ path: `${SHOTS}/${tag()}-choice-lab3.png` });
+  await phoneShot(S[a3], `${tag()}-choice`); // the two ways and their lines fit a 390px phone
   await sleep(1100); // Git's clock counts seconds; in class, minutes pass between the save and the replay
   const replayed = ok(await press(S[a3], 'rebase'), `${a3}: Replay on top`);
+  await sees(S[a3], '#actions .way.mine', /your lab's choice.*Replay on top/i);
+  await sees(S[a3], '#actions .ways-head', 'Your lab chose Replay on top (rebase).');
+  // Why this way? One optional line, Enter saves; the lab sees it, and so does the console.
+  const WHY = 'A straight line is easier to read';
+  await S[a3].fill('#actions [data-why]', WHY);
+  const [why] = await Promise.all([S[a3].waitForResponse((r) => new URL(r.url()).pathname === '/api/why'), S[a3].press('#actions [data-why]', 'Enter')]);
+  ok(await why.json(), `${a3}: why this way`);
+  await until(`${b3} sees the lab's why`, async () => (await S[b3].inputValue('#actions [data-why]')) === WHY);
+  await sees(admin, '#labs .tile:nth-child(3) .way', `Chose: Replay on top (rebase) · "${WHY}"`);
   const copy = tipIn('3');
   assert.deepEqual(replayed.result.replaced, [{ from: original, to: copy }], 'Git wrote one new card for the one card');
   assert.match(replayed.result.message, new RegExp(`^Replayed your card on top of the Wall's: ${original.slice(0, 7)} is now ${copy.slice(0, 7)}, a new ID\\.`));
@@ -1017,14 +1127,15 @@ async function classRun() {
   await sees(S[a3], '#card-dialog .facts', 'Only in your safety diary');
   await sees(S[a3], '#card-dialog .facts', `Replayed as ${copy.slice(0, 7)}`);
   await closeDialog(S[a3], 'card-dialog');
-  assert.match(ok(await press(S[a3], 'push'), `${a3}: send again`).result.message, SENT);
-  await notSees(S[a3], '#mission .mission-box', 'Use Replay on top', `${a3}: done, so the mission no longer names the way`);
-  await until(`${a3}: no button is "your mission" once done`, async () => !(await count(S[a3], '#actions .way.mine')));
+  assert.match(ok(await send(S[a3], 'accepted'), `${a3}: send again`).result.message, SENT);
+  await notSees(S[a3], '#mission .mission-box', 'Your lab chose', `${a3}: done, so the mission no longer names the way`);
   for (const name of [a1, a2]) ok(await press(S[name], 'pull'), `${name}: catch up`);
   for (const name of LEADS) await goalsDone(S[name]);
-  await sees(admin, '#labs .tile:nth-child(2) .way', 'Way: Combine (merge)');
-  await sees(admin, '#labs .tile:nth-child(3) .way', 'Way: Replay on top (rebase)');
-  assert.equal(await count(admin, '#labs .tile:nth-child(1) .way'), 0, 'Lab 1 sent first: no way');
+  await sees(admin, '#labs .tile:nth-child(2) .way', 'Chose: Combine (merge)');
+  await sees(admin, '#labs .tile:nth-child(3) .way', 'Chose: Replay on top (rebase)');
+  assert.equal(await count(admin, '#labs .tile:nth-child(1) .way'), 0, 'Lab 1 sent first: nothing to choose');
+  const ACCURACY_4 = 'Predicted right: 4 of 5 · refused sends 1/2 · accepted sends 3/3';
+  await sees(admin, '#predictions', ACCURACY_4);
   await click(admin, '#details > summary');
   await sees(admin, '#feed li.bad', `Lab 2 · ${a2}: Send to Wall → refused`);
   await sees(admin, '#feed', `Lab 3 · ${a3}: Replay on top → ${original.slice(0, 7)} → ${copy.slice(0, 7)}`);
@@ -1032,10 +1143,16 @@ async function classRun() {
   await click(admin, '#details > summary');
   await shoot();
   checkClean('Step 4');
-  log(`step 4: Lab 1 sent; Lab 2 refused → merge card; Lab 3 refused → replayed ${original.slice(0, 7)} as ${copy.slice(0, 7)} (same author date, later committer date)`);
+  log(`step 4: predicted sends; Lab 1 sent; Lab 2 refused, chose merge → merge card; Lab 3 refused, chose replay → ${original.slice(0, 7)} as ${copy.slice(0, 7)} (same author date, later committer date)`);
 
   // ---------- Reveal 4: merge vs rebase on the Wall, and each change's integration path, in this class's times ----------
   await next();
+  const FACTS_4 = [ACCURACY_4, `Chose: Lab 2 Combine (merge) · Lab 3 Replay on top (rebase) ("${WHY}")`];
+  assert.deepEqual((await adminState()).projector.scene.facts, FACTS_4, 'the reveal: accuracy, then what each lab chose');
+  for (const line of FACTS_4) {
+    await sees(screen, '.sl-facts', line);
+    await sees(S[a1], '#reveal', line);
+  }
   const st4 = await adminState();
   const paths = st4.session.integration.paths;
   assert.deepEqual(paths.map((p) => p.labId), ['1', '2', '3'], 'in the order the changes reached the Wall');
@@ -1079,7 +1196,7 @@ async function classRun() {
   checkClean('Reveal 4');
   log(`reveal 4: paths ${paths.map((p) => `${p.name} ${velocity(p)}`).join(' · ')}`);
 
-  // ---------- Step 5: entering puts the disguise on the Wall; undo vs move back ----------
+  // ---------- Step 5: entering puts the disguise on the Wall; each lab chooses undo or move back ----------
   await next();
   const intern = await until('the Wall shows the disguise card', async () =>
     (await cardsIn(S[a1], '#wall-graph')).find((c) => c.author === 'The Intern' && c.message === 'Tiny style fix'));
@@ -1091,19 +1208,20 @@ async function classRun() {
   for (const lab of Object.keys(LAB)) assert.equal(tipIn(lab), intern.id, `Lab ${lab} holds the disguise card`);
   for (const name of LEADS) {
     await sees(S[name], '#draft [data-part="glasses"]', 'disguise glasses');
-    await sees(S[name], '#mission .mission-box', 'Your lab has it now.');
+    await sees(S[name], '#mission .mission-box', 'Your lab has it now. Choose: click the 🥸 card and press Undo this card (adds a fix card), or click the card right before it and press Move my note back here');
     await sees(S[name], '#behind-body .last', 'Teacher · Get & combine → fast-forward');
   }
   assert.equal(ok(await press(S[a1], 'pull'), `${a1}: Get & combine`).result.message, 'Nothing new on the Wall.');
-  // Lab 2 (moves back): move back, send → refused; the diary; Get & combine brings the card back.
-  await sees(S[a2], '#mission .mission-box', 'Move my note back here');
+  // Lab 2 chooses to move back: move back, send → refused; the diary; Get & combine brings the card back.
   await openCard(S[a2], beforeDisguise);
   ok(await hit(S[a2], '#card-dialog [data-card-act="reset"]', 'reset'), `${a2}: move my note back`);
   assert.equal(tipIn('2'), beforeDisguise);
   await notSees(S[a2], '#draft [data-part="glasses"]', 'disguise');
   await sees(S[a2], '#mission .mission-box', 'What happens?');
-  const refusedBack = await press(S[a2], 'push');
+  const refusedBack = await send(S[a2], 'accepted');
   assert.equal(refusedBack.error, REFUSED_MOVED_BACK, 'a moved-back main is refused');
+  // Git's own reason: the lab already has the Wall's newest card, so it is not "fetch first" but "non-fast-forward".
+  await sees(S[a2], '#mission .verdict.wrong', "You predicted: accepted. Git: refused (non-fast-forward). Why: the Wall has cards your main doesn't");
   await sees(S[a2], '#mission .mission-box', 'Refused. Open the Safety diary');
   await click(S[a2], '#actions [data-act="reflog"]', { position: { x: 10, y: 10 } });
   await sees(S[a2], '#diary-dialog .diary li:first-child', /reset: moving to [0-9a-f]{7}/);
@@ -1117,7 +1235,7 @@ async function classRun() {
   // Lab 2 undoes it and sends first.
   await openCard(S[a2], intern.id);
   ok(await hit(S[a2], '#card-dialog [data-card-act="revert"]', 'revert'), `${a2}: undo this card`);
-  assert.match(ok(await press(S[a2], 'push'), `${a2}: send the fix`).result.message, SENT);
+  assert.match(ok(await send(S[a2], 'accepted'), `${a2}: send the fix`).result.message, SENT);
   // Lab 1: undo, a lab-mate presses Undo too, send → refused; combine without red; send.
   await openCard(S[a1], intern.id);
   await click(S[a1], '#card-dialog .stored summary');
@@ -1132,12 +1250,12 @@ async function classRun() {
   const again = await hit(S[b1], '#card-dialog [data-card-act="revert"]', 'revert');
   assert.equal(again.result?.message, 'Already undone. Nothing to change.');
   await until(`${b1}'s card details close`, async () => !(await dialogOpen(S[b1], 'card-dialog')));
-  assert.equal((await press(S[a1], 'push')).error, REFUSED, 'the second fix to arrive is refused');
+  assert.equal((await send(S[a1], 'refused')).error, REFUSED, 'the second fix to arrive is refused');
   const fixes = ok(await press(S[a1], 'pull'), `${a1}: Get & combine`);
   assert.ok(!fixes.result.conflict, 'two fix cards combine without red');
-  assert.match(ok(await press(S[a1], 'push'), `${a1}: send`).result.message, SENT);
-  // Lab 3 by hints alone. Its safety diary still lists the card it saved before the replay; a click opens it.
-  assert.deepEqual(await followHints(S[a3]), [REFUSED], 'Lab 3, following hints, undoes, is refused once, combines and sends');
+  assert.match(ok(await send(S[a1], 'accepted'), `${a1}: send`).result.message, SENT);
+  // Lab 3 by hints alone, choosing a fix card. Its safety diary still lists the card it saved before the replay.
+  assert.deepEqual(await followHints(S[a3], { undo: 'revert' }), [REFUSED], 'Lab 3, following hints, undoes, is refused once, combines and sends');
   await sees(S[a3], '#mission .goals li.done', 'You undid the 🥸 card yourselves');
   await notSees(S[a3], '#mission', 'Your lab has it now.', `${a3}: done, so the mission goes`);
   await click(S[a3], '#actions [data-act="reflog"]', { position: { x: 10, y: 10 } });
@@ -1176,7 +1294,7 @@ async function classRun() {
   await pick(S[b3], 'glasses', 'monocle');
   ok(await press(S[b3], 'commit'), `${b3}: save`);
   const senders = NAMES.filter((n) => n !== LAB[2][2]);
-  const sends = await Promise.all(senders.map((name) => press(S[name], 'push')));
+  const sends = await Promise.all(senders.map((name) => send(S[name], 'accepted')));
   const said = sends.map((r) => (r.ok ? r.result.message : r.error));
   said.forEach((words, i) => assert.ok(SENT.test(words) || words === REFUSED || words === 'The Wall already has this card.',
     `${senders[i]}: 8 sends at once said "${words}"`));
@@ -1189,16 +1307,20 @@ async function classRun() {
   for (const name of LEADS) {
     const r = ok(await press(S[name], 'pull'), `${name}: Get & combine after the restart`);
     assert.ok(!r.result.conflict, `${name}: no conflict`);
-    const sent = await press(S[name], 'push');
+    const sent = await send(S[name], 'accepted');
     assert.ok(sent.ok, `${name}: send after the restart: ${sent.error}`);
   }
   for (const name of LEADS.slice(0, 2)) ok(await press(S[name], 'pull'), `${name}: catch up`);
   for (const name of LEADS) await goalsDone(S[name]);
   await shoot();
   checkClean('Step 5');
-  log(`step 5: disguise on entry; move back refused; diary; the card came back; undo + send; Lab 3 by hints; restart; Zoe joined Lab ${zoeLab}`);
+  log(`step 5: disguise on entry; labs chose: move back refused, diary, the card came back; undo + send; Lab 3 by hints; restart; Zoe joined Lab ${zoeLab}`);
 
   await next();
+  const facts5 = (await adminState()).projector.scene.facts;
+  assert.match(facts5[0], /^Predicted right: \d+ of \d+ · refused sends \d+\/\d+ · accepted sends \d+\/\d+$/);
+  assert.deepEqual(facts5.slice(1), ['Chose: Lab 1 Undo this card (revert) · Lab 2 Move my note back (reset) · Lab 3 Undo this card (revert)']);
+  for (const line of facts5) await sees(screen, '.sl-facts', line);
   await answer('reveal-5', { show: true });
   await takeaways(5);
   await sees(admin, '#coming-note', 'Only Lab 1 can replace the Wall.');
@@ -1332,8 +1454,15 @@ async function classRun() {
   log('wrap: My Git in 7 lines (edited, copied), the takeaway wall, counts per lab, Export');
 
   // ---------- Keys, then Reset sends everyone back to Join ----------
-  assert.equal((await fetch(`${BASE}/admin`)).status, 403);
+  // The key left the address bar; a reload still works (sessionStorage). Without any key, the page says how to get in.
   assert.equal((await fetch(`${BASE}/api/admin/state`)).status, 401);
+  await admin.reload();
+  assert.equal(admin.url(), `${BASE}/admin`);
+  await until('the console works after a reload without ?key=', async () => (await admin.textContent('#scene-title')) === SCENES[scene].title);
+  const stranger = await open('Stranger', '/admin');
+  await sees(stranger, '.no-key', 'Open the Teacher link from the server');
+  await stranger.context().close();
+  WHO.delete(stranger);
   await click(admin, '#details > summary');
   await click(admin, '#reset');
   await Promise.all(students().map((p) => until(`${WHO.get(p)} is back on Join`, () => shown(p, '#join'))));
@@ -1377,15 +1506,18 @@ async function practiceRun() {
     (await cardsIn(noor, '#wall-graph')).find((c) => c.author === 'Practice lab'));
   assert.equal(tipIn('wall'), wall.id, 'the practice lab sent first');
   await sees(screen, '.sl-lab.practice', 'Plays by itself');
-  // The real lab is refused, and its mission is Replay on top (merge was already felt in Step 3).
+  // The real lab is refused, and chooses its way: Eli picks Replay on top.
   await pick(noor, 'hat', 'crown');
   ok(await press(noor, 'commit'), 'Noor: save');
   const original = tipIn('1');
-  const refused = await press(noor, 'push');
-  assert.equal(refused.error, REFUSED_REBASE, 'a class of one lab still meets the refusal, and replays on top');
-  await sees(noor, '#mission .mission-box', 'Use Replay on top (rebase)');
-  await sees(eli, '#mission .mission-box', 'Use Replay on top (rebase)');
+  await predictInPanel(eli, 'refused');
+  const refused = await send(noor, 'accepted');
+  assert.equal(refused.error, REFUSED_CHOOSE, 'a class of one lab still meets the refusal, and chooses a way');
+  await sees(eli, '#mission .verdict.right', 'You predicted: refused. Git: refused (fetch first). ✓');
+  await sees(noor, '#mission .mission-box', 'Choose how to get its cards');
+  await sees(eli, '#mission .mission-box', 'Choose how to get its cards');
   const replayed = ok(await press(eli, 'rebase'), 'Eli: Replay on top');
+  await sees(noor, '#mission .mission-box', 'Your lab chose Replay on top (rebase).');
   assert.deepEqual(replayed.result.replaced.map((r) => r.from), [original], "Noor's card is replayed");
   const [was, now] = [commitIn('1', original), commitIn('1', tipIn('1'))];
   assert.deepEqual([now.author, now.at, now.parents], [was.author, was.at, [wall.id]], "the copy keeps Noor and her time, on the practice lab's card");
@@ -1393,7 +1525,7 @@ async function practiceRun() {
   const second = clockOf(was.at) === clockOf(now.ct); // the same minute: the details say the seconds
   await sees(eli, '#card-dialog .facts', `Author Noor at ${clockOf(was.at, second)} · committed by Eli at ${clockOf(now.ct, second)}`);
   await closeDialog(eli, 'card-dialog');
-  assert.match(ok(await press(noor, 'push'), 'Noor: send again').result.message, SENT);
+  assert.match(ok(await send(noor, 'accepted'), 'Noor: send again').result.message, SENT);
   await goalsDone(noor);
   await sees(eli, '#mission .done-line', DONE_LINE);
   assert.equal(await count(admin, '#labs .tile.practice [data-rescue]'), 0, 'the practice lab never needs a rescue');

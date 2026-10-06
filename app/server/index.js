@@ -89,7 +89,7 @@ app.post('/api/join', handle((b) => session.join(b)));
 app.get('/api/state', handle((q) => session.state(q.pid)));
 
 for (const action of ['pair', 'chaos', 'draft', 'commit', 'branch', 'switch', 'merge', 'resolve', 'abort',
-  'push', 'pull', 'rebase', 'revert', 'reset', 'answer', 'takeaway']) {
+  'push', 'pull', 'rebase', 'revert', 'reset', 'answer', 'takeaway', 'predict', 'why']) {
   app.post(`/api/${action}`, handle((b) => session.act(action, b)));
 }
 app.post('/api/delete-note', handle((b) => session.act('deleteNote', b)));
@@ -132,10 +132,10 @@ app.get('/api/thu/admin/export', adminOnly, (req, res) => {
 
 // ---------- Pages ----------
 
-const page = (file) => (req, res) =>
-  isAdmin(req) ? res.sendFile(path.join(PUBLIC, file)) : res.status(403).type('text').send('Wrong or missing key.');
-app.get('/admin', page('admin.html'));
-app.get('/screen', page('screen.html'));
+// Tuesday's console and projector pages hold no secret (every /api/admin call checks the key). They take the
+// key from ?key= once, keep it in sessionStorage and drop it from the address bar, so a reload has no key.
+app.get('/admin', (req, res) => res.sendFile(path.join(PUBLIC, 'admin.html')));
+app.get('/screen', (req, res) => res.sendFile(path.join(PUBLIC, 'screen.html')));
 app.get('/thu', (req, res) => res.sendFile(path.join(PUBLIC, 'thu.html')));
 app.get('/thu/admin', (req, res) => res.sendFile(path.join(PUBLIC, 'thu-admin.html'))); // same: the API checks the key
 app.get('/thu/screen', (req, res) => res.sendFile(path.join(PUBLIC, 'thu-screen.html')));
