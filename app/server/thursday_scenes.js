@@ -55,9 +55,9 @@ const ANSWER_ONLY = POSTS.filter((p) => !p.askerNamesIt).length;
 
 // How students label a post the paper counted for a command.
 export const LABELS = [
-  { id: 'stuck', label: 'Stuck on it', short: 'Stuck', hint: 'The asker is asking about this command.' },
-  { id: 'needs', label: 'Needs it but doesn’t know it', short: 'Needs it', hint: 'This command would solve their problem, but they do not know it.' },
-  { id: 'unrelated', label: 'Not about it', short: 'Not about it', hint: 'The command is only mentioned; the post is about something else.' },
+  { id: 'stuck', label: 'Yes, stuck on it', short: 'Stuck on it', hint: 'They were asking how to use this command.' },
+  { id: 'needs', label: 'No. They needed it but did not know it', short: 'Needed it', hint: 'The command would have fixed their problem, but they did not name it.' },
+  { id: 'unrelated', label: 'No. It is not about it', short: 'Not about it', hint: 'The command is only mentioned in passing.' },
 ];
 
 // The paper's Table 8: its six categories for 65 survey comments, and its seven example comments, word for word.
@@ -135,15 +135,15 @@ export const CLAIMS = [
 ];
 
 export const CLAIM_FIELDS = [
-  { id: 'supports', label: 'What do these facts really show?', placeholder: 'One sentence you would sign' },
-  { id: 'missing', label: 'What would you need, to believe the claim as written?', placeholder: 'For example: watching people use Git, a tested measure, a different sample' },
+  { id: 'supports', label: 'What do these facts really show? One sentence you would sign.', placeholder: 'For example: many people with old Stack Overflow accounts ask Git questions.' },
+  { id: 'missing', label: 'The claim says more than that. What evidence would you need to believe the claim as written?', placeholder: 'For example: watching people use Git, a tested measure of skill, a different sample.' },
 ];
 
 export const DESIGN_FIELDS = [
-  { id: 'change', label: 'Your change', placeholder: 'What the user would see or type' },
-  { id: 'rq', label: 'How you would test it', placeholder: 'For example: does it cut the time to recover, and for whom?' },
-  { id: 'measure', label: 'What you would measure, and one risk', placeholder: 'For example: time to recover; a risk is that people learn from the first try' },
-  { id: 'data', label: 'How you would collect the data', placeholder: 'Would you watch people, log real use, or ask them?' },
+  { id: 'change', label: 'Your change: what would the user see or type?', placeholder: 'For example: a command that undoes the last thing Git did.' },
+  { id: 'rq', label: 'Your test: who would try it, doing what task?', placeholder: 'For example: 20 students who just made a bad commit, half with the change.' },
+  { id: 'measure', label: 'What would you measure, and what could fool you?', placeholder: 'For example: time to recover; people get faster on the second try.' },
+  { id: 'data', label: 'How would you get the data: watch people, log real use, or ask them?', placeholder: 'For example: screen recordings of the task.' },
 ];
 
 // kind: join · survey · slide · reveal · label · code · group · break · exit · end
@@ -190,6 +190,7 @@ export const SCENES = [
   },
   {
     id: 'label', kind: 'label', part: '2 · Check it yourself', title: `Read ${POSTS.length} real posts`, minutes: 8,
+    about: 'The paper counted a post as a question about a command whenever the command’s name appeared in the post or in its accepted answer. Here are 8 of those posts. For each one, decide: was the person really stuck on that command?',
     lines: ['The paper counted each of these posts as a question about one command.', 'Read each post on your laptop and pick one of the three labels.'],
     say: 'Real posts from the paper’s data, drawn at random from short, answered posts. Read the question, then the answer, then pick one label.',
   },
@@ -202,6 +203,7 @@ export const SCENES = [
   },
   {
     id: 'code', kind: 'code', part: '2 · Check it yourself', title: 'Sort 7 survey comments', minutes: 5,
+    about: 'The paper read 65 free-text comments from its survey and sorted them into 6 groups. It does not say how. Sort these 7 comments yourself. Then we see how often you agree with the paper, and with each other.',
     lines: ['The paper sorted the 65 comments from its survey into 6 categories.', 'On your laptop, put each of these 7 comments into one of those categories.'],
     say: 'These are the example comments from the paper’s Table 8. Work alone, quickly.',
   },
@@ -219,6 +221,7 @@ export const SCENES = [
   },
   {
     id: 'claims', kind: 'group', part: '3 · Judge it', title: 'Check one claim from the paper', minutes: 8, fields: 'claim',
+    about: 'The paper turns its numbers into claims. Your group gets one claim and the facts it rests on. Decide what the facts really show, and what more you would need to believe the claim.',
     lines: ['Your group has one sentence from the paper, and the facts behind it.', 'Write what the facts really show, then what you would need to believe the claim.'],
     say: 'One claim per group. Everything they need is on their screen: the claim and the facts behind it. Nobody needs the paper.',
   },
@@ -231,6 +234,7 @@ export const SCENES = [
   },
   {
     id: 'design', kind: 'group', part: '4 · Design', title: 'Design a better undo', minutes: 10, fields: 'design',
+    about: 'The most-viewed Git question of all is how to undo the last commit. Design one change to Git that would help, and say how you would find out whether it works.',
     lines: ['The most-viewed Git question asks how to undo the last commit.', 'Design one change, and say how you would test whether it helps.'],
     say: 'Ask them: why do people have to ask how to undo? The most-viewed question asks how to undo the last commit; its accepted answer’s fix is git reset HEAD~, and its further reading points to git reflog. Asking can find a need; only a test with real users shows that a fix works. Tuesday’s Safety diary was the reflog on screen.',
   },
@@ -262,6 +266,7 @@ export const SCENES = [
   },
   {
     id: 'exit', kind: 'exit', part: 'Summary', title: 'One idea to take home', minutes: 2,
+    about: 'Finish this sentence in one line: when you build a tool for people, …',
     lines: ['On your laptop, finish this sentence in one line of your own.', 'When you build a tool for people, …'],
     say: 'Sarah’s bar: nobody leaves without a new idea about designing tools for people.',
   },

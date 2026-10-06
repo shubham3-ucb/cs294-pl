@@ -23,7 +23,7 @@ const top = () => `<header class="s-top"><h1>The Humans</h1><span class="muted">
   <span class="who">${esc(st.me.name)}${st.group ? ` · ${esc(st.group.name)}` : ''}</span></header>`;
 const late = () => (st.pending ? '<p class="s-late">The class has moved on. Finish this, then look up.</p>' : '');
 const intro = (s) => `${late()}<div><p class="s-part">${esc(s.part)}</p><h2 class="s-title">${md(s.title)}</h2></div>
-  ${s.lines?.length ? `<div class="s-lines">${s.lines.map((l) => `<p>${md(l)}</p>`).join('')}</div>` : ''}`;
+  ${s.about ? `<p class="s-about">${md(s.about)}</p>` : s.lines?.length ? `<div class="s-lines">${s.lines.map((l) => `<p>${md(l)}</p>`).join('')}</div>` : ''}`;
 const msg = (el, text, kind = '') => { if (el) { el.textContent = text; el.className = `s-msg ${kind}`; } };
 
 function drawJoin() {
@@ -172,7 +172,7 @@ function drawLabels(s) {
       ${p.plain ? `<div class="s-plain"><p class="s-sub">In plain words</p><p>${md(p.plain)}</p></div>` : ''}
       <p class="s-sub">The question, as posted</p><div class="s-body">${blocks(p.question)}</div>
       <p class="s-sub">From the accepted answer</p><div class="s-body s-answer">${blocks(p.answer)}</div>
-      <p><strong>Is the asker stuck on <code>${esc(p.command)}</code>?</strong></p>
+      <p><strong>Was this person stuck on <code>${esc(p.command)}</code>?</strong></p>
       <div class="s-yesno">${s.labels.map((l) => `<button data-v="${l.id}" title="${esc(l.hint)}" class="${mine[p.id] === l.id ? 'on' : ''}">${esc(l.label)}</button>`).join('')}</div>
       <p class="s-msg"></p>
     </article>`).join('')}`;
@@ -185,6 +185,7 @@ function drawCodes(s) {
   app.innerHTML = `${top()}${intro(s)}<p class="s-progress" id="prog"></p>${s.comments.map((c) => `
     <article class="s-post ${mine[c.id] !== undefined ? 'done' : ''}" data-id="${esc(c.id)}">
       <p class="s-sub">Survey comment #${esc(c.id)}</p><p class="s-quote">“${esc(c.text)}”</p>
+      <p><strong>Which group does this comment belong in?</strong></p>
       <div class="s-cats">${s.categories.map((cat, i) => `<button data-v="${i}" class="${mine[c.id] === String(i) ? 'on' : ''}">${esc(cat)}</button>`).join('')}</div>
       <p class="s-msg"></p>
     </article>`).join('')}`;
