@@ -7,6 +7,7 @@ import QRCode from 'qrcode';
 import * as session from './session.js';
 import * as bots from './bots.js';
 import * as thu from './thursday.js';
+import * as thuBots from './thursday_bots.js';
 
 const PORT = Number(process.env.PORT) || 3000;
 const PUBLIC = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'public');
@@ -122,7 +123,8 @@ app.get('/api/qr.svg', async (req, res) => {
 app.post('/api/thu/join', handle((b) => thu.join(b)));
 app.get('/api/thu/state', handle((q) => thu.state(String(q.pid || ''))));
 app.post('/api/thu/answer', handle((b) => thu.answer(b)));
-app.get('/api/thu/admin/state', adminOnly, handle((q, req) => thu.adminState(`${req.protocol}://${req.get('host')}/thu`)));
+app.get('/api/thu/admin/state', adminOnly, handle((q, req) => ({ ...thu.adminState(`${req.protocol}://${req.get('host')}/thu`), rehearsal: thuBots.status() })));
+app.post('/api/thu/admin/rehearse', adminOnly, handle((b) => thuBots.rehearse(b)));
 for (const action of ['next', 'back', 'reset', 'regroup']) {
   app.post(`/api/thu/admin/${action}`, adminOnly, handle((b) => thu.admin(action, b)));
 }

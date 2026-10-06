@@ -92,7 +92,7 @@ The same server runs Thursday at `/thu`: students `/thu`, teacher `/thu/admin?ke
 
 The console shows a clock (time in this scene against its plan), who is here (seen in the last 90 seconds) and progress counted over the people here. Survey, labels and codes stay open until their reveal is over; a late student's laptop shows "finish this". After a restart, a student who types the same name gets their answers and group back.
 
-Thursday has no Git and no bots. To try it alone, open `/thu` in two or three private windows, then **Reset**.
+Thursday has no Git. **Try it alone: Details → Rehearse with bots** (2–12 bots; real time, 5× or 20×). Bots join as students, answer each scene at their own pace with realistic, varied answers, and one bot per group types. You press Next. Stop or Reset removes them. To see the student side, also open `/thu` in a private window.
 
 ## Tests
 

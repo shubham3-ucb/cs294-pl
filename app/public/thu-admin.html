@@ -14,6 +14,7 @@
       <span id="where" class="muted"></span>
       <span id="clock" class="c-clock"></span>
       <span class="grow"></span>
+      <span id="rehearsing" class="c-rehearsing" hidden></span>
       <span id="here" class="muted"></span>
       <span id="conn" class="c-dot" title="Connected"></span>
       <button id="present" class="primary">Start presenting</button>
@@ -49,6 +50,15 @@
       </div>
       <details>
         <summary>Details</summary>
+        <div class="c-card">
+          <p class="c-label">Rehearse with bots</p>
+          <div class="c-row">
+            <select id="bot-count"><option>2</option><option>4</option><option selected>6</option><option>8</option><option>12</option></select>
+            <select id="bot-speed"><option value="1">Real time</option><option value="5" selected>5× faster</option><option value="20">20× faster</option></select>
+            <button id="bot-toggle">Start rehearsal</button>
+          </div>
+          <p class="muted" style="font-size:13px">Bots join as students and answer at their own pace. You press Next. Stop or Reset removes them.</p>
+        </div>
         <div class="c-card">
           <div class="c-links" id="links"></div>
           <div class="c-row">

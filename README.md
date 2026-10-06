@@ -55,7 +55,7 @@ Needs Node 22+ and Git 2.45+. **Teachers start with [`lesson/TEACHER_BRIEF.md`](
 
 Tuesday: on the teacher page, open **Details → Rehearse with bots**. Pick 2–12 bots and a speed (real time, 5× or 20×). The bots join like students and play every step through the student buttons, following their own hints. You press only Next. To see the student side, open the student link in another window and join.
 
-Thursday: open `/thu/admin?key=…`, then `/thu` in two or three private windows as students.
+Thursday: the same, on `/thu/admin?key=…`: **Details → Rehearse with bots**. To see the student side, open `/thu` in a private window.
 
 ## Demo
 

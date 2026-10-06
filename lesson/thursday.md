@@ -27,6 +27,7 @@ Sarah's test: completing the activity teaches the concept, and you cannot comple
 
 - `tmux new -s class ./host.sh` in `app/` (detach with Ctrl-b d). Links: Students `…/thu` · Teacher `…/thu/admin?key=…` · Projector `…/thu/screen?key=…`.
 - Displays on **Extend**, not mirror. Teacher page on your laptop, **Start presenting**, drag that window to the projector, press **F**.
+- Rehearse alone the day before: **Details → Rehearse with bots** (8 bots, 5×), press Next through the class, then **Stop**.
 - Test: open `…/thu` in a private window, join, then **Details → Reset** and close the window.
 - Post the student link and the paper's PDF link in the course chat.
 

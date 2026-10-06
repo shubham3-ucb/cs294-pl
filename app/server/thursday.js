@@ -453,4 +453,18 @@ export function exportMarkdown() {
   return out.join('\n');
 }
 
+// Rehearsal bots leave with their answers; groups keep the people who are left.
+export function removePeople(pids) {
+  for (const pid of pids) {
+    delete S.people[pid];
+    for (const table of [S.survey, S.labels, S.codes, S.exit, ...Object.values(S.votes)]) delete table[pid];
+    seen.delete(pid);
+  }
+  if (S.groups) {
+    for (const g of S.groups) g.members = g.members.filter((m) => S.people[m]);
+    S.groups = S.groups.some((g) => g.members.length) ? S.groups.filter((g) => g.members.length) : null;
+  }
+  changed();
+}
+
 export const version = () => ({ v: S.v, boot: S.boot });

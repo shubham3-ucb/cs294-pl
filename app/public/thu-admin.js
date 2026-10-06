@@ -3,7 +3,7 @@ import { api, key, poll, slideHtml, presenterKeys, move, md, esc, PROJECTOR_WIND
 
 const $ = (id) => document.getElementById(id);
 if (!key) document.body.innerHTML = '<p style="padding:24px;font:18px Inter,sans-serif">Open the teacher link: it ends in ?key=…</p>';
-let index = 0, shown = '', projector = null, sceneStart = 0, planned = 0;
+let index = 0, shown = '', projector = null, sceneStart = 0, planned = 0, rehearsal = null;
 const mmss = (ms) => { const t = Math.max(0, Math.round(ms / 1000)); return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`; };
 // Time in this scene against its plan; red when over.
 setInterval(() => {
@@ -34,6 +34,10 @@ poll('/api/thu/admin/state', (s) => {
   $('back').disabled = s.index === 0;
   $('next').disabled = !s.next;
   $('here').textContent = `${s.hereCount} here · ${s.people.length} joined`;
+  rehearsal = s.rehearsal;
+  $('rehearsing').hidden = !rehearsal;
+  if (rehearsal) $('rehearsing').textContent = `Rehearsal · ${rehearsal.count} bots · ${rehearsal.speed === 1 ? 'real time' : `${rehearsal.speed}×`}`;
+  $('bot-toggle').textContent = rehearsal ? 'Stop rehearsal' : 'Start rehearsal';
   const p = s.progress;
   $('progress-box').hidden = !p;
   if (p) {
@@ -64,6 +68,9 @@ $('export').onclick = async (e) => {
   Object.assign(document.createElement('a'), { href: url, download: 'thursday-answers.md' }).click();
   URL.revokeObjectURL(url);
 };
+const rehearse = (on) => api('/api/thu/admin/rehearse', { on, count: Number($('bot-count').value), speed: Number($('bot-speed').value) });
+$('bot-toggle').onclick = () => rehearse(!rehearsal);
+$('bot-speed').onchange = () => rehearsal && rehearse(true);
 $('regroup').onclick = async () => {
   if (!confirm('Re-form the groups from the people in the room? Group answers so far are cleared.')) return;
   const r = await api('/api/thu/admin/regroup', {});

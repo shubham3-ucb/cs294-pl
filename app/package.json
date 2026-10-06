@@ -12,7 +12,8 @@
     "test": "node --test \"test/**/*.test.js\"",
     "e2e": "node e2e/sim.mjs && node e2e/rehearsal.mjs && node e2e/thursday.mjs",
     "e2e:thursday": "node e2e/thursday.mjs",
-    "rehearsal": "node e2e/rehearsal.mjs"
+    "rehearsal": "node e2e/rehearsal.mjs",
+    "rehearsal:thursday": "node e2e/thursday_rehearsal.mjs"
   },
   "dependencies": {
     "express": "^5.2.1",
