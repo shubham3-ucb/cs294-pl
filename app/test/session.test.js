@@ -166,7 +166,7 @@ describe('the scene script', () => {
     assert.deepEqual([at['task-3'][1], at['task-4'][1], at['task-5'][1]], [8, 9, 7], 'the 3 minutes go to predicting and choosing');
     const { session: s } = await adminState();
     assert.equal(s.scene.id, 'join');
-    assert.deepEqual(s.scene.next, { n: 1, title: 'Step 0 · Everyone, one outfit', note: null });
+    assert.deepEqual(s.scene.next, { n: 1, title: 'Step 0 · Everyone edits the same outfit', note: null });
     ok(await session.admin('next', { from: 0 }));
     assert.equal(ok(await session.admin('next', { from: 0 })).result.unchanged, true, 'a stale second press');
     assert.equal((await adminState()).session.scene.id, 'task-0');
@@ -200,8 +200,8 @@ describe('the scene script', () => {
     }
     assert.equal(SCENES.find((s) => s.id === 'reveal-1').reveal.note, TRUST_LINE);
     assert.equal(SCENES.find((s) => s.id === 'reveal-2').reveal.note, ONE_REPO_LINE, 'Step 2 names the one-repo simplification');
-    assert.equal(TRUST_LINE, 'Git stores the name and clock your laptop gives it. It checks neither.');
-    assert.equal(CARDS.rebase.how, 'for each of your commits, Git applies its change to the new base and writes a new commit. The new parent gives it a new ID. Author and author date are kept. The originals become unreachable and stay in your reflog for a while.');
+    assert.equal(TRUST_LINE, 'Git records the name and clock your laptop gives it, and checks neither.');
+    assert.equal(CARDS.rebase.how, 'For each of your commits, Git applies its change to the new base and writes a new commit. The new parent gives it a new ID. The author and author date are kept; the committer date is new. The originals become unreachable and stay in your reflog for a while.');
     for (const step of STEPS) {
       for (const tip of step.tips) assert.ok(tip.text.split(' ').length <= 10, tip.text);
       assert.doesNotMatch(JSON.stringify(step.behind ?? '') + step.instruction + (step.screen ?? ''), /monster|tentacle|mustache/i);
@@ -296,10 +296,10 @@ describe('a whole class, by hints alone', () => {
 
     const md = await session.exportMarkdown();
     assert.match(md, /^# Outfit Lab · answers and takeaways/);
-    assert.match(md, /### Step 3 · Make one outfit from both\n\n\*\*Ask:\*\* Which cards were made on fancy\?/);
+    assert.match(md, /### Step 3 · Combine two branches\n\n\*\*Ask:\*\* Which cards were made on fancy\?/);
     assert.match(md, /- Gus \(Lab \d\): takeaway 6/);
     assert.match(md, /### Gus · Lab \d\n\nMy Git in 7 lines:\n0\. takeaway 0\n1\. takeaway 1/);
-    assert.match(md, /## Predictions\n\n### Step 3 · Make one outfit from both\n\nPredicted right: \d+ of \d+ · merge fancy \d+\/\d+ · merge sporty \d+\/\d+/);
+    assert.match(md, /## Predictions\n\n### Step 3 · Combine two branches\n\nPredicted right: \d+ of \d+ · merge fancy \d+\/\d+ · merge sporty \d+\/\d+/);
     assert.match(md, /- \w+ \(Lab \d\) \(pressed\): You predicted: conflict on TOP\. Git: conflict on TOP\. ✓/);
     assert.match(md, /## Choices\n\n- Lab 1 · Step 4: /);
   });
@@ -345,7 +345,7 @@ describe('questions and takeaways', () => {
     assert.equal((await session.act('takeaway', { pid, step: 7, text: 'no' })).ok, false, 'the wrap has no takeaway');
     const st = await session.state(pid);
     assert.equal(st.session.scene.takeawayStep, 1);
-    assert.deepEqual(st.me.gitIn7[0], { step: 0, title: 'Everyone, one outfit', text: 'Save every version.', board: SCENES[2].board });
+    assert.deepEqual(st.me.gitIn7[0], { step: 0, title: 'Everyone edits the same outfit', text: 'Save every version.', board: SCENES[2].board });
     assert.deepEqual(st.me.gitIn7[1], { step: 1, title: 'Save every version', text: 'A card never changes.', board: SCENES[4].board });
     assert.equal(st.me.gitIn7[2].text, '');
     assert.deepEqual((await adminState()).session.scene.takeaways, { count: 1, of: 1 });
@@ -405,12 +405,12 @@ describe('Steps 4 and 5: the Wall', () => {
     const wallLab = (await adminState()).session.stepLab[4];
     for (const pid of pids) {
       const st = await session.state(pid);
-      const says = st.lab.id === wallLab ? "It starts as your lab's outfit" : `It starts as Lab ${wallLab}'s outfit`;
-      assert.match(st.session.steps[4].instruction, new RegExp(`${says}, so your lab's cards are now a copy of it\\.`));
+      const says = st.lab.id === wallLab ? "The Wall started from your lab's outfit" : `The Wall started from Lab ${wallLab}'s outfit`;
+      assert.match(st.session.steps[4].instruction, new RegExp(`${says}, so your lab's cards are now a copy of that history\\.`));
     }
     for (const pid of pids) {
       const st = await session.state(pid);
-      assert.equal(st.session.steps[4].fresh, st.lab.id === wallLab ? STEPS[4].fresh.wallLab : `Your lab now starts from Lab ${wallLab}'s Wall. Your own Steps 1–3 cards are not in this fresh copy.`,
+      assert.equal(st.session.steps[4].fresh, st.lab.id === wallLab ? STEPS[4].fresh.wallLab : `Your lab now starts from the Wall, which holds Lab ${wallLab}'s history. The cards your lab made in Steps 1 to 3 are not in this fresh copy.`,
         'Step 4 says plainly what the fresh copy of the Wall holds');
     }
     await playStep(pids);
@@ -436,8 +436,8 @@ describe('Steps 4 and 5: the Wall', () => {
     }
     const [one, two, three] = a.labs.map((l) => pids.find((pid) => session.labOf(pid) === l.id));
     const st = await session.state(three);
-    assert.equal(st.session.steps[5].instruction, "A 🥸 card reached the Wall. Remove it without breaking anyone's copy. Your lab chooses how. Predict before each send.");
-    assert.match(st.me.mission, /^Your lab has it now\. Choose: /);
+    assert.equal(st.session.steps[5].instruction, "A 🥸 card reached the Wall, and every lab now has it. Remove it without breaking anyone's copy. Your lab chooses how. Predict before each send.");
+    assert.match(st.me.mission, /^Your lab has the 🥸 card\. Choose one way to remove it: /);
     assert.match(st.me.hint.click, /press \*\*Undo this card\*\*, or click the card right before it and press \*\*Move my note back here\*\*\.$/, 'the hint offers both undos');
     // Lab 1 undoes and sends. Labs 2 and 3 take that fix with Get & combine before undoing anything.
     for (let i = 0; i < 10 && (await session.state(one)).me.hint; i++) {
@@ -592,7 +592,7 @@ describe('Step 2: Switch keeps unsaved parts', () => {
     assert.equal((await session.state(ana)).me.branch, 'fancy');
     ok(await session.act('switch', { pid: ben, branch: 'fancy' }), 'main has nothing unsaved: Ben may come');
     assert.equal((await session.act('switch', { pid: ben, branch: 'main' })).error, SWITCH_UNSAVED, "the draft is shared: Ana's part holds Ben too");
-    assert.deepEqual((await session.state(ben)).me.hint, { idea: 'Git keeps one working copy. Save your unsaved parts before you move your pin.', click: 'Press **Save card**.' },
+    assert.deepEqual((await session.state(ben)).me.hint, { idea: 'Git keeps one working copy. Save your unsaved parts before you move your pin to another note.', click: 'Press **Save card**.' },
       "Ben's note is sporty: his hint saves first");
     ok(await session.act('commit', { pid: ana }));
     ok(await session.act('switch', { pid: ana, branch: 'main' }));

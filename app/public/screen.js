@@ -232,14 +232,14 @@ const SLIDES = {
   },
 
   // The technical card (Step 4 has two), as big as the slide allows. Step 0 has no card yet: what went wrong
-  // and Behind the door. Step 1 adds the trust line, Step 4 the Wall with each lab's path, Step 6 the audit.
+  // and what Git did. Step 1 adds the trust line, Step 4 the Wall with each lab's path, Step 6 the audit.
   reveal(scene, state) {
     const r = scene.reveal;
     const pair = r.cards.length > 1;
     const ask = scene.question ? `<p class="sl-ask${pair ? ' small' : ''}">${esc(scene.question)}</p>` : '';
     if (!r.cards.length) {
       return `${head(scene, state)}${ask}<p class="sl-sentence">${esc(r.sentence)}</p>
-        <div class="sl-behind"><p class="sl-label">Behind the door</p><p>${md(r.behind)}</p></div>`;
+        <div class="sl-behind"><p class="sl-label">What Git did</p><p>${md(r.behind)}</p></div>`;
     }
     const after = scene.step === 6 && state.session.audits?.after;
     const bin = scene.step === 6 && state.session.bin;

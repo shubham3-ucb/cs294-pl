@@ -35,7 +35,7 @@ const PHONE = { width: 390, height: 844 };
 const WAIT = 10_000;
 
 const NAMES = ['Ana', 'Raj', 'Mei', 'Priya', 'Tom', 'Lea', 'Sam', 'Kim', 'Ola']; // join order
-const MAIN_LOCKED = 'main keeps the outfit you have. Make or switch to a sticky note to edit.'; // Step 2
+const MAIN_LOCKED = 'main keeps the outfit you have. Make a sticky note, or switch to one, to edit.'; // Step 2
 const REFUSED = "Refused: the Wall has cards your main doesn't. Press Get & combine first.";
 const REFUSED_CHOOSE = "Refused: the Wall has cards your main doesn't. Choose a way to get them: Get & combine (merge) or Replay on top (rebase). Then send again.";
 const REFUSED_MOVED_BACK = 'Refused: the Wall still has the 🥸 card. Open the Safety diary, then press Get & combine.';
@@ -52,8 +52,8 @@ const OLD_WORDS = /\b(monsters?|faces?|body|bodies|legs|tentacles?|mustaches?)\b
 // The 7 steps, in class order.
 const ORDER = ['join', 'task-0', 'reveal-0', 'task-1', 'reveal-1', 'task-2', 'reveal-2', 'task-3', 'reveal-3', 'break',
   'task-4', 'reveal-4', 'task-5', 'reveal-5', 'task-6', 'reveal-6', 'paper', 'exit', 'wrap'];
-const TITLES = ['Everyone, one outfit', 'Save every version', 'Try two ideas at once', 'Make one outfit from both',
-  'Put your outfit on the Wall', 'Oops: undo a shared mistake', 'The boss wants it clean', 'What you built'];
+const TITLES = ['Everyone edits the same outfit', 'Save every version', 'Give each idea its own branch', 'Combine two branches',
+  'Share your work through the Wall', 'Undo a change everyone already has', 'Rewrite the shared history', 'What you did today'];
 
 const log = (...a) => console.log(...a);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -748,7 +748,7 @@ async function classRun() {
   // ---------- Step 1: everyone saves; the graph is a chain with authors ----------
   await next();
   // The new button's tip, then the next one; each goes on a real click.
-  await sees(S[a1], '#coach .bubble-text', 'New: Save card keeps this outfit, with your name.');
+  await sees(S[a1], '#coach .bubble-text', 'Save card records this outfit, with your name on it.');
   await click(S[a1], '#coach [data-coach="ok"]');
   await sees(S[a1], '#coach .bubble-text', 'Click any card to see what Git stored.');
   await click(S[a1], '#mission h1');
@@ -822,7 +822,7 @@ async function classRun() {
 
   // ---------- Step 2: main is read-only; two sticky notes from main ----------
   await next('projector key'); // a clicker on the projector window
-  await sees(S[a1], '#coach .bubble-text', 'New: sticky notes. Try an idea without touching main.');
+  await sees(S[a1], '#coach .bubble-text', 'A sticky note is a branch for one idea.');
   await click(S[a1], '#draft [data-part="hat"]');
   await sees(S[a1], '#toasts', MAIN_LOCKED);
   assert.ok(!(await shown(S[a1], '#popover')), 'no palette on main in Step 2');
@@ -1057,10 +1057,10 @@ async function classRun() {
     assert.equal(await count(p, '#mission .break-line'), 0, `${who}: Next ended the break`);
   }));
   for (const name of LEADS) {
-    await sees(S[name], '#mission .instruction', "The Wall is the class's shared copy, like GitHub. Your lab already has a full copy of it (that is git clone).");
-    await sees(S[name], '#mission .instruction', `It starts as ${name === a1 ? 'your lab' : 'Lab 1'}'s outfit, so your lab's cards are now a copy of it.`);
+    await sees(S[name], '#mission .instruction', "The Wall is the class's shared copy of the history (a remote, like GitHub). Your lab holds a full copy of it, made with git clone.");
+    await sees(S[name], '#mission .instruction', `The Wall started from ${name === a1 ? 'your lab' : 'Lab 1'}'s outfit, so your lab's cards are now a copy of that history.`);
     await sees(S[name], '#mission .fresh-line', name === a1 ? STEPS[4].fresh.wallLab
-      : "Your lab now starts from Lab 1's Wall. Your own Steps 1–3 cards are not in this fresh copy.");
+      : "Your lab now starts from the Wall, which holds Lab 1's history. The cards your lab made in Steps 1 to 3 are not in this fresh copy.");
     await sees(S[name], '#actions .ways-head', "Get the Wall's cards: choose a way.");
     for (const w of Object.values(WAYS)) await sees(S[name], '#actions .ways', `${w.name}: ${w.line}`);
   }
@@ -1189,7 +1189,7 @@ async function classRun() {
   await sees(S[a3], '#paths .path.on .path-note', COPY_LINE);
   await click(S[a1], '#paths [data-path="3"]');
   await until(`${a1} marks Lab 3's path instead`, async () => isDeepStrictEqual(await marked(S[a1], '#wall-graph'), [copy]));
-  await sees(admin, '#tools', "Sabotage: the Intern's 🥸 card");
+  await sees(admin, '#tools', "Push the Intern's 🥸 card to the Wall (sabotage)");
   await answer('reveal-4');
   await takeaways(4);
   await shoot();
@@ -1208,7 +1208,7 @@ async function classRun() {
   for (const lab of Object.keys(LAB)) assert.equal(tipIn(lab), intern.id, `Lab ${lab} holds the disguise card`);
   for (const name of LEADS) {
     await sees(S[name], '#draft [data-part="glasses"]', 'disguise glasses');
-    await sees(S[name], '#mission .mission-box', 'Your lab has it now. Choose: click the 🥸 card and press Undo this card (adds a fix card), or click the card right before it and press Move my note back here');
+    await sees(S[name], '#mission .mission-box', 'Your lab has the 🥸 card. Choose one way to remove it: click the 🥸 card and press Undo this card (git revert, which adds a fix card), or click the card right before it and press Move my note back here');
     await sees(S[name], '#behind-body .last', 'Teacher · Get & combine → fast-forward');
   }
   assert.equal(ok(await press(S[a1], 'pull'), `${a1}: Get & combine`).result.message, 'Nothing new on the Wall.');
@@ -1217,12 +1217,12 @@ async function classRun() {
   ok(await hit(S[a2], '#card-dialog [data-card-act="reset"]', 'reset'), `${a2}: move my note back`);
   assert.equal(tipIn('2'), beforeDisguise);
   await notSees(S[a2], '#draft [data-part="glasses"]', 'disguise');
-  await sees(S[a2], '#mission .mission-box', 'What happens?');
+  await sees(S[a2], '#mission .mission-box', 'see what the Wall does');
   const refusedBack = await send(S[a2], 'accepted');
   assert.equal(refusedBack.error, REFUSED_MOVED_BACK, 'a moved-back main is refused');
   // Git's own reason: the lab already has the Wall's newest card, so it is not "fetch first" but "non-fast-forward".
   await sees(S[a2], '#mission .verdict.wrong', "You predicted: accepted. Git: refused (non-fast-forward). Why: the Wall has cards your main doesn't");
-  await sees(S[a2], '#mission .mission-box', 'Refused. Open the Safety diary');
+  await sees(S[a2], '#mission .mission-box', 'The Wall refused the send. Open the Safety diary');
   await click(S[a2], '#actions [data-act="reflog"]', { position: { x: 10, y: 10 } });
   await sees(S[a2], '#diary-dialog .diary li:first-child', /reset: moving to [0-9a-f]{7}/);
   await sees(S[a2], '#diary-dialog .diary', 'clone: from the Wall');
@@ -1256,8 +1256,8 @@ async function classRun() {
   assert.match(ok(await send(S[a1], 'accepted'), `${a1}: send`).result.message, SENT);
   // Lab 3 by hints alone, choosing a fix card. Its safety diary still lists the card it saved before the replay.
   assert.deepEqual(await followHints(S[a3], { undo: 'revert' }), [REFUSED], 'Lab 3, following hints, undoes, is refused once, combines and sends');
-  await sees(S[a3], '#mission .goals li.done', 'You undid the 🥸 card yourselves');
-  await notSees(S[a3], '#mission', 'Your lab has it now.', `${a3}: done, so the mission goes`);
+  await sees(S[a3], '#mission .goals li.done', 'Your lab undid the 🥸 card itself');
+  await notSees(S[a3], '#mission', 'Your lab has the 🥸 card.', `${a3}: done, so the mission goes`);
   await click(S[a3], '#actions [data-act="reflog"]', { position: { x: 10, y: 10 } });
   await sees(S[a3], '#diary-dialog .diary', `Replayed on top · ${copy.slice(0, 7)}`);
   await click(S[a3], `#diary-dialog [data-goto="${original}"]`);
@@ -1342,7 +1342,7 @@ async function classRun() {
   const bossPull = ok(await press(S[a1], 'pull'), `${a1}: Get & combine first`);
   assert.ok(!bossPull.result.conflict, 'the boss combines without red');
   await click(S[a1], '#actions [data-act="squash"]', { position: { x: 10, y: 10 } });
-  await sees(S[a1], '#confirm-dialog', "This replaces the Wall's history for everyone. Sure?");
+  await sees(S[a1], '#confirm-dialog', "This replaces the Wall's history for everyone. Do you want to go on?");
   const forced = ok(await hit(S[a1], '#confirm-dialog [data-yes]', 'squash-force'), `${a1}: replace the Wall`);
   assert.ok(forced.result.id, 'the Wall has a new clean card');
   await until("the Wall's history is Start ← Clean history", async () =>
@@ -1423,15 +1423,15 @@ async function classRun() {
   assert.ok(copied.startsWith(`My Git in 7 lines\n0. ${anaLines[0]}\n`) && copied.includes(`3. ${edited}`) && copied.split('\n').length === 8,
     `the copy holds the 7 lines:\n${copied}`);
   await sees(ana, '#scene-body .wrap-line', WRAP_LINE);
-  await sees(screen, '.sl-wrap-line', 'Cards never change.');
+  await sees(screen, '.sl-wrap-line', 'A commit never changes.');
   const wall = await textOf(screen, '.sl-takeaways');
   assert.ok((await count(screen, '.sl-takeaways p')) > 0, 'the projector shows a takeaway wall');
   for (const name of NAMES) assert.doesNotMatch(wall, new RegExp(`\\b${name}\\b`), 'the takeaway wall hides names');
   // What each lab did, in each student's wrap and on the console tiles.
   const did = {
-    1: { on: ['Save a card', 'Slide a note forward', 'Solve a conflict', 'Undo with a fix card', 'Get refused', 'Replace the Wall'], off: ['Move a note back', 'Replay on top'] },
-    2: { on: ['Save a card', 'Solve a conflict', 'Get refused', 'Get & combine', 'Move a note back', 'Read the diary', 'Undo with a fix card'], off: ['Replace the Wall', 'Replay on top'] },
-    3: { on: ['Save a card', 'Solve a conflict', 'Get refused', 'Replay on top', 'Undo with a fix card'], off: ['Move a note back', 'Replace the Wall'] },
+    1: { on: ['Save a card', 'Fast-forward a note', 'Solve a conflict', 'Undo with a fix card', 'Have a send refused', 'Replace the Wall'], off: ['Move a note back', 'Replay on top'] },
+    2: { on: ['Save a card', 'Solve a conflict', 'Have a send refused', 'Get & combine', 'Move a note back', 'Read the diary', 'Undo with a fix card'], off: ['Replace the Wall', 'Replay on top'] },
+    3: { on: ['Save a card', 'Solve a conflict', 'Have a send refused', 'Replay on top', 'Undo with a fix card'], off: ['Move a note back', 'Replace the Wall'] },
   };
   for (const [id, { on, off }] of Object.entries(did)) {
     const p = S[LAB[id][0]];

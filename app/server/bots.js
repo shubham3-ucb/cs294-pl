@@ -135,7 +135,7 @@ export function movesFor(hint, st, bot = null) {
   if (hint.startsWith("Click the newest card in your lab's cards.")) return [['inspect', { repo: 'lab', commit: tipOf(g, 'main') }]];
   if (hint.startsWith('Click the newest card on the Wall.')) return [['inspect', { repo: 'wall', commit: tipOf(st.wall.graph, 'main') }]];
   if (hint === 'Press **Replace the Wall with one card**.') return [['squash', {}]];
-  if (/^Press nothing\.|^You saved\. Waiting for|is done\. The other pair is still on/.test(hint)) return [];
+  if (/^Press nothing\.|^You saved\. Waiting for|is done\. The other pair is still working on/.test(hint)) return [];
   throw new Error(`A hint the bots cannot follow: ${hint}`);
 }
 

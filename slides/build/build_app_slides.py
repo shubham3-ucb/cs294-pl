@@ -235,13 +235,13 @@ def tool_slide(prs, app, scene, card, notes_from, sizes):
 
 # ---------------------------------------------------------------- slides
 def cover(prs, app):
+    # the start outfit, as the app draws it: hat, glasses, top, shoes
+    pw, ph, gap = Inches(1.9), Inches(0.95), Inches(0.12)
     s = title_slide(prs, 'Outfit Lab', sentences(app['tagline']),
                     'CS294 · Git Week · Tuesday · Shubham & Ananya',
                     "In class the projector page runs the lesson, and the console's Next button moves "
                     'through it. This deck is the record: one technical card per Git tool, the same text '
-                    'as the app.')
-    # the start outfit, as the app draws it: hat, glasses, top, shoes
-    pw, ph, gap = Inches(1.9), Inches(0.95), Inches(0.12)
+                    'as the app.', sub_w=W - 2 * M - pw - Inches(0.4))
     y0 = (H - Inches(0.6) - 4 * ph - 3 * gap) / 2
     for i, e in enumerate(app['start']):
         emoji_panel(s, W - M - pw, y0 + i * (ph + gap), pw, ph, e, 44)
@@ -316,7 +316,12 @@ def wrap(prs, app, scene):
         star.fill.solid()
         star.fill.fore_color.rgb = WHITE
         star.line.fill.background()
-    text(s, M, Inches(2.1), CONTENT_W, Inches(3.3), sentences(app['wrap']), size=60, bold=True,
+    # The largest type at which the wrap's sentences fit the band, measured like the cards.
+    lines = sentences(app['wrap'])
+    box_h = Inches(3.3)
+    size = next((n for n in (60, 54, 48, 44, 40, 36)
+                 if Pt(sum(line_count(l, n, CONTENT_W, bold=True) for l in lines) * n * 1.2 * 1.21) <= box_h), 32)
+    text(s, M, Inches(2.1), CONTENT_W, box_h, lines, size=size, bold=True,
          color=WHITE, align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE, spacing=1.2)
 
 

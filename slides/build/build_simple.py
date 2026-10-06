@@ -108,11 +108,12 @@ def chip(s, x, y, label, fill=INK, color=WHITE, size=18, w=None):
 
 
 # ---------------------------------------------------------------- layouts
-def title_slide(prs, title, sub, foot, notes):
+def title_slide(prs, title, sub, foot, notes, sub_w=None):
+    """sub_w: a narrower width for the subtitle, when something sits at the right."""
     s = blank(prs, notes=notes)
     text(s, M, Inches(2.2), W - 2 * M, Inches(1.4), title, size=64, bold=True,
          anchor=MSO_ANCHOR.BOTTOM)
-    text(s, M, Inches(3.85), W - 2 * M, Inches(1.2), sub, size=26 if len(sub) > 40 else 32,
+    text(s, M, Inches(3.85), sub_w or (W - 2 * M), Inches(1.2), sub, size=26 if len(sub) > 40 else 32,
          color=MUTED)
     bar = s.shapes.add_shape(MSO_SHAPE.RECTANGLE, 0, H - Inches(0.6), W, Inches(0.6))
     bar.fill.solid(); bar.fill.fore_color.rgb = PURPLE; bar.line.fill.background()

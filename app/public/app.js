@@ -58,9 +58,9 @@ const SUMMARY = [
 // [concept, plain words, the command its button showed]
 const IDEAS = [
   ['save', 'Save a card', 'git commit'], ['branch', 'Make a sticky note', 'git switch -c'],
-  ['switch', 'Switch notes', 'git switch'], ['fastforward', 'Slide a note forward', 'git merge'],
+  ['switch', 'Switch notes', 'git switch'], ['fastforward', 'Fast-forward a note', 'git merge'],
   ['merge', 'Combine two ideas', 'git merge'], ['conflict', 'Solve a conflict', 'git merge + git commit'],
-  ['push', 'Send to the Wall', 'git push'], ['rejected', 'Get refused', 'git push'],
+  ['push', 'Send to the Wall', 'git push'], ['rejected', 'Have a send refused', 'git push'],
   ['pull', 'Get & combine', 'git pull --no-rebase'], ['rebase', 'Replay on top', 'git pull --rebase'],
   ['revert', 'Undo with a fix card', 'git revert'],
   ['reset', 'Move a note back', 'git reset'], ['diary', 'Read the diary', 'git reflog'],
@@ -391,7 +391,7 @@ function renderReveal() {
         <dl class="tech-rows">${TECH.map(([key, label]) => `<dt class="${key}">${label}</dt><dd class="${key}">${rich(c[key])}</dd>`).join('')}</dl>
       </article>`).join('')}
     ${r.sentence ? `<p class="reveal-sentence">${rich(r.sentence)}</p>` : ''}
-    ${r.behind ? `<p class="reveal-behind"><b>Behind the door</b>${rich(r.behind)}</p>` : ''}
+    ${r.behind ? `<p class="reveal-behind"><b>What Git did</b>${rich(r.behind)}</p>` : ''}
     ${r.note ? `<p class="tech-note">${rich(r.note)}</p>` : ''}
     ${(V.scene.facts ?? []).map((f) => `<p class="reveal-fact">${esc(f)}</p>`).join('')}` : '');
 }
@@ -461,7 +461,7 @@ function hintHTML() {
   const h = state.me.hint;
   hintWasReady = hintReady();
   if (!h || !hintWasReady) return '';
-  if (hintLevel === 0) return '<button class="hint-btn" data-hint="1">Stuck? Hint</button>';
+  if (hintLevel === 0) return '<button class="hint-btn" data-hint="1">Need a hint?</button>';
   if (hintLevel === 1 && !sameHint(h)) {
     return `<div class="hint"><p class="label">Think about</p><p>${rich(h.idea)}</p>
       <p class="hint-links"><button class="linkish more" data-hint="2">Show the exact click</button><button class="linkish" data-hint="0">Hide hint</button></p></div>`;
@@ -510,7 +510,7 @@ function hintTargets(hint) {
   return out;
 }
 
-// Behind the door: the step's rule for how Git does it, always first. Then what Git did last in this lab
+// What Git did: the step's rule for how Git does it, always first. Then what Git did last in this lab
 // this step (who pressed what, its command, one plain sentence); the plumbing waits behind "Show the low-level steps".
 function renderBehind() {
   const behind = V.scene.kind !== 'join' && V.s.behind;
@@ -665,7 +665,7 @@ function paperHTML(p) {
     <div class="gbu">${column('The Good', 'good', p.good)}${column('The Bad', 'bad', p.bad)}${column('The Ugly', 'ugly', p.ugly)}</div>
     <p class="paper-message">${esc(p.message)}</p>
     <p class="paper-tradeoff">${esc(p.tradeoff)}</p>
-    <div class="lived"><h3>You lived it</h3><ul>${p.lived.map((l) => `<li>${esc(l.text)}</li>`).join('')}</ul></div>
+    <div class="lived"><h3>What you lived</h3><ul>${p.lived.map((l) => `<li>${esc(l.text)}</li>`).join('')}</ul></div>
     ${velocityHTML()}`;
 }
 
@@ -676,10 +676,10 @@ function velocityHTML() {
   const tip = state.wall?.graph.refs['refs/heads/main'];
   const onWall = ancestors(V.wallById, tip);
   const gone = tip && paths.every((p) => !p.cards.some((id) => onWall.has(id)));
-  return `<div class="velocity"><h3>Your class in Step 4: each change's path to main</h3>
+  return `<div class="velocity"><h3>Each lab's change in Step 4, and its path to main</h3>
     <ul>${paths.map((p) => `<li><b>${esc(p.name)}</b> · ${pathChange(p)} · ${velocity(p)}${
       p.note ? `<br><span class="muted">${esc(p.note)}</span>` : ''}</li>`).join('')}</ul>
-    <p class="small muted">From made to on the Wall: what the paper calls code velocity.${gone ? " Since the squash, the Wall's main has none of these cards." : ''}</p>
+    <p class="small muted">The time from making the card to its arrival on the Wall is what the paper calls code velocity.${gone ? " Since the squash, the Wall's main has none of these cards." : ''}</p>
   </div>`;
 }
 
@@ -687,7 +687,7 @@ const exitHTML = (scene) => `<p class="eyebrow">Exit question</p>
   <h1 class="exit-q">${esc(scene.question)}</h1>
   <p class="scene-line">${esc(scene.line)}</p>`;
 
-const wrapHTML = (scene) => `<p class="eyebrow">What you built</p>
+const wrapHTML = (scene) => `<p class="eyebrow">${esc(scene.title)}</p>
   <h1 class="wrap-line">${esc(scene.wrap.line)}</h1>`;
 
 function summaryHTML() {
@@ -770,7 +770,7 @@ function renderActions() {
   const ways = fresh.filter((a) => a.way && V.isNew(a.id) && !offMain(a));
   const row = (acts, isNew) => [...new Set(acts.map((a) => actionHTML(a, isNew, a.id === next)))].join('');
   // Step 5's new tools live in the card details; say where.
-  const where = V.isNew('revert') ? '<p class="actions-hint">New: click a card to undo it or move your note back.</p>' : '';
+  const where = V.isNew('revert') ? '<p class="actions-hint">Click a card to undo it, or to move your note back to it.</p>' : '';
   patch(box, `
     ${fresh.length > ways.length ? `<div class="actions-new">${row(fresh.filter((a) => !ways.includes(a)), true)}</div>` : ''}
     ${ways.length ? waysHTML(ways) : ''}
@@ -1109,7 +1109,7 @@ function glossed(text) {
 const DIARY = [
   [/^commit \(merge\)/, 'Merged'], [/^commit/, 'Saved a card'], [/^branch/, 'Made this note'],
   [/^merge wall\/main: Fast-forward/, "Got the Wall's cards"], [/^merge wall\/main/, 'Got & combined'],
-  [/^merge .*Fast-forward/, 'Slid forward (merge)'], [/^merge/, 'Merged'],
+  [/^merge .*Fast-forward/, 'Fast-forwarded (merge)'], [/^merge/, 'Merged'],
   [/^(pull --rebase|rebase) \(finish\)/, 'Replayed on top'], [/^pull --rebase: Fast-forward/, "Got the Wall's cards"],
   [/^revert/, 'Undid a card'], [/^reset/, 'Moved back'], [/^clone/, 'Copied from the Wall'],
 ];
@@ -1221,7 +1221,7 @@ function renderResolver() {
       <button class="quiet" data-abort>${w.cancel}<code>git ${m.kind} --abort</code></button>
     </div>
     <details class="resolver-behind"${behindOpen ? ' open' : ''}>
-      <summary>Behind the door · the file Git wrote</summary>
+      <summary>The file Git wrote</summary>
       <p>${w.file}</p>
       <pre class="conflict-text">${marked}</pre>
     </details>`);
@@ -1412,7 +1412,7 @@ function wire() {
   });
 
   $('behind').addEventListener('toggle', () => { if ($('behind').open && V) renderBehind(); });
-  $('panel').addEventListener('toggle', fitMission, true); // opening Behind the door makes the panel taller
+  $('panel').addEventListener('toggle', fitMission, true); // opening What Git did makes the panel taller
 
   $('banner').addEventListener('click', (e) => { if (e.target.closest('[data-open-resolver]')) openResolver(); });
   $('paths').addEventListener('click', (e) => {
@@ -1445,7 +1445,7 @@ function wire() {
       pull: () => act('pull'),
       rebase: () => act('rebase'),
       reflog: () => openDiary(),
-      squash: () => confirmThen("This replaces the Wall's history for everyone. Sure?", 'Replace the Wall', () => act('squash-force', {}, 'squash')),
+      squash: () => confirmThen("This replaces the Wall's history for everyone. Do you want to go on?", 'Replace the Wall', () => act('squash-force', {}, 'squash')),
     };
     run[btn.dataset.act]?.();
   });

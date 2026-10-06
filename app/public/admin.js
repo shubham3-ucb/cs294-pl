@@ -25,8 +25,8 @@ const UNDOS = { revert: 'Undo this card (revert)', reset: 'Move my note back (re
 // The scene's tools, in the main card only when the scene needs them. Rescue sits on the lab tiles,
 // Show answers with the question.
 const TOOLS = {
-  sabotage: { html: `Sabotage: the Intern's ${DISGUISE} card`, path: '/api/admin/sabotage' },
-  audit: { html: `Ask the Wall: who added ${BOOTS}?`, path: '/api/admin/audit' },
+  sabotage: { html: `Push the Intern's ${DISGUISE} card to the Wall (sabotage)`, path: '/api/admin/sabotage' },
+  audit: { html: `Ask the Wall who first added ${BOOTS}`, path: '/api/admin/audit' },
   gc: { html: "Empty the Wall's bin <code>git gc --prune=now</code>", path: '/api/admin/gc' },
   timer: { html: 'Restart the break timer', path: '/api/admin/timer' },
 };
