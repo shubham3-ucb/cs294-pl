@@ -162,13 +162,15 @@ const blocks = (bs) => bs.map((b) => (b.code ? `<pre>${esc(b.text)}</pre>` : `<p
 
 function drawLabels(s) {
   const mine = { ...st.me.labels };
-  app.innerHTML = `${top()}${intro(s)}<p class="s-progress" id="prog"></p>${s.posts.map((p, i) => `
+  const key = `<p class="s-key">${s.labels.map((l) => `<b>${esc(l.label)}</b>: ${esc(l.hint)}`).join(' · ')}</p>`;
+  app.innerHTML = `${top()}${intro(s)}${key}<p class="s-progress" id="prog"></p>${s.posts.map((p, i) => `
     <article class="s-post ${mine[p.id] ? 'done' : ''}" data-id="${esc(p.id)}">
       <p class="s-credit">The paper counts this post for <code>${esc(p.command)}</code></p>
       <h2>${i + 1}. ${esc(p.title)}</h2>
       <p class="s-meta"><span>${p.views.toLocaleString('en-US')} views</span><span>${esc(p.year)}</span>
         <a href="${esc(p.url)}" target="_blank" rel="noopener">Stack Overflow · ${esc(p.license)}</a></p>
-      <p class="s-sub">The question</p><div class="s-body">${blocks(p.question)}</div>
+      ${p.plain ? `<div class="s-plain"><p class="s-sub">In plain words</p><p>${md(p.plain)}</p></div>` : ''}
+      <p class="s-sub">The question, as posted</p><div class="s-body">${blocks(p.question)}</div>
       <p class="s-sub">From the accepted answer</p><div class="s-body s-answer">${blocks(p.answer)}</div>
       <p><strong>Is the asker stuck on <code>${esc(p.command)}</code>?</strong></p>
       <div class="s-yesno">${s.labels.map((l) => `<button data-v="${l.id}" title="${esc(l.hint)}" class="${mine[p.id] === l.id ? 'on' : ''}">${esc(l.label)}</button>`).join('')}</div>

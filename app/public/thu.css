@@ -243,3 +243,7 @@ details[open] summary { margin-bottom: 10px; }
 select { font: inherit; font-size: 14px; border: 1px solid var(--line); border-radius: 10px; padding: 7px 10px; background: #fff; }
 .t-table.big { font-size: calc(var(--u) * 3.6); }
 .t-table.big td { padding: calc(var(--u) * 2.4) calc(var(--u) * 1.6); }
+.s-plain { background: var(--lavender); border-radius: 10px; padding: 10px 12px; font-size: 15px; line-height: 1.45; display: grid; gap: 4px; }
+.s-plain .s-sub { color: var(--purple); }
+.s-key { font-size: 14px; line-height: 1.5; color: var(--muted); }
+.s-key b { color: var(--ink); font-weight: 600; }

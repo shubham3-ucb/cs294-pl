@@ -38,7 +38,19 @@ export const PAPER_SURVEY = {
   medianYears: 8,
 };
 
-export const POSTS = JSON.parse(fs.readFileSync(new URL('./thursday_posts.json', import.meta.url), 'utf8')).posts;
+// Each real post, in plain words: what the asker wanted, and what the accepted answer told them. Written by us, not the paper.
+const PLAIN = {
+  12084583: 'They made some commits, undid two of them, and now want to get back to the commit called "updated from online". They pasted their reflog, the list of where they have been. The answer: check out that commit by its ID.',
+  1505948: 'They ran `git add .` and staged too many files. They want to unstage one file without losing their edits. The answer: `git reset HEAD -- file` unstages it and keeps the changes.',
+  2389361: 'They merged a branch by mistake and have not pushed yet. They want the merge gone; `git revert` only added another commit. The answer: find the commit before the merge in the reflog, then `git reset --hard` to it.',
+  61221773: 'Two commits changed a file. They want to undo only the second commit and keep the first. The answer: `git revert` the second commit; it adds a new commit that cancels it.',
+  8769377: 'They want to copy two files from one branch into another without bringing the rest. The answer: `git checkout branch1 -- file1 x/file2`, then commit. Their own workaround ends with `git clean -f`.',
+  4339738: 'They made a new branch, tried things, switched back to master, and were surprised the new files were still there; `git reset --hard` did not remove them. The answer: the files were never committed, so Git does not touch them; `git stash` would have set them aside.',
+  29230073: 'They pushed a bad commit, went back one commit and fixed the files, and do not know how to get the fix onto master. The answer: go to master, `git revert` the bad commit, push.',
+  53168541: 'They ran `git checkout -- .` and wiped their uncommitted changes. They ask if there is any way back. The answer: only if they had run `git stash` first, or their editor keeps file history.',
+};
+export const POSTS = JSON.parse(fs.readFileSync(new URL('./thursday_posts.json', import.meta.url), 'utf8')).posts
+  .map((p) => ({ ...p, plain: PLAIN[p.id] ?? '' }));
 const ANSWER_ONLY = POSTS.filter((p) => !p.askerNamesIt).length;
 
 // How students label a post the paper counted for a command.
