@@ -100,7 +100,7 @@ function gitView(text) {
   return { auto, conflicts: M.PARTS.filter((p) => conflicted.has(p)) };
 }
 
-// Steps 1–3 for one lab: two sticky notes from main, each with its pair's mission saved.
+// Steps 1–3 for one lab: two branches from main, each with its pair's mission saved.
 async function twoIdeas(lab) {
   await git.createBranch(lab, 'fancy');
   await git.createBranch(lab, 'sporty');
@@ -369,7 +369,7 @@ describe('commit', () => {
   });
 });
 
-// ---------- Step 2: sticky notes ----------
+// ---------- Step 2: branches ----------
 
 describe('createBranch', () => {
   test('a new note on main\'s card, logged in Git\'s words; a second one with the same name exists', async () => {
@@ -381,7 +381,7 @@ describe('createBranch', () => {
     assert.equal(r.porcelain, 'git switch -c fancy main');
     assert.equal(await tip('1', 'fancy'), main);
     assert.deepEqual(diary('1', 'fancy'), ['branch: Created from main']);
-    assert.ok(fs.existsSync(path.join(dir('1'), '.git', 'refs', 'heads', 'fancy')), 'a sticky note is a tiny file');
+    assert.ok(fs.existsSync(path.join(dir('1'), '.git', 'refs', 'heads', 'fancy')), 'a branch is a tiny file');
     assert.equal((await git.createBranch(lab, 'fancy')).exists, true);
     assert.equal(await tip('1', 'fancy'), main);
   });
@@ -401,7 +401,7 @@ describe('createBranch', () => {
     }
   });
 
-  test('five people pressing at once make exactly one note', async () => {
+  test('five people pressing at once make exactly one branch', async () => {
     const [lab] = await fresh(1);
     const results = await Promise.all(Array.from({ length: 5 }, () => git.createBranch(lab, 'sporty')));
     assert.equal(results.filter((r) => r.id).length, 1);
@@ -409,7 +409,7 @@ describe('createBranch', () => {
   });
 });
 
-// ---------- Step 3: delete a sticky note ----------
+// ---------- Step 3: delete a branch ----------
 
 describe('deleteBranch (git branch -d)', () => {
   test('a merged note is deleted: its file and its reflog go, its cards stay', async () => {
@@ -445,7 +445,7 @@ describe('deleteBranch (git branch -d)', () => {
     assert.ok(await tip('1', 'sporty'), 'sporty is still there');
   });
 
-  test('never the note you are on; a missing note reads as "moved"', async () => {
+  test('never the branch you are on; a missing note reads as "moved"', async () => {
     const [lab] = await fresh(1);
     await git.createBranch(lab, 'fancy');
     assert.equal((await git.deleteBranch(lab, 'fancy', 'fancy')).current, true);
@@ -495,7 +495,7 @@ describe('merge', () => {
     assert.match(r.explain, /TOP changed on both sides/);
   });
 
-  test('anyone on the note finishes the merge: a merge card with two parents', async () => {
+  test('anyone on the branch finishes the merge: a merge card with two parents', async () => {
     await git.merge(lab, 'main', 'fancy', ANA);
     await git.merge(lab, 'main', 'sporty', ANA);
     const { intoTip, theirs } = lab.merging.main;
@@ -545,7 +545,7 @@ describe('merge', () => {
     assert.equal(lab.merging.fancy.message, "Merge branch 'sporty' into fancy");
   });
 
-  test('a stale open merge cannot finish once the note moved', async () => {
+  test('a stale open merge cannot finish once the branch moved', async () => {
     await git.merge(lab, 'main', 'fancy', ANA);
     await git.merge(lab, 'main', 'sporty', ANA);
     sh('1', 'update-ref', 'refs/heads/main', await tip('1', 'sporty'));
@@ -553,7 +553,7 @@ describe('merge', () => {
     assert.equal(r.moved, true);
   });
 
-  test('an open merge holds its note: two merges at once open one; save, undo, move back and replace wait', async () => {
+  test('an open merge holds its branch: two merges at once open one; save, undo, move back and replace wait', async () => {
     await git.merge(lab, 'main', 'fancy', ANA);
     const [first, second] = await Promise.all([git.merge(lab, 'main', 'sporty', ANA), git.merge(lab, 'main', 'sporty', RAJ)]);
     assert.equal(first.conflict, true);
@@ -933,7 +933,7 @@ describe('undo', () => {
     assert.equal((await card('1', start)).reachable, true);
   });
 
-  test('undo is refused for the Start card, cards outside the note, and unknown IDs', async () => {
+  test('undo is refused for the Start card, cards outside the branch, and unknown IDs', async () => {
     const [lab] = await fresh(1);
     const start = await tip('1');
     await git.createBranch(lab, 'side');

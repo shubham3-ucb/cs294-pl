@@ -13,7 +13,7 @@
 **In class**
 - Press only **Next** (→ or Space; ← is Back). Read **Say**; ask **Ask**; the answer you hope for is under it.
 - Next when the console shows everyone done, or when the clock turns red.
-- Tuesday: a stuck lab → tell them **Stuck? Hint**; still stuck → **Rescue** on its tile.
+- Tuesday: a stuck lab → tell them **Need a hint?**; still stuck → **Rescue** on its tile.
 - Thursday, before the Next after the break: "everyone open the /thu tab". Wait until "here" matches the room. Groups look wrong → **Re-form groups**.
 
 **If the link dies**

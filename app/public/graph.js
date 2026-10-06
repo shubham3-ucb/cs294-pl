@@ -1,14 +1,14 @@
 // The table graph: cards left→right in time order, each arrow points to the card before,
-// sticky notes on the cards they point at.
+// branches on the cards they point at.
 //   renderGraph(svgEl, {commits, refs}, {labels, you, onCardClick, compact, width, maxCols, all, onOlder, pillFont,
 //     path, badges, diaryLabel})
 // commits: [{id, parents, author, time, message, monster, reachable}] · refs: {name: id}
 // compact: true for small cards, 'auto' for small cards only when the full ones don't all fit in `width` px.
 // Cards that don't fit in `width` (or past maxCols) fold into pills "← 8 older cards", so no card is ever
-// cut in half; cards with a sticky note are never folded. all: draw every card, to scroll.
+// cut in half; cards with a branch are never folded. all: draw every card, to scroll.
 // onOlder makes the pills buttons.
 // path: card ids [first, …, last], each the parent of the next (an integration path): drawn bold, never folded.
-// badges: {card id: words}, a caption over a card, above its sticky notes and clear of its neighbours' notes and badges.
+// badges: {card id: words}, a caption over a card, above its branches and clear of its neighbours' notes and badges.
 // diaryLabel: a caption over the row of cards that are only in the diary.
 import { PARTS, emoji, EMOJI_FONT } from './monster.js';
 
@@ -61,7 +61,7 @@ export function renderGraph(svg, graph, {
     }
   }
 
-  // A badge sits one level above its card's sticky notes, higher still where a note or an earlier badge on the row
+  // A badge sits one level above its card's branches, higher still where a note or an earlier badge on the row
   // would overlap it (a badge is wider than a small card).
   const xOf = new Map([live, diary].flatMap(({ shown: cards, xs }) => cards.map((c, i) => [c.id, xs[i]])));
   const rowOfCard = (c) => rowOf.get(lanes.get(c.id));
@@ -75,7 +75,7 @@ export function renderGraph(svg, graph, {
     badgeAt.set(c.id, spot.level);
   }
 
-  // Each row is tall enough for the most sticky notes and badges stacked on one of its cards (the diary row: its caption).
+  // Each row is tall enough for the most branches and badges stacked on one of its cards (the diary row: its caption).
   const diaryRow = rowOf.get(lanes.get(diary.shown[0]?.id));
   const stack = rows.map((_, row) => (diaryLabel && row === diaryRow ? 1 : 0));
   for (const c of shown) {
@@ -90,7 +90,7 @@ export function renderGraph(svg, graph, {
   // The history's pills sit on the top row, the diary's on the diary row.
   const pills = [...live.pills.map((p) => ({ ...p, row: 0 })), ...diary.pills.map((p) => ({ ...p, row: diaryRow }))]
     .map((p) => ({ ...p, y: rowTop[p.row] }));
-  // Sticky notes may stick out past their card (a long name, the YOU pin): the drawing is wide enough for them.
+  // Branches may stick out past their card (a long name, the YOU pin): the drawing is wide enough for them.
   const noteEnds = shown.flatMap((c) => (notesOn.get(c.id) ?? []).map((name) => pos.get(c.id).x + noteWidth(name, name === you, S)));
   const caption = (text, x, y) => ({ text, x, y, end: x + labelWidth(text, S) });
   const captions = [
@@ -170,7 +170,7 @@ export function renderGraph(svg, graph, {
 }
 
 // Where each drawn card and pill goes, left to right, for cards of size S in `width` px.
-// The history: Start, the newest card and every card with a sticky note or on the path are always drawn;
+// The history: Start, the newest card and every card with a branch or on the path are always drawn;
 // then the cards right before them, then the newest of the rest, while they fit. Each run of cards left out
 // becomes one pill. Cards only in the diary get their own row, starting right after the card they came from: a
 // replaced history (Start ← Clean history) stays side by side above the old cards.
@@ -221,7 +221,7 @@ function arrange(order, refs, S, width, maxCols, font, path) {
   return { history, diary, width: right + S.pad };
 }
 
-// main first, other sticky notes by name, the Wall's copy last.
+// main first, other branches by name, the Wall's copy last.
 const refRank = (name) => (name === 'main' ? 0 : name.includes('/') ? 2 : 1);
 
 // Parents before children; among the cards that are ready, the oldest goes first.
@@ -318,7 +318,7 @@ function cardHtml(c, S, small, on) {
     aria-label="Card ${short(c.id)} by ${esc(c.author)}: ${esc(c.message)}">${frame}${body}</g>`;
 }
 
-// A note's label, and the YOU pin after it.
+// A branch's label, and the YOU pin after it.
 const labelWidth = (name, S) => Math.round(name.length * S.note * 0.6 + S.note * 1.4);
 const PIN = 3.3; // the pin's width, in note-font sizes
 const noteWidth = (name, isYou, S) => labelWidth(name, S) + (isYou ? 5 + S.note * PIN : 0);

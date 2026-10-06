@@ -30,10 +30,10 @@ const CARD_SCENES = new Set(['paper', 'exit', 'wrap']); // one full-width card i
 // Step 4's two ways to get the Wall's cards (way) sit side by side, as one choice.
 const ACTIONS = [
   { id: 'commit', words: 'Save card', cmd: 'git commit' },
-  { id: 'branch', words: 'New sticky note', cmd: 'git switch -c' },
+  { id: 'branch', words: 'New branch', cmd: 'git switch -c' },
   { id: 'switch', words: 'Switch to', cmd: 'git switch', pick: true },
   { id: 'merge', words: 'Merge', cmd: 'git merge', pick: true, mainOnly: true },
-  { id: 'deleteNote', words: 'Delete sticky note', cmd: 'git branch -d', pick: true },
+  { id: 'deleteNote', words: 'Delete branch', cmd: 'git branch -d', pick: true },
   { id: 'push', words: 'Send to Wall', cmd: 'git push', mainOnly: true },
   { id: 'pull', words: 'Get & combine', cmd: 'git pull --no-rebase', mainOnly: true, way: 'merge' },
   { id: 'rebase', words: 'Replay on top', cmd: 'git pull --rebase', mainOnly: true, way: 'rebase' },
@@ -44,8 +44,8 @@ const DIARY_LABEL = 'only in your safety diary (reflog)';
 
 const LEGEND = [
   ['commit', '<span>← points to the card before</span>'],
-  ['branch', '<span><i class="sw note"></i>sticky note</span>'],
-  ['branch', '<span><i class="sw you">YOU</i>your pin (HEAD): the note you\'re on</span>'],
+  ['branch', '<span><i class="sw note"></i>branch</span>'],
+  ['branch', '<span><i class="sw you">YOU</i>your pin (HEAD): the branch you\'re on</span>'],
   ['wall', '<span><i class="sw wall"></i>the Wall, last time you checked</span>'],
 ];
 
@@ -57,7 +57,7 @@ const SUMMARY = [
 
 // [concept, plain words, the command its button showed]
 const IDEAS = [
-  ['save', 'Save a card', 'git commit'], ['branch', 'Make a sticky note', 'git switch -c'],
+  ['save', 'Save a card', 'git commit'], ['branch', 'Make a branch', 'git switch -c'],
   ['switch', 'Switch notes', 'git switch'], ['fastforward', 'Fast-forward a note', 'git merge'],
   ['merge', 'Combine two ideas', 'git merge'], ['conflict', 'Solve a conflict', 'git merge + git commit'],
   ['push', 'Send to the Wall', 'git push'], ['rejected', 'Have a send refused', 'git push'],
@@ -222,7 +222,7 @@ function derive() {
   return {
     n: session.step, s, scene: session.scene, card: CARD_SCENES.has(session.scene.kind), chaos, byId, tip, mine, others,
     note: me.branch,
-    // A note can be deleted once the note you're on has its card (git branch -d); main stays.
+    // A note can be deleted once the branch you're on has its card (git branch -d); main stays.
     deletable: others.filter((n) => n !== 'main' && mine.has(branches[n])),
     locked: !chaos && me.branch === 'main' && Boolean(s.mainLocked),
     monster: chaos ? { ...lab.chaos, ...draft } : { ...card, ...draft },
@@ -411,9 +411,11 @@ function taskHTML() {
   return `<p class="eyebrow">Step ${n}</p>
     <h1>${esc(s.title)}</h1>
     ${s.fixedLine ? `<p class="fixed-line">${esc(s.fixedLine)}</p>` : ''}
-    <p class="instruction">${rich(s.instruction)}</p>
+    ${s.story ? `<div class="instruction story">
+      <p><span class="story-label">What is happening</span><span>${rich(s.story.now)}</span></p>
+      <p class="${state.me.mission ? 'mission-box' : ''}"><span class="story-label">Your job</span>${steps(state.me.mission || s.story.job)}${pairLine()}</p>
+      <p><span class="story-label">In Git</span><span>${rich(s.story.git)}</span></p></div>` : `<p class="instruction">${rich(s.instruction)}</p>${missionBox()}`}
     ${s.fresh ? `<p class="fresh-line">${esc(s.fresh)}</p>` : ''}
-    ${missionBox()}
     ${verdictHTML()}
     ${predictHTML()}
     ${goals.length ? `<ul class="goals">${goals.map((g, i) => `<li class="${
@@ -422,14 +424,27 @@ function taskHTML() {
     ${ask}`;
 }
 
-function missionBox() {
+// A job written as "1. … 2. …" shows one line per click.
+function steps(text) {
+  const parts = text.split(/\s(?=\d+\.\s)/);
+  if (parts.length < 2) return `<span>${rich(text)}</span>`;
+  return `<span class="steps">${parts.map((x) => `<span>${rich(x)}</span>`).join('')}</span>`;
+}
+
+// Step 2 only: which pair you are in, with a way to swap.
+function pairLine() {
   const { me, lab } = state;
+  if (V.n !== 2 || !me.pair || me.both) return '';
   const partners = lab.members.filter((m) => m.pair === me.pair && m.pid !== me.pid && m.online).map((m) => m.name);
-  const pair = V.n === 2 && me.pair && !me.both
-    ? `<p class="pair">You're in Pair ${esc(me.pair)}${partners.length ? ` with ${esc(list(partners))}` : ', on your own'}
-        (<button class="linkish" data-pair>change</button>)</p>` : '';
+  return `<span class="pair">You're in Pair ${esc(me.pair)}${partners.length ? ` with ${esc(list(partners))}` : ', on your own'}
+    (<button class="linkish" data-pair>change</button>)</span>`;
+}
+
+function missionBox() {
+  const { me } = state;
+  const pair = pairLine();
   if (!me.mission && !pair) return '';
-  return `<div class="mission-box"><p class="label">Your mission</p>${me.mission ? `<p>${rich(me.mission)}</p>` : ''}${pair}</div>`;
+  return `<div class="mission-box"><p class="label">Your mission</p>${me.mission ? `<p>${rich(me.mission)}</p>` : ''}${pair ? `<p>${pair}</p>` : ''}</div>`;
 }
 
 // My latest prediction against Git's answer: "You predicted: conflict on TOP. Git: conflict on TOP. ✓"
@@ -478,7 +493,7 @@ function doneHTML() {
 const HINT_PICKS = [
   ['switch', /\*\*Switch to\*\* and pick \*\*(.+?)\*\*/],
   ['merge', /\*\*Merge (.+?) into main\*\*/],
-  ['deleteNote', /\*\*Delete sticky note\*\* and pick \*\*(.+?)\*\*/],
+  ['deleteNote', /\*\*Delete branch\*\* and pick \*\*(.+?)\*\*/],
 ];
 function showHint() {
   for (const el of document.querySelectorAll('.hinted')) el.classList.remove('hinted');
@@ -504,7 +519,7 @@ function hintTargets(hint) {
     if (a) out.push(`#actions [data-act="${a.id}"]`);
     else if (words === 'change') out.push(part ? `#draft [data-part="${part}"]` : '#draft');
     else if (words === 'Finish merge') out.push('#banner [data-open-resolver]');
-    else if (words === 'Undo this card' || words === 'Move my note back here') out.push('#graph-scroll');
+    else if (words === 'Undo this card' || words === 'Move my branch back here') out.push('#graph-scroll');
   }
   if (/^Click the .*card/.test(hint)) out.push('#graph-scroll');
   return out;
@@ -646,7 +661,7 @@ async function copyGitIn7() {
     ok = document.execCommand('copy');
     area.remove();
   }
-  toast(ok ? 'Copied. Paste it into your notes.' : 'Copy did not work. Select the lines and copy them.', ok ? 'good' : 'bad');
+  toast(ok ? 'Copied. Paste it into your branchs.' : 'Copy did not work. Select the lines and copy them.', ok ? 'good' : 'bad');
 }
 
 // ---------- The paper, the exit question, the wrap ----------
@@ -770,7 +785,7 @@ function renderActions() {
   const ways = fresh.filter((a) => a.way && V.isNew(a.id) && !offMain(a));
   const row = (acts, isNew) => [...new Set(acts.map((a) => actionHTML(a, isNew, a.id === next)))].join('');
   // Step 5's new tools live in the card details; say where.
-  const where = V.isNew('revert') ? '<p class="actions-hint">Click a card to undo it, or to move your note back to it.</p>' : '';
+  const where = V.isNew('revert') ? '<p class="actions-hint">Click a card to undo it, or to move your branch back to it.</p>' : '';
   patch(box, `
     ${fresh.length > ways.length ? `<div class="actions-new">${row(fresh.filter((a) => !ways.includes(a)), true)}</div>` : ''}
     ${ways.length ? waysHTML(ways) : ''}
@@ -828,12 +843,12 @@ function actionHTML(a, isNew, mission = false) {
   const options = noteChoices(a.id).map((n) => `<option${n === choice ? ' selected' : ''}>${esc(n)}</option>`).join('');
   return `<div class="${cls}">
       <button class="act-hit" data-act="${a.id}" aria-label="${esc(`${a.words} ${choice}`)}${into}"></button>
-      <span class="act-words">${esc(a.words)} <select data-pick="${a.id}" aria-label="Which sticky note">${options}</select>${into}</span>
+      <span class="act-words">${esc(a.words)} <select data-pick="${a.id}" aria-label="Which branch">${options}</select>${into}</span>
       <code class="act-cmd">${esc(a.cmd)}</code>${tag}
     </div>`;
 }
 
-// Sticky notes show from Step 2, where they are taught. At Step 4's reveal the Wall shows one change's
+// Branches show from Step 2, where they are taught. At Step 4's reveal the Wall shows one change's
 // integration path: my lab's, or the one the student picks.
 function renderTable() {
   if (V.chaos) return;
@@ -867,9 +882,9 @@ function pathsHTML(paths, shown) {
 }
 
 // Draw only when something changed. Full cards while they all fit, else small ones; cards that still
-// don't fit fold into pills "← N older cards" (never one with a sticky note). Pressing a pill draws them
-// all, to scroll, and shows your sticky note. Then keep the newest cards in view unless the student
-// scrolled back; right after my own action (or on first draw), show where my sticky note is.
+// don't fit fold into pills "← N older cards" (never one with a branch). Pressing a pill draws them
+// all, to scroll, and shows your branch. Then keep the newest cards in view unless the student
+// scrolled back; right after my own action (or on first draw), show where my branch is.
 function draw(svg, scroller, graph, opts) {
   const pad = getComputedStyle(scroller);
   const width = scroller.clientWidth - parseFloat(pad.paddingLeft) - parseFloat(pad.paddingRight);
@@ -958,10 +973,10 @@ function openNewNote(anchor) {
   const name = V.n === 2 ? state.me.pairNote || '' : '';
   const pop = openPopover(anchor, `
     <form class="new-note">
-      <p class="eyebrow">New sticky note</p>
-      <input name="name" value="${esc(name)}" maxlength="20" autocomplete="off" spellcheck="false" aria-label="Name of the sticky note">
+      <p class="eyebrow">New branch</p>
+      <input name="name" value="${esc(name)}" maxlength="20" autocomplete="off" spellcheck="false" aria-label="Name of the branch">
       <code>git switch -c <span>${esc(name)}</span> main</code>
-      <button class="primary">Make sticky note</button>
+      <button class="primary">Make branch</button>
     </form>`);
   const input = pop.querySelector('input');
   input.focus();
@@ -1056,7 +1071,7 @@ function replayHTML(c) {
     + (later.length ? `<dt>Replayed as</dt><dd>${later.map(chip).join('')}</dd>` : '');
 }
 
-// A merge card's parents, by the sticky notes they came from: "Merge branch 'sporty'" → main, sporty.
+// A merge card's parents, by the branches they came from: "Merge branch 'sporty'" → main, sporty.
 function mergedNotes(message) {
   const m = /^Merge (?:remote-tracking )?branch '(.+?)'(?: into (\S+))?/.exec(message);
   return m ? [m[2] ?? 'main', fromName(m[1])] : [];
@@ -1071,7 +1086,7 @@ function cardActions(c) {
       <button class="${cls}" data-card-act="revert" ${undoWhy ? 'disabled' : ''}>
         <span class="act-words">Undo this card</span><code class="act-cmd">git revert ${short(c.id)}</code></button>
       <button class="${cls}" data-card-act="reset" ${moveWhy ? 'disabled' : ''}>
-        <span class="act-words">Move my note back here</span><code class="act-cmd">git reset --hard ${short(c.id)}</code></button>
+        <span class="act-words">Move my branch back here</span><code class="act-cmd">git reset --hard ${short(c.id)}</code></button>
       ${[undoWhy, moveWhy].filter(Boolean).map((w) => `<p class="why">${esc(w)}</p>`).join('')}
     </div>`;
 }
@@ -1146,7 +1161,7 @@ function openResolver() {
 }
 
 // An open merge in words, by kind: a merge, an undo (revert) or a replay (rebase). Git's first side
-// (ours) is the note's own, or in a replay the Wall's: the new base. Each Keep button says what it keeps:
+// (ours) is the branch's own, or in a replay the Wall's: the new base. Each Keep button says what it keeps:
 // "Keep main's 👔 shirt & tie", "Keep before 5c36f17: 👑 crown". sides: [name, outfit, a muted second line].
 function openWords(m) {
   const marks = 'Git marks each clash in outfit.txt.';

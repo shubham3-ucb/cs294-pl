@@ -70,7 +70,7 @@ function drawPassive(s) {
     return;
   }
   const why = s.shows === 'claims' && st.claims
-    ? `<div class="s-why"><p class="s-sub">Why each claim shrinks</p>${st.claims.map((c) =>
+    ? `<div class="s-why"><p class="s-sub">Why the data supports less than each claim says</p>${st.claims.map((c) =>
       `<p><strong>“${esc(c.quote)}”</strong><br>They measured: ${esc(c.measured)} ${esc(c.why)}</p>`).join('')}</div>` : '';
   const slide = slideHtml(s, st.results, { paper: st.paper, claims: st.claims });
   if (slide + why === passive && app.querySelector('.s-slide')) return;
@@ -170,7 +170,7 @@ function drawLabels(s) {
         <a href="${esc(p.url)}" target="_blank" rel="noopener">Stack Overflow · ${esc(p.license)}</a></p>
       <p class="s-sub">The question</p><div class="s-body">${blocks(p.question)}</div>
       <p class="s-sub">From the accepted answer</p><div class="s-body s-answer">${blocks(p.answer)}</div>
-      <p><strong>The asker and <code>${esc(p.command)}</code>:</strong></p>
+      <p><strong>Is the asker stuck on <code>${esc(p.command)}</code>?</strong></p>
       <div class="s-yesno">${s.labels.map((l) => `<button data-v="${l.id}" title="${esc(l.hint)}" class="${mine[p.id] === l.id ? 'on' : ''}">${esc(l.label)}</button>`).join('')}</div>
       <p class="s-msg"></p>
     </article>`).join('')}`;
@@ -197,7 +197,7 @@ function drawGroup(s) {
   const fields = s.fields === 'claim' ? s.claimFields : s.designFields;
   const claim = s.fields === 'claim' && g.claim ? `<div class="s-claim"><p class="s-sub">Your claim · ${esc(g.claim.where)}</p>
     <p class="quote">“${esc(g.claim.quote)}”</p><p class="muted">Look at: ${esc(g.claim.look)}</p></div>` : '';
-  app.innerHTML = `${top()}${intro(s)}<p class="muted">${esc(g.name)}: ${esc(g.members.join(', '))}. One answer per group: pick one person to type.</p>
+  app.innerHTML = `${top()}${intro(s)}<p class="muted">${esc(g.name)} is ${esc(g.members.join(', '))}. One answer per group, so pick one person to type.</p>
     ${claim}${(fields ?? []).map((f) => `<div class="s-field"><label for="f-${f.id}">${esc(f.label)}</label>
       <textarea id="f-${f.id}" data-f="${f.id}" maxlength="300" placeholder="${esc(f.placeholder)}">${esc(g.answers?.[f.id] ?? '')}</textarea>
       <span class="by" id="by-${f.id}"></span></div>`).join('')}`;

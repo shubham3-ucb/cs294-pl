@@ -1,6 +1,6 @@
 # Thursday · Git, Part 2: The Humans · lesson script
 
-80 min (77 + 3 buffer) · the app at `/thu`, same server as Tuesday · you press only **Next** · deck for the record: [`slides/thursday_app.pptx`](../slides/thursday_app.pptx)
+80 min (74 + 6 buffer) · the app at `/thu`, same server as Tuesday · you press only **Next** · deck for the record: [`slides/thursday_app.pptx`](../slides/thursday_app.pptx)
 Paper: Yang, Zhang, Pan, Xu, Zhou, Huang. *Do Developers Really Know How to Use Git Commands? A Large-Scale Study Using Stack Overflow.* ACM TOSEM 2022. Its data is public: [github.com/gitcommandstudy/gitcommands](https://github.com/gitcommandstudy/gitcommands).
 
 The console shows **Say**, **Ask** and **Hope to hear** for every scene, and a clock: time in this scene against its plan (red when over). This page is the plan around it. The short version for the day is [`TEACHER_BRIEF.md`](TEACHER_BRIEF.md).
@@ -12,7 +12,7 @@ After this session, we should be confident students could:
 2. **Place** data on Sarah's ladder (watching > traces > asking) and **catch** a measure that does not match its claim, by checking it on real data: the counting rule (8 posts) and qualitative coding (Table 8).
 3. **Turn** a finding that survives into one tool change, with an evaluative question, a measure, one threat to it, and data that does not rely on asking.
 
-Checked in: (1) the two votes · (2) the 8 labels, the 7 codes and the claim verdicts · (3) the design cards and the exit line.
+Checked in: (1) the survey comparison and the claim verdicts · (2) the 8 labels, the 7 codes and the claim verdicts · (3) the design cards and the exit line.
 
 ## Why these activities
 
@@ -36,30 +36,26 @@ Sarah's test: completing the activity teaches the concept, and you cannot comple
 | Clock | Min | Scene | Students do | Land this |
 |---|---|---|---|---|
 | 0:00 | 3 | Join | Type a first name | — |
-| 0:03 | 4 | Take the paper's survey | The real questions | You are respondent 93. |
-| 0:07 | 3 | How the study was done | Listen | Collect 80,370 questions; measure views and accepted answers; survey 92. |
-| 0:10 | 2 | Who is in this study? | Vote | — |
-| 0:12 | 2 | People who asked. Nobody was watched. | — | Asking shows where people got stuck, not what they do. |
-| 0:14 | 2 | When does a question count for `git reset`? | Vote | — |
-| 0:16 | 2 | A word search | — | Even a command only in the answer counts. |
-| 0:18 | 2 | What they found | Listen | Five findings; we check them. |
-| 0:20 | 3 | You and the paper's 92 | Compare | Self-ratings and memories are shaky; the 92 came via Stack Overflow. |
-| 0:23 | 8 | Read 8 real posts | Label each: stuck / needs it / not about it | — |
-| 0:31 | 4 | What the word search missed | — | The rule counts fixes as problems. |
-| 0:35 | 5 | Sort 7 survey comments | Sort into the paper’s 6 groups | — |
-| 0:40 | 3 | Did you agree? | — | No method, no agreement reported. |
-| 0:43 | 5 | **Break** | Back on /thu | Groups form on Next. |
-| 0:48 | 7 | Put one claim on trial | Groups: what was measured, what it shows | — |
-| 0:55 | 5 | The verdicts | Reasons on laptops | Experience holds (weakly); three shrink. |
-| 1:00 | 9 | Design a better undo | Groups: fix, test, measure + risk, data | — |
-| 1:09 | 3 | Your designs | Read them out | Which can you test by watching? |
-| 1:12 | 2 | What holds, what doesn't | — | Fair to the authors. |
-| 1:14 | 2 | One idea to take home | One line each | — |
-| 1:16 | 1 | **Asking is not using.** | — | Check what your data really records. |
-| 1:17 | 3 | Buffer |  |  |
+| 0:03 | 4 | Take the paper's survey | Answer the real questions | You are respondent 93. |
+| 0:07 | 4 | How the study was done | Listen | They collected 80,370 questions, counted a command when its name appears in the question or the accepted answer, measured views and accepted answers, and surveyed 92 people. |
+| 0:11 | 3 | What the paper found | Listen | Five findings; we check them today. |
+| 0:14 | 3 | Your answers next to the paper's 92 | Compare | Self-ratings and memories are weak evidence; the 92 came via Stack Overflow. |
+| 0:17 | 8 | Read 8 real posts | Label each: stuck on it / needs it but doesn't know it / not about it | — |
+| 0:25 | 4 | Your labels for the 8 posts | — | In 5 of 8 the command is only in the answer; the paper counts all 8. |
+| 0:29 | 5 | Sort 7 survey comments | Sort into the paper's 6 categories | — |
+| 0:34 | 3 | Your sorting next to the paper's | — | No method named, no agreement reported. |
+| 0:37 | 5 | **Break** | Back on /thu | Groups form on Next. |
+| 0:42 | 8 | Check one claim from the paper | Groups: what was measured, what it shows | — |
+| 0:50 | 5 | The four claims, and what the data supports | Reasons on laptops | The experience claim holds (it is weak); three shrink. |
+| 0:55 | 10 | Design a better undo | Groups: change, test, measure + risk, data | — |
+| 1:05 | 3 | Your designs | Read them out | Which can you test by watching? |
+| 1:08 | 3 | What holds in the paper, and what does not | — | Fair to the authors. |
+| 1:11 | 2 | One idea to take home | One line each | — |
+| 1:13 | 1 | Thank you | — | What people ask shows where they get stuck, not what they can do. |
+| 1:14 | 6 | Buffer |  |  |
 
 **Never cut:** the 8 labels · the coding · the verdicts · the design · the exit.
-**Running late:** "Your designs" takes two groups; "You and the paper's 92" takes 2 minutes; "What they found" is read in one breath.
+**Running late:** "Your designs" takes two groups; "Your answers next to the paper's 92" takes 2 minutes; "What the paper found" is read in one breath.
 
 ## At the verdicts: why each claim shrinks
 

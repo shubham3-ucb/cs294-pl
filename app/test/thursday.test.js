@@ -33,7 +33,7 @@ const SURVEY_OK = { area: 0, degree: 1, years: 6, level: 2, why: 'daily use', le
 const survey = (pid, a = SURVEY_OK) => thu.answer({ pid, scene: 'survey', value: JSON.stringify(a) });
 
 describe('the script', () => {
-  test('77 minutes + 3 of buffer, every scene well formed, the survey word for word from the form', () => {
+  test('74 minutes + 3 of buffer inside the 80-minute slot, every scene well formed, the survey word for word from the form', () => {
     assert.equal(TOTAL_MINUTES + BUFFER_MINUTES, 80);
     assert.equal(new Set(SCENES.map((s) => s.id)).size, SCENES.length);
     for (const s of SCENES) {
@@ -67,7 +67,7 @@ describe('the script', () => {
 });
 
 describe('a class', () => {
-  test('join, survey, votes, labels, codes, exit', () => {
+  test('join, survey, labels, codes, exit', () => {
     reset();
     assert.equal(thu.join({ name: '  ' }).ok, false);
     const a = join('Ana'), b = join('Raj');
@@ -77,14 +77,9 @@ describe('a class', () => {
     assert.equal(survey(a, { ...SURVEY_OK, learn: [] }).ok, false);
     assert.equal(survey(a, { ...SURVEY_OK, years: 99 }).ok, false);
     ok(survey(a, { ...SURVEY_OK, degree: 3, degreeOther: 'Diploma' }));
-    assert.equal(thu.answer({ pid: a, scene: 'who', value: 0 }).ok, false, 'a later scene takes no answers yet');
-    goTo('who');
+    assert.equal(thu.answer({ pid: a, scene: 'label', post: POSTS[0].id, value: 'stuck' }).ok, false, 'a later scene takes no answers yet');
+    goTo('paper');
     ok(survey(b, { ...SURVEY_OK, level: 1, years: 3, learn: [0, 4] })); // late: the survey is open until its reveal ends
-    ok(thu.answer({ pid: a, scene: 'who', value: 0 }));
-    ok(thu.answer({ pid: b, scene: 'who', value: 2 }));
-    ok(thu.answer({ pid: b, scene: 'who', value: 0 }));
-    goTo('who-reveal');
-    assert.deepEqual(thu.adminState('').results.counts, [2, 0, 0]);
     goTo('survey-reveal');
     const sv = thu.adminState('').results;
     assert.deepEqual([sv.n, sv.medianYears, sv.learn[4], sv.learn[0], sv.ticks], [2, 4.5, 2, 1, 4]);
@@ -127,7 +122,7 @@ describe('a class', () => {
     assert.ok(s.scene.posts.every((p) => !('askerNamesIt' in p)));
     goTo('code');
     assert.ok(thu.state(a).scene.comments.every((c) => !('category' in c)), 'no paper category before the reveal');
-    goTo('who-reveal');
+    goTo('survey-reveal');
     assert.equal(thu.state(a).scene.hope, undefined);
     goTo('claims');
     const g = thu.state(a).group;

@@ -12,8 +12,8 @@ export const PAPER = {
   data: 'github.com/gitcommandstudy/gitcommands',
 };
 
-export const MESSAGE = 'Asking is not using.';
-export const BUFFER_MINUTES = 3;
+export const MESSAGE = 'What people ask shows where they get stuck, not what they can do.';
+export const BUFFER_MINUTES = 6;
 
 // The paper's survey, word for word from the authors' published form (Q1, the donation choice, is left out).
 export const SURVEY = [
@@ -43,9 +43,9 @@ const ANSWER_ONLY = POSTS.filter((p) => !p.askerNamesIt).length;
 
 // How students label a post the paper counted for a command.
 export const LABELS = [
-  { id: 'stuck', label: 'Stuck on it', short: 'Stuck', hint: 'They ask about this command.' },
-  { id: 'needs', label: 'Needs it, doesn’t know it', short: 'Needs it', hint: 'It would fix their problem; they don’t know it.' },
-  { id: 'unrelated', label: 'Not about it', short: 'Not about it', hint: 'It is only mentioned.' },
+  { id: 'stuck', label: 'Stuck on it', short: 'Stuck', hint: 'The asker is asking about this command.' },
+  { id: 'needs', label: 'Needs it but doesn’t know it', short: 'Needs it', hint: 'This command would solve their problem, but they do not know it.' },
+  { id: 'unrelated', label: 'Not about it', short: 'Not about it', hint: 'The command is only mentioned; the post is about something else.' },
 ];
 
 // The paper's Table 8: its six categories for 65 survey comments, and its seven example comments, word for word.
@@ -74,205 +74,171 @@ export const CLAIMS = [
   {
     id: 'experience', quote: 'This suggests that even developers with years of development experience can have trouble using Git commands.',
     where: 'RQ2, §3.2',
-    look: 'How did they measure experience? (§2.1 Step 4, §5)',
-    measured: 'Years since the asker joined Stack Overflow.',
-    supports: 'Some long-time users had trouble. True, as written.',
-    why: 'It holds because “can have trouble” is a weak claim. Account age is not Git experience: experienced programmers can be new to Git, like Paper 1’s Microsoft teams.',
+    look: 'How did the authors measure experience? See §2.1 Step 4 and §5.',
+    measured: 'The years since the asker joined Stack Overflow.',
+    supports: 'Some people with old Stack Overflow accounts asked for help. The claim is true as written.',
+    why: 'It holds because “can have trouble” asks for very little. But the age of an account is not Git experience: an experienced programmer can be new to Git, like the Microsoft teams in Tuesday’s paper.',
   },
   {
     id: 'difficulty', quote: '…for the more frequently-used commands, git credential and git submodule are among the most difficult ones.',
     where: '§1, finding 4; §3.4',
-    look: 'Hint: 36.5% of all Git questions have no accepted answer.',
-    measured: 'The share of a command’s questions with no accepted answer.',
-    supports: 'credential is above average (43.0% vs 36.5%); submodule is about average (37.5%).',
-    why: 'An accepted answer is one click by the asker, often forgotten (§5). And a post counted through its answer always has one, so commands that appear in fixes look easy.',
+    look: 'What does “difficult” mean in §3.4? For comparison, 36.5% of all the Git questions have no accepted answer (our count on the paper’s data).',
+    measured: 'The share of a command’s questions that have no accepted answer.',
+    supports: 'For git credential the share is above average (43.0% against 36.5% overall); for git submodule it is about average (37.5%).',
+    why: 'Accepting an answer is one click by the asker, and it is often forgotten (§5). And a post counted through its accepted answer has one by definition, so commands that appear in fixes look easy.',
   },
   {
     id: 'learning', quote: 'Self-learning is the primary learning approach.', where: 'Abstract; §3.5',
-    look: 'Who was asked, and how were they found? (§2.2)',
-    measured: 'What 92 people ticked about how they learned.',
-    supports: 'These 92 say they learned mostly from the internet and the docs.',
-    why: 'Most were found through Stack Overflow, so of course they use the internet. And “how I learned” is a memory.',
+    look: 'Who was asked, and how were they found? See §2.2.',
+    measured: 'The boxes that 92 people ticked about how they learned Git.',
+    supports: 'These 92 people say they learned mostly from the internet and the documentation.',
+    why: 'Most of the 92 were found through Stack Overflow, so people who learn from the internet are over-represented. And how one learned Git is a memory, not a record.',
   },
   {
     id: 'selfrating', quote: 'This result, although surprising, is consistent with the conclusion we obtained in RQ2, indicating that even experienced developers still have doubts about Git usage.',
     where: '§3.5',
-    look: 'What is the evidence for “doubts”? (§3.5, Fig. 4)',
-    measured: 'People rating their own Git level, novice to expert.',
+    look: 'What is the evidence for “doubts”? See §3.5 and Figure 4.',
+    measured: 'People rating their own Git level, from novice to expert.',
     supports: 'Most of the 92 rate themselves competent or below (79 of 92).',
-    why: 'A self-rating is a judgment: modesty and the labels move it. It measures neither doubts nor skill.',
+    why: 'A self-rating is a judgment, moved by modesty and by the wording of the levels. It measures neither doubts nor skill.',
   },
 ];
 
 export const CLAIM_FIELDS = [
-  { id: 'measured', label: 'What they measured', placeholder: 'The number behind the claim' },
-  { id: 'supports', label: 'What it really shows', placeholder: 'One sentence you would sign' },
+  { id: 'measured', label: 'What the authors measured', placeholder: 'The number or count that the claim rests on' },
+  { id: 'supports', label: 'What that measurement really shows', placeholder: 'One sentence your group would stand behind' },
 ];
 
 export const DESIGN_FIELDS = [
-  { id: 'change', label: 'Your fix', placeholder: 'What the user sees or types' },
-  { id: 'rq', label: 'How you would test it', placeholder: 'Does it cut the time to recover for …?' },
-  { id: 'measure', label: 'What you measure, and one risk', placeholder: 'e.g. time to recover; risk: people learn from the first try' },
-  { id: 'data', label: 'How you collect it', placeholder: 'Watch people, log real use, or ask them?' },
+  { id: 'change', label: 'Your change', placeholder: 'What the user would see or type' },
+  { id: 'rq', label: 'How you would test it', placeholder: 'For example: does it cut the time to recover, and for whom?' },
+  { id: 'measure', label: 'What you would measure, and one risk', placeholder: 'For example: time to recover; a risk is that people learn from the first try' },
+  { id: 'data', label: 'How you would collect the data', placeholder: 'Would you watch people, log real use, or ask them?' },
 ];
 
-const WHO = [
-  'People watched while they used Git',
-  'People who asked on Stack Overflow, plus 92 surveyed',
-  'Git’s own usage logs',
-];
-const RULE = [
-  'Someone reads it and decides',
-  '`git reset` appears in the question or its accepted answer',
-  'The asker tags it “reset”',
-];
-
-// kind: join · survey · slide · vote · reveal · label · code · group · break · exit · end
-// shows: what a reveal adds from the class (votes of a scene, survey, labels, codes, group answers, exit lines).
-// Copy rules: a title of six words or fewer; at most two short lines; one idea per line; plain words.
+// kind: join · survey · slide · reveal · label · code · group · break · exit · end
+// shows: what a reveal adds from the class (survey, labels, codes, group answers, exit lines).
+// Copy rules: plain titles that say what is on the slide; at most two short complete sentences; facts are told, not quizzed.
 export const SCENES = [
   {
-    id: 'join', kind: 'join', part: 'Thursday', title: 'The Humans', minutes: 3,
-    lines: ['Open the link. Type your first name.'],
-    say: 'Tuesday you used Git. Today we look at a study of people asking about Git: how it was done, whether its claims hold, and what a better tool would be.',
+    id: 'join', kind: 'join', part: 'Thursday', title: 'A study of Git users', minutes: 3,
+    lines: ['Open the link and type your first name.'],
+    say: 'On Tuesday you used Git. Today we read a study of what people ask about Git: how it was done, then we check it ourselves, judge its claims, and design a better tool.',
   },
   {
     id: 'survey', kind: 'survey', part: 'Warm-up', title: 'Take the paper’s survey', minutes: 4,
-    lines: ['The same questions it asked 92 developers.', 'Answer for yourself.'],
+    lines: ['These are the questions the paper asked 92 developers.', 'Answer them for yourself on your laptop.'],
     say: 'These are the paper’s real survey questions. The projector shows totals only. We compare you with the 92 later.',
   },
   {
-    id: 'how', kind: 'slide', part: '1 · The study', title: 'How the study was done', minutes: 3,
+    id: 'how', kind: 'slide', part: '1 · The study', title: 'How the study was done', minutes: 4,
     table: [
-      ['Collect', '80,370 Stack Overflow questions about Git commands, 2008 to 2020.'],
-      ['Measure', 'Per command: how often viewed (popular), and how often no answer was accepted (hard).'],
-      ['Ask', 'A survey: 508 invited, 92 answered.'],
+      ['Collect', 'The authors collected 80,370 Stack Overflow questions about Git commands, asked between 2008 and 2020.'],
+      ['Count', 'A question counts for a command when the command’s name appears in the question or in its accepted answer.'],
+      ['Measure', 'For each command they measured how often its questions were viewed, and how often a question had no accepted answer.'],
+      ['Survey', 'They also sent a survey to 508 developers, and 92 answered.'],
     ],
-    say: 'No judging yet: this is what they did. Collect: all 198,626 questions tagged git; they kept those whose question or accepted answer names a Git command. Measure: also how long each asker had been on Stack Overflow. Ask: the invited were recent Stack Overflow askers and some researchers.',
+    say: 'Just tell them; there is no quiz here. Nobody was watched using Git: the data is questions people asked, plus a survey. The count is a text match; nobody reads a question to decide what it is about. Two raters did check that the questions are about Git commands at all (Cohen’s kappa 0.844). The survey went to recent Stack Overflow askers and some researchers.',
   },
   {
-    id: 'who', kind: 'vote', part: '1 · The study', title: 'Who is in this study?', minutes: 2,
-    options: WHO,
-    say: 'Vote on your laptop.',
-  },
-  {
-    id: 'who-reveal', kind: 'reveal', part: '1 · The study', title: 'People who asked. Nobody was watched.', minutes: 2, shows: 'who', correct: 1,
-    lines: ['Questions people asked, plus a survey.', 'Asking shows where people got stuck, not what they do.'],
-    ask: 'What would watching show that asking can’t?',
-    hope: 'What people actually do, including mistakes they never ask about.',
-    say: 'In Sarah’s terms: need-finding, from traces of asking, plus self-report. Her ladder: watching beats traces, traces beat asking.',
-  },
-  {
-    id: 'rule', kind: 'vote', part: '1 · The study', title: 'When does a question count for `git reset`?', minutes: 2,
-    options: RULE,
-    say: 'Vote. This one rule decides every ranking in the paper.',
-  },
-  {
-    id: 'rule-reveal', kind: 'reveal', part: '1 · The study', title: 'A word search', minutes: 2, shows: 'rule', correct: 1,
-    lines: ['Even if `git reset` appears only in the accepted answer, it counts.', 'Nobody reads the question to decide.'],
-    ask: 'What could go wrong?',
-    hope: 'The fix in the answer gets counted as the problem.',
-    say: 'They did check, with two raters, that the questions are about Git commands at all (Cohen’s kappa 0.844), but not which command each one is about. In fifteen minutes the class checks the rule on real posts.',
-  },
-  {
-    id: 'paper', kind: 'slide', part: '1 · The study', title: 'What they found', minutes: 2,
+    id: 'paper', kind: 'slide', part: '1 · The study', title: 'What the paper found', minutes: 3,
     table: [
-      ['How many', '80,370 questions: a steady 0.4% of Stack Overflow since 2010.'],
-      ['Who asks', 'Many long-time users: in 2020, 40% had joined Stack Overflow more than 5 years earlier.'],
-      ['Most viewed', 'Mostly undo: `revert`, `reflog`, `stash`, `clean`, `reset`.'],
-      ['Hardest', 'Rare commands; then `credential` and `submodule`.'],
-      ['How people learn', 'Mostly on their own: 81.7% of ticked answers.'],
+      ['How many', 'Git questions have been a steady 0.4% of all Stack Overflow questions each year since 2010.'],
+      ['Who asks', 'Many askers are long-time users. In 2020, 40% had joined Stack Overflow more than 5 years earlier.'],
+      ['Most viewed', 'The most-viewed commands are mostly about undoing work: `revert`, `reflog`, `stash`, `clean` and `reset`.'],
+      ['Hardest', 'Rare commands most often lack an accepted answer. Among common commands, `credential` and `submodule` do.'],
+      ['How people learn', 'The 92 surveyed say they learned mostly on their own: 81.7% of the boxes they ticked were self-learning.'],
     ],
-    say: 'Their five findings. Most viewed is an average over commands in 200+ questions. Hardest means most often without an accepted answer. Today we check whether the data supports them.',
+    say: 'These are their five findings. “Most viewed” is an average over commands with 200 or more questions. “Hardest” means most often without an accepted answer. Today we check whether the data supports each one.',
   },
   {
-    id: 'survey-reveal', kind: 'reveal', part: '1 · The study', title: 'You and the paper’s 92', minutes: 3, shows: 'survey',
-    lines: ['The 92 were found mostly through Stack Overflow.', 'Self-ratings and memories are shaky data.'],
+    id: 'survey-reveal', kind: 'reveal', part: '1 · The study', title: 'Your answers next to the paper’s 92', minutes: 3, shows: 'survey',
+    lines: ['The paper’s 92 were found mostly through Stack Overflow.', 'Their answers, like yours, are self-ratings and memories.'],
     ask: 'Would you trust your own answers?',
-    hope: 'Not fully. A level is a judgment; “how I learned” is a memory, shaped by the options.',
-    say: '81.7% is 161 of 197 ticked boxes; by people, 85 of 92 ticked the internet. Sarah: we can learn false things; questions shape answers; be nervous about self-ratings.',
+    hope: 'Not fully. A level is a judgment, and “how I learned” is a memory, shaped by the options on the form.',
+    say: '81.7% is 161 of 197 ticked boxes; by people, 85 of 92 ticked the internet. Sarah’s point: the question shapes the answer, so be careful with self-ratings.',
   },
   {
     id: 'label', kind: 'label', part: '2 · Check it yourself', title: `Read ${POSTS.length} real posts`, minutes: 8,
-    lines: ['Each was counted for one command.', 'Is the asker stuck on it?'],
+    lines: ['The paper counted each of these posts as a question about one command.', 'Read each post on your laptop and pick one of the three labels.'],
     say: 'Real posts from the paper’s data, drawn at random from short, answered posts. Read the question, then the answer, then pick one label.',
   },
   {
-    id: 'label-reveal', kind: 'reveal', part: '2 · Check it yourself', title: 'What the word search missed', minutes: 4, shows: 'labels',
-    lines: [`In ${ANSWER_ONLY} of ${POSTS.length}, the command is only in the answer.`, `The rule still counts all ${POSTS.length} as questions about it.`],
-    ask: 'Did they measure what’s hard?',
-    hope: 'No. They measured where a command’s name appears.',
-    say: '“Needs it, doesn’t know it” is real evidence too: it supports the paper’s idea of recommending commands (§4.1). Our re-run of their rule: the most-viewed question, “How do I undo the most recent local commits?” (9.1 million views), names no command; without it, git reflog falls from #2 to #8.',
+    id: 'label-reveal', kind: 'reveal', part: '2 · Check it yourself', title: `Your labels for the ${POSTS.length} posts`, minutes: 4, shows: 'labels',
+    lines: [`In ${ANSWER_ONLY} of the ${POSTS.length} posts, the command is named only in the accepted answer, not by the asker.`, `The paper still counts all ${POSTS.length} as questions about that command.`],
+    ask: 'Did the paper measure which commands are hard?',
+    hope: 'No. It measured where a command’s name appears.',
+    say: '“Needs it but doesn’t know it” is real evidence too: it supports the paper’s idea of recommending commands (§4.1). Our re-run of their rule: the most-viewed question, “How do I undo the most recent local commits?” (9.1 million views), names no command; without it, git reflog falls from #2 to #8.',
   },
   {
     id: 'code', kind: 'code', part: '2 · Check it yourself', title: 'Sort 7 survey comments', minutes: 5,
-    lines: ['The paper sorted comments into 6 groups.', 'Sort them yourself. Then compare.'],
+    lines: ['The paper sorted the 65 comments from its survey into 6 categories.', 'On your laptop, put each of these 7 comments into one of those categories.'],
     say: 'These are the example comments from the paper’s Table 8. Work alone, quickly.',
   },
   {
-    id: 'code-reveal', kind: 'reveal', part: '2 · Check it yourself', title: 'Did you agree?', minutes: 3, shows: 'codes',
-    lines: ['The paper never says how it sorted, or if two people agreed.', 'Good practice: two people sort, then report agreement.'],
-    ask: 'Would another team get the same groups?',
+    id: 'code-reveal', kind: 'reveal', part: '2 · Check it yourself', title: 'Your sorting next to the paper’s', minutes: 3, shows: 'codes',
+    lines: ['The paper does not say how it sorted the comments, or whether two people agreed.', 'The usual practice is that two people sort independently, and the paper reports how often they agreed.'],
+    ask: 'Would another team get the same categories?',
     hope: 'Maybe not. That is why you name a method and report agreement.',
-    say: 'Sarah: vibes are not an answer. The paper sorted 65 comments “for better delivery purposes”, with no method named. It did measure agreement elsewhere (Cohen’s kappa 0.844, §2.1).',
+    say: 'Sarah’s point: a feeling is not a method. The paper sorted 65 comments “for better delivery purposes”, with no method named. It did measure agreement elsewhere (Cohen’s kappa 0.844, §2.1).',
   },
   {
     id: 'break', kind: 'break', part: 'Break', title: 'Break', minutes: 5,
-    lines: ['5 minutes. Then groups.'],
+    lines: ['We take five minutes, then work in groups.'],
     say: 'Before you press Next: everyone opens the /thu tab again, and “here” on your console matches the room. Groups form when you press Next.',
   },
   {
-    id: 'claims', kind: 'group', part: '3 · Judge it', title: 'Put one claim on trial', minutes: 7, fields: 'claim',
-    lines: ['Your group gets one claim. One person types.', 'Write what they measured. Then what it really shows.'],
+    id: 'claims', kind: 'group', part: '3 · Judge it', title: 'Check one claim from the paper', minutes: 8, fields: 'claim',
+    lines: ['Your group has one sentence from the paper to check.', 'Write what the authors measured, then what that really shows.'],
     say: 'One claim per group. The paper is open on their laptops; the hint points to the section.',
   },
   {
-    id: 'claims-reveal', kind: 'reveal', part: '3 · Judge it', title: 'The verdicts', minutes: 5, shows: 'claims',
-    lines: ['The title asks if developers know how to use Git. Nobody was watched.'],
+    id: 'claims-reveal', kind: 'reveal', part: '3 · Judge it', title: 'The four claims, and what the data supports', minutes: 5, shows: 'claims',
+    lines: ['Nobody was watched using Git, so the data cannot answer the paper’s title.'],
     ask: 'Which claim holds up best?',
-    hope: 'The experience claim, because it is weak. The other three shrink to what was measured.',
+    hope: 'The experience claim, because it asks for little. The other three shrink to what was measured.',
     say: 'Read each group’s sentence, then the model answer. Students see the reasons on their laptops. Be fair: the authors flag the account-age proxy themselves (§5).',
   },
   {
-    id: 'design', kind: 'group', part: '4 · Design', title: 'Design a better undo', minutes: 9, fields: 'design',
-    lines: ['Undo is the most-viewed Git question.', 'Why do people have to ask? Design one fix, and a test.'],
-    say: 'The most-viewed question asks how to undo the last commit; its accepted answer’s fix is git reset HEAD~, and its further reading points to git reflog. Asking can find a need; only a test with real users shows a fix works. Tuesday’s Safety diary was the reflog on screen.',
+    id: 'design', kind: 'group', part: '4 · Design', title: 'Design a better undo', minutes: 10, fields: 'design',
+    lines: ['The most-viewed Git question asks how to undo the last commit.', 'Design one change, and say how you would test whether it helps.'],
+    say: 'Ask them: why do people have to ask how to undo? The most-viewed question asks how to undo the last commit; its accepted answer’s fix is git reset HEAD~, and its further reading points to git reflog. Asking can find a need; only a test with real users shows that a fix works. Tuesday’s Safety diary was the reflog on screen.',
   },
   {
     id: 'design-reveal', kind: 'reveal', part: '4 · Design', title: 'Your designs', minutes: 3, shows: 'design',
-    lines: ['Git added `switch` and `restore` in 2019. Did they help? Only a test with users can say.'],
-    ask: 'Which could you test by watching people?',
-    hope: 'The ones with a measure you can see: time to recover, recoveries that work.',
-    say: 'One group at a time: fix, test, measure and risk, data. Jujutsu (jj) has an operation log and jj undo. In 2020 a developer “working with Git for years” asked what git checkout [file] does next to git restore (the paper’s reference [41]): new commands make new questions.',
+    lines: [],
+    ask: 'Which of these could you test by watching people?',
+    hope: 'The ones with a measure you can see: time to recover, or recoveries that work.',
+    say: 'One group at a time: change, test, measure and risk, data. Git itself added git switch and git restore in 2019; only a test with users could tell whether they helped. Jujutsu (jj) has an operation log and jj undo. In 2020 a developer “working with Git for years” asked what git checkout [file] does next to git restore (the paper’s reference [41]): new commands bring new questions.',
   },
   {
-    id: 'verdict', kind: 'slide', part: 'End', title: 'What holds, what doesn’t', minutes: 2,
+    id: 'verdict', kind: 'slide', part: 'Summary', title: 'What holds in the paper, and what does not', minutes: 3,
     columns: [
       { title: 'Holds', items: [
-        'Git questions are many, and steady.',
-        'Undo is a real need.',
-        'Long-time users can struggle.',
-        'The data is public. We checked it.',
+        'There are many Git questions, and their share is steady.',
+        'Undoing work is a real need.',
+        'Long-time users can still get stuck.',
+        'The data is public, and we could check it ourselves.',
       ] },
-      { title: 'Doesn’t hold, as written', items: [
-        '“Hardest commands”: fixes counted as problems.',
-        'The ranking: one post moves `reflog` from #8 to #2.',
-        '“Learn on their own”: asked of people found on Stack Overflow.',
-        'The comment groups and “doubts”: no method, self-ratings.',
-        'The title’s question: nobody was watched.',
+      { title: 'Does not hold as written', items: [
+        'The hardness ranking counts a command in the fix as the problem.',
+        'The most-viewed ranking rests on a few posts; one post lifts `reflog` from #8 to #2.',
+        'That developers learn on their own was asked of people found on Stack Overflow.',
+        'The comment categories have no stated method, and the “doubts” are self-ratings.',
+        'The title’s question stays open, because nobody was watched.',
       ] },
     ],
-    say: 'Fair to the authors: finding needs from public data is useful, and they published it. What breaks is turning counts of asking into claims about difficulty and skill.',
+    say: 'Be fair to the authors: finding needs from public data is useful, and they published their data. What breaks is turning counts of questions into claims about difficulty and skill.',
   },
   {
-    id: 'exit', kind: 'exit', part: 'End', title: 'One idea to take home', minutes: 2,
-    lines: ['When you build a tool for people, …', 'One line, on your own.'],
+    id: 'exit', kind: 'exit', part: 'Summary', title: 'One idea to take home', minutes: 2,
+    lines: ['On your laptop, finish this sentence in one line of your own.', 'When you build a tool for people, …'],
     say: 'Sarah’s bar: nobody leaves without a new idea about designing tools for people.',
   },
   {
-    id: 'end', kind: 'end', part: 'Thursday', title: MESSAGE, minutes: 1, shows: 'exit',
-    lines: ['Check what your data really records.'],
-    say: 'Thank you. Export the answers from Details, then Reset.',
+    id: 'end', kind: 'end', part: 'Thursday', title: 'Thank you', minutes: 1, shows: 'exit',
+    lines: [MESSAGE],
+    say: 'Export the answers from Details, then Reset.',
   },
 ];
 

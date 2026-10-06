@@ -40,7 +40,7 @@ Open http://localhost:3000/. The terminal prints the teacher link (`/admin?key=K
 
 Join → **0 Chaos** → **1 Save** (commit) → **2 Two ideas** (branch) → **3 Combine** (merge) → Break → **4 Share** (clone, push, pull: merge or rebase) → **5 Undo** (revert, reset, reflog) → **6 Clean up** (squash, force push, gc) → the paper → the exit question → the wrap. 77 minutes, plus 3 of buffer.
 
-Each step is a task scene, then **How Git does it**: one technical card per tool (**What it is · What it does · How Git does it**), the same in the app and on the projector. Students work through each task in the app: their mission, goals that tick live, and **Stuck? Hint**, which names the next click.
+Each step is a task scene, then **How Git does it**: one technical card per tool (**What it is · What it does · How Git does it**), the same in the app and on the projector. Students work through each task in the app: their mission, goals that tick live, and **Need a hint?**, which names the next click.
 
 Some Next presses also act:
 
@@ -57,7 +57,7 @@ What happens in the steps:
 
 - **Step 3.** After the fast-forward of fancy, each lab deletes the fancy note (`git branch -d`). The reveal asks which cards were made on fancy. No card records it.
 - **Step 4.** The first lab to send gets in. A refused lab chooses its way: Combine (merge) or Replay on top (rebase), and says why in one line. The console tile shows "Chose: …"; if nobody picked one way, the reveal says what it would have done. A replayed card keeps its author and author time. It gets a new parent, so a new snapshot, a new committer time and a new ID. The original shows dashed: "only in your safety diary (reflog)". The reveal marks one change's path to main, with this class's own times ("made 10:21 → on the Wall 10:24 · 3 min").
-- **Step 5.** Each lab chooses **Undo this card** (revert) or **Move my note back** (reset). Moving back, then sending, is refused by the Wall (non-fast-forward). If no lab moved back, the reveal says what would have happened.
+- **Step 5.** Each lab chooses **Undo this card** (revert) or **Move my branch back** (reset). Moving back, then sending, is refused by the Wall (non-fast-forward). If no lab moved back, the reveal says what would have happened.
 - **The paper** shows Step 4's paths as they were. After the squash, the Wall has none of those cards.
 - **The wrap.** Each student sees **My Git in 7 lines**: one takeaway per step, 0–6, editable, with Copy. The projector shows the takeaway wall without names. **Export answers** (under Details) downloads every answer and takeaway as Markdown.
 
@@ -65,14 +65,14 @@ What happens in the steps:
 
 ## Rehearse with bots
 
-**Details → Rehearse with bots.** Pick 2–12 bots and a speed (real time, 5× or 20× faster), then press **Start rehearsal**. Bots join like students; their names end in "(bot)". They follow their own Stuck? Hint through the student buttons: saves, sticky notes, deleting fancy, the TOP conflict, the refused send and their lab's way back, Undo, the boss's clean-up, answers and takeaways. You press Next.
+**Details → Rehearse with bots.** Pick 2–12 bots and a speed (real time, 5× or 20× faster), then press **Start rehearsal**. Bots join like students; their names end in "(bot)". They follow their own Need a hint? through the student buttons: saves, branches, deleting fancy, the TOP conflict, the refused send and their lab's way back, Undo, the boss's clean-up, answers and takeaways. You press Next.
 
 To see the student side, open the student link in another window and join. Your lab then waits for you too. **Stop rehearsal**, **Reset session** or a restart removes the bots.
 
 ## If something goes wrong
 
 - **A page looks stuck.** Reload it; the name and lab come back. A grey dot means it is reconnecting by itself. When live updates go quiet, each page asks the server every 2 seconds.
-- **A lab is stuck.** Its status line turns red: "In a conflict for 2:10" or "No clicks for 2:00" (after 2 minutes), or "Refused twice in a row". First point the students at **Stuck? Hint**. Then press **Rescue** on the tile: it finishes the step for that lab with real Git (Steps 2–5, and the boss lab in Step 6). It drops open merges and unsaved parts on the notes it touches.
+- **A lab is stuck.** Its status line turns red: "In a conflict for 2:10" or "No clicks for 2:00" (after 2 minutes), or "Refused twice in a row". First point the students at **Need a hint?**. Then press **Rescue** on the tile: it finishes the step for that lab with real Git (Steps 2–5, and the boss lab in Step 6). It drops open merges and unsaved parts on the notes it touches.
 - **You pressed Next too early.** Press **Back**. Done things stay done: the Wall and the copies, the practice lab's card, the 🥸 card, the clean-up.
 - **Start over.** **Details → Reset session** wipes the session. Everyone joins again.
 - **The app or the link stopped.** Run `./host.sh` again. The session and key are kept; the link changes. Open the new Teacher link (it has the new QR). Students open the new link and type the same name.
@@ -81,10 +81,10 @@ To see the student side, open the student link in another window and join. Your 
 
 The same server runs Thursday at `/thu`: students `/thu`, teacher `/thu/admin?key=KEY`, projector `/thu/screen?key=KEY` (`./host.sh` prints all three). Same key, same presenter mode: **Start presenting**, then only **Next**. Lesson script: [thursday.md](../lesson/thursday.md).
 
-21 scenes, 77 minutes plus 3 of buffer: how the study was done, check it yourself, judge it, design.
+17 scenes, 74 minutes plus 6 of buffer: how the study was done, check it yourself, judge it, design. Students need no reading beforehand.
 
 - **Take the paper's survey.** The authors' published form, Q2–Q7 word for word. The reveal puts the class beside the paper's 92 respondents.
-- **How the study was done**, then **two votes**: who is in the study, and when a question counts for a command. The reveal shows the class's votes and the answer.
+- **How the study was done**, then **what the paper found**: told plainly, no quiz.
 - **Label 8 real posts.** Each shows the command the paper counted it for, the question and the accepted answer. Three labels: stuck on it, needs it but can't name it, not about it. The 8 are drawn at random from the paper's data ([`analysis/thursday_numbers.py`](../analysis/thursday_numbers.py), which also computes every number the paper does not print).
 - **Code 7 comments.** The paper's Table 8 examples, into its 6 categories. The reveal shows agreement with the paper and among the class.
 - **Groups of about 4** form when you press Next after the break, from everyone seen in the last 10 minutes (never a group of 1 when 2 or more are there). **Re-form groups** (under People) shuffles them again and clears group answers. Each group puts one claim on trial, then designs one change with a study, a measure and one threat. One shared answer per group; one person types. Late or returning students join the smallest group.
@@ -99,7 +99,7 @@ Thursday has no Git. **Try it alone: Details → Rehearse with bots** (2–12 bo
 - `npm test`: the Git engine and the session, including whole classes played by hints alone.
 - `npm run e2e`: a real browser. 9 students join by name; then 2 students with the practice lab, with live updates blocked at the end; then lab sizes for 1 to 13 people; then the rehearsal. First run `npx playwright install --only-shell chromium`. Screenshots go to `e2e/shots/`. `E2E_PORT` moves its servers off 3102 and 3104.
 - `npm run rehearsal`: only the rehearsal. 9 bots; the teacher presses only Next until every scene completes.
-- `npm run e2e:thursday`: Thursday in a real browser: a console, the projector and 6 students through all 21 scenes, checking that no slide overflows. `THU_STUDENTS=24` runs a bigger class.
+- `npm run e2e:thursday`: Thursday in a real browser: a console, the projector and 6 students through all 17 scenes, checking that no slide overflows. `THU_STUDENTS=24` runs a bigger class.
 
 ## Files
 
@@ -110,7 +110,7 @@ server/steps.js       every word the class reads: steps, missions, hints, techni
 server/git.js         the real Git behind every button
 server/bots.js        Rehearse with bots
 server/monster.js     outfit.txt, the one file in every card
-server/thursday*.js   Thursday: the session, every word of its 21 scenes, and the 8 posts (thursday_posts.json)
+server/thursday*.js   Thursday: the session, every word of its 17 scenes, and the 8 posts (thursday_posts.json)
 public/               student app (index.html, app.js), console (admin.*), projector (screen.*), graph.js, monster.js;
                       Thursday: thu.* (students), thu-admin.*, thu-screen.*, thu-common.js (the shared slide renderer)
 test/  e2e/           npm test · npm run e2e

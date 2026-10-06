@@ -29,22 +29,22 @@ the paper, the scene script). lesson/tuesday.md wins on wording and timing; step
 - revert: a new commit with the inverse change. reset: moves the branch ref (`--hard`: also the working tree). The reflog is local and per ref. gc prunes unreachable objects once their reflog entries expire.
 - Squash: new commit(s) with new IDs; the old ones become unreachable.
 - Paper claims: only what lesson/tuesday_paper_notes.md supports, phrased as the paper's findings.
-- Name the app's simplifications where they matter (the lab shares one repo; a shared draft per sticky note, section 1).
+- Name the app's simplifications where they matter (the lab shares one repo; a shared draft per branch, section 1).
 
 ---
 
 ## 1. The model (what students see)
 
-Each word has one meaning. "Card" is only a saved version; yellow is only a sticky note.
+Each word has one meaning. "Card" is only a saved version; yellow is only a branch.
 
 - **Outfit** = 4 parts, top to bottom: HAT, GLASSES, TOP, SHOES. Each part is one choice from the palette, drawn as a vertical stack of emoji; the same mini stack is on every card.
 - **Card** = a saved version of the outfit (a commit). Cards never change.
-- **Sticky note** = a branch: a yellow label on one card. It moves when you save.
-- **Your pin** = HEAD: which sticky note *you* are on (per student).
-- **Shared draft** = the outfit being edited (working copy). One per sticky note, shared live by everyone in the lab on that note, stored as the changed parts on top of the note's card. **Switch** refuses while the note you're on has unsaved parts, as Git would protect them: "Save card first: Git keeps one working copy and won't drop your unsaved parts." The simplification is said once, plainly, under the Step 2 card (`ONE_REPO_LINE`): "In real Git, each of you would have your own clone with one working directory. Here your lab shares one repo."
+- **Branch** = a branch: a yellow label on one card. It moves when you save.
+- **Your pin** = HEAD: which branch *you* are on (per student).
+- **Shared draft** = the outfit being edited (working copy). One per branch, shared live by everyone in the lab on that note, stored as the changed parts on top of the note's card. **Switch** refuses while the note you're on has unsaved parts, as Git would protect them: "Save card first: Git keeps one working copy and won't drop your unsaved parts." The simplification is said once, plainly, under the Step 2 card (`ONE_REPO_LINE`): "In real Git, each of you would have your own clone with one working directory. Here your lab shares one repo."
 - **Your lab's cards** = the lab's own repository.
 - **The Wall** = the class's shared copy (a bare remote, "like GitHub"). Blue `wall/main` = the Wall, last time you checked.
-- **Safety diary** = the reflog: every place a sticky note has been. Cards only in the diary are drawn dashed, under the caption "only in your safety diary (reflog)".
+- **Safety diary** = the reflog: every place a branch has been. Cards only in the diary are drawn dashed, under the caption "only in your safety diary (reflog)".
 
 Palette (`public/monster.js`, one source; the server imports it): HAT cap 🧢 tophat 🎩 sunhat 👒 crown 👑
 gradcap 🎓 helmet ⛑️ · GLASSES round 👓 shades 🕶️ goggles 🥽 monocle 🧐 (sabotage only: disguise 🥸) · TOP
@@ -98,7 +98,7 @@ does it"). 19 scenes, 77 planned minutes, 3 minutes of buffer.
 | 0:31 | 4 | Break | Labs may finish Step 3 |
 | 0:35 | 9 | Step 4 task | Predict each send; a refused lab chooses merge or rebase (and why) |
 | 0:44 | 5 | Step 4 reveal | push/pull + rebase cards, paths, accuracy, each lab's choice |
-| 0:49 | 7 | Step 5 task | Each lab chooses Undo this card or Move my note back; predict each send |
+| 0:49 | 7 | Step 5 task | Each lab chooses Undo this card or Move my branch back; predict each send |
 | 0:56 | 3 | Step 5 reveal | revert/reset card, accuracy, each lab's choice (and what nobody chose) |
 | 0:59 | 4 | Step 6 task | The boss lab squashes + force-pushes; others find who added 🥾 |
 | 1:03 | 4 | Step 6 reveal | squash card, the audit after, the bin count |
@@ -118,7 +118,7 @@ nothing private reaches the projector.
 - **Break:** a 4-minute countdown. Labs can still finish Step 3.
 - **Paper:** Good / Bad / Ugly (Bad: "Squash can drop the cards — and, once the branch is deleted, even who made them.", §5.4) · this class's code velocity (the Step 4 paths, as they were when Step 4 ended; after the squash the Wall has none of those cards) · what they lived: Step 3, after the fast-forward the fancy note was deleted and no card says which cards were made on it; Step 4, "Replay on top made a copy with a new ID; the original card is not on the Wall." (when no lab replayed: what replaying does); Step 6, the squash dropped the cards and who made them, and the 🥾 audit failed · the message as the paper's claim for analysts, **"For analysts, flat history is data loss."**, with the trade-off next to it: "Flat history helps developers find and revert a bad change (bisect, revert). It loses where a change came from and who made it." (§3.1). The Say: "Microsoft tracks code velocity: how long a change takes to reach main, along its integration path." (the paper defines it, §6.1, and reports no velocity numbers). The pairs question: "Your team squash-merges every feature branch and deletes it. What do you gain, and what can an auditor no longer answer?"
 - **Exit:** the exit question, answered in the app. Hope to hear: "No. Revert adds a card; the old one still holds the password, in every copy. Change the password first. Then rewrite, force push and gc the Wall, and have every lab re-clone. (On GitHub, force-pushed commits can stay fetchable by ID.)" A lab that kept the old history merges it back on its next Get & combine (git.test.js checks it).
-- **Wrap:** "Cards never change. Sticky notes move. The Wall copies cards." **My Git in 7 lines** (one takeaway per reveal, Steps 0–6, editable, Copy). The projector shows a takeaway wall (a sample, names hidden). **Export** (Markdown, per question and per person).
+- **Wrap:** "Cards never change. Branches move. The Wall copies cards." **My Git in 7 lines** (one takeaway per reveal, Steps 0–6, editable, Copy). The projector shows a takeaway wall (a sample, names hidden). **Export** (Markdown, per question and per person).
 
 **What Next does by itself** (once; Back never undoes it):
 - Into Step 1: labs lock. Into Steps 2–3: main's unsaved parts are dropped (main is read-only there).
@@ -142,13 +142,13 @@ next concrete click for this person), bonus, behind the door.
 
 | # | Title | Git | Mission / what happens |
 |---|---|---|---|
-| 0 | Everyone, one outfit | (none) | One shared outfit per lab, live, no save, no names. |
+| 0 | Everyone edits the same outfit | (none) | One shared outfit per lab, live, no save, no names. |
 | 1 | Save every version | git commit, git log | Everyone saves one card. |
-| 2 | Try two ideas at once | git switch -c, git switch | Pair A: sticky note **fancy**, HAT → 🎩, TOP → 👔. Pair B: **sporty**, TOP → 🎽, SHOES → 🥾. main is read-only. |
-| 3 | Make one outfit from both | git merge, git branch -d | On main: predict, merge fancy (a fast-forward), then **Delete sticky note** fancy (allowed only once main has its card), then predict, merge sporty: HAT and SHOES combine, **TOP conflicts** (👔 vs 🎽), a person picks. |
-| 4 | Put your outfit on the Wall | git clone, git push, git pull --no-rebase, git pull --rebase | "The Wall is the class's shared copy, like GitHub. Your lab already has a full copy of it (that is git clone). It starts as Lab N's outfit, so your lab's cards are now a copy of it." Lab 1 HAT → 👑 · Lab 2 SHOES → 🛼 · Lab 3 GLASSES → 🕶️ · Lab 4 TOP → 🥼 · Lab 5 HAT → 🎓 · Lab 6 SHOES → 🩰. Every send is predicted. The first lab to send just sends. A refused lab **chooses** its way: **Combine (merge)** (Get & combine: a merge card) or **Replay on top (rebase)**, both offered with one plain line each (`WAYS`), plus "Why this way? (optional)". The way is the lab's first Get & combine / Replay on top that had to combine two lines (not a fast-forward); kept once chosen. Then send again. |
-| 5 | Oops: undo a shared mistake | git revert, git reset --hard, git reflog main | "The Intern" pushed GLASSES → 🥸, "Tiny style fix"; every lab has it. Each lab **chooses**: Undo this card (then send; refused? Get & combine: two equal fix cards merge cleanly; send), or Move my note back (send → refused, for real; Get & combine brings 🥸 back; then Undo). Every send is predicted. Goals: the lab undid it itself (Undo, or Move back), and no 🥸 on the Wall or in the lab. |
-| 6 | The boss wants it clean | squash, git push --force, git gc --prune=now | Only the boss lab sees **Replace the Wall with one card** (red, confirm). Others press nothing, watch, then find who first added the 🥾. |
+| 2 | Give each idea its own branch | git switch -c, git switch | Pair A: branch **fancy**, HAT → 🎩, TOP → 👔. Pair B: **sporty**, TOP → 🎽, SHOES → 🥾. main is read-only. |
+| 3 | Combine two branches | git merge, git branch -d | On main: predict, merge fancy (a fast-forward), then **Delete branch** fancy (allowed only once main has its card), then predict, merge sporty: HAT and SHOES combine, **TOP conflicts** (👔 vs 🎽), a person picks. |
+| 4 | Share your work through the Wall | git clone, git push, git pull --no-rebase, git pull --rebase | "The Wall is the class's shared copy, like GitHub. Your lab already has a full copy of it (that is git clone). It starts as Lab N's outfit, so your lab's cards are now a copy of it." Lab 1 HAT → 👑 · Lab 2 SHOES → 🛼 · Lab 3 GLASSES → 🕶️ · Lab 4 TOP → 🥼 · Lab 5 HAT → 🎓 · Lab 6 SHOES → 🩰. Every send is predicted. The first lab to send just sends. A refused lab **chooses** its way: **Combine (merge)** (Get & combine: a merge card) or **Replay on top (rebase)**, both offered with one plain line each (`WAYS`), plus "Why this way? (optional)". The way is the lab's first Get & combine / Replay on top that had to combine two lines (not a fast-forward); kept once chosen. Then send again. |
+| 5 | Undo a change everyone already has | git revert, git reset --hard, git reflog main | "The Intern" pushed GLASSES → 🥸, "Tiny style fix"; every lab has it. Each lab **chooses**: Undo this card (then send; refused? Get & combine: two equal fix cards merge cleanly; send), or Move my branch back (send → refused, for real; Get & combine brings 🥸 back; then Undo). Every send is predicted. Goals: the lab undid it itself (Undo, or Move back), and no 🥸 on the Wall or in the lab. |
+| 6 | Rewrite the shared history | squash, git push --force, git gc --prune=now | Only the boss lab sees **Replace the Wall with one card** (red, confirm). Others press nothing, watch, then find who first added the 🥾. |
 
 **Predict before you act (Steps 3–5).** A *moment* is one lab action the class predicts: Step 3's merges of fancy
 and sporty (`3:<lab>:merge:<note>`), and each send in Steps 4–5 (`<step>:<lab>:push:<n>`). Merge and Send open a
@@ -162,7 +162,7 @@ the Wall has cards your main doesn't, so the send is not a fast-forward." A merg
 nothing, asks nothing. Rescue closes moments too. Accuracy (real labs only) is live on the console, on the Step 3–5
 reveals, and in Export.
 
-**Hints.** "Stuck? Hint" appears `HINT_DELAY` (45 s) after the step starts for a student (or the student joined), and
+**Hints.** "Need a hint?" appears `HINT_DELAY` (45 s) after the step starts for a student (or the student joined), and
 again 45 s after the lab's latest refusal or conflict (a bad feed entry): think first. The first press shows the idea,
 the second ("Show the exact click") the click; only then do the named buttons get a ring and the "your mission" tag. A
 new situation goes back to its idea. Rescue stays for the teacher. Bots read the click.
@@ -208,13 +208,13 @@ branch (+ the one-repo line) · Step 3 merge · Step 4 push/pull and rebase · S
 Desktop first (1280×800+), usable at 390px. Lots of white space. Nothing can dead-end: every refusal says
 exactly what to press next. The join card ends with a quiet link: "Thursday's class? Open /thu".
 
-- **Top bar:** "Outfit Lab · Lab 2 · Priya · Step 3 · Make one outfit from both" (lab color dot), a grey dot while reconnecting, a small **?** that replays the tour.
+- **Top bar:** "Outfit Lab · Lab 2 · Priya · Step 3 · Combine two branches" (lab color dot), a grey dot while reconnecting, a small **?** that replays the tour.
 - **Tour** (first join): spotlight + bubble with Next / Skip (the outfit, a **change ›** control, Save card, the cards row; before Step 1 only the first two). **Tips:** one bubble on each new button, gone on the next click. Never blocks the class. Respects prefers-reduced-motion.
-- **Step panel:** step title · fixed line · instruction · (Step 4) the fresh-copy line · **Your mission** · my last prediction against Git's answer · **Predict** (the lab's next merge or send; optional) · goals (live ticks) · **Stuck? Hint** (after the delay; idea, then click) · when all goals tick: "Done ✓. Wait for the class." + bonus · **Behind the door · what Git did** (the rule, the commands this lab just ran, "Show the low-level steps Git ran" with the exact plumbing and output). At a reveal the panel holds the question and takeaway; the technical cards are on the stage.
+- **Step panel:** step title · fixed line · instruction · (Step 4) the fresh-copy line · **Your mission** · my last prediction against Git's answer · **Predict** (the lab's next merge or send; optional) · goals (live ticks) · **Need a hint?** (after the delay; idea, then click) · when all goals tick: "Done ✓. Wait for the class." + bonus · **Behind the door · what Git did** (the rule, the commands this lab just ran, "Show the low-level steps Git ran" with the exact plumbing and output). At a reveal the panel holds the question and takeaway; the technical cards are on the stage.
 - **Shared draft:** "You're on: [note]"; four rows (emoji, part, name, **change ›** → palette). Unsaved parts: dashed purple outline + "not saved".
-- **Action row:** this step's new buttons big and purple with a "new" tag; earlier ones quiet grey, in step order. Each = plain words + small mono command. Note buttons read as sentences with a dropdown: "Merge [fancy ▾] into main", "Delete sticky note [fancy ▾]". Once the student opened the hint's exact click, the button it names joins the purple row, tagged "your mission". Merge (Step 3) and Send to Wall (Steps 4–5) open the **prediction dialog** first. In Step 4, **Get & combine** `git pull --no-rebase` and **Replay on top** `git pull --rebase` sit side by side as one choice ("Get the Wall's cards: choose a way."), each with its plain line; the lab's choice is marked "your lab's choice", with "Why this way? (optional)" under it (one line, Enter saves, anyone in the lab can edit). Delete sticky note offers only notes whose card the current note already has.
+- **Action row:** this step's new buttons big and purple with a "new" tag; earlier ones quiet grey, in step order. Each = plain words + small mono command. Note buttons read as sentences with a dropdown: "Merge [fancy ▾] into main", "Delete branch [fancy ▾]". Once the student opened the hint's exact click, the button it names joins the purple row, tagged "your mission". Merge (Step 3) and Send to Wall (Steps 4–5) open the **prediction dialog** first. In Step 4, **Get & combine** `git pull --no-rebase` and **Replay on top** `git pull --rebase` sit side by side as one choice ("Get the Wall's cards: choose a way."), each with its plain line; the lab's choice is marked "your lab's choice", with "Why this way? (optional)" under it (one line, Enter saves, anyone in the lab can edit). Delete branch offers only notes whose card the current note already has.
 - **Your lab's cards** `git log`: left→right, arrows to the parent, yellow notes, pink YOU pin, blue `wall/main` from Step 4, dashed diary-only cards from Step 4. Short ID + author + message. Long histories fold into "← N older cards" (never a card with a note, or on the marked path).
-- **Card details:** mini outfit, ID, message, author (and committer time when it differs), parents, replay links, where (on the Wall / only in your safety diary (reflog)), "Show what Git stored" (`git cat-file -p`, each header line explained), and from Step 5 **Undo this card** / **Move my note back here**.
+- **Card details:** mini outfit, ID, message, author (and committer time when it differs), parents, replay links, where (on the Wall / only in your safety diary (reflog)), "Show what Git stored" (`git cat-file -p`, each header line explained), and from Step 5 **Undo this card** / **Move my branch back here**.
 - **The Wall** (from Step 4): second graph. At the Step 4 reveal it marks the lab's own integration path in bold ink (purple is Lab 1's colour) and labels the merge card ("merge · 2 parents") and the copy ("copy · new ID"); the list of paths lets a student mark another.
 - **Open merge banner** → **Conflict resolver** (merge, undo or replay): mini cards for each side, conflicted parts with "Keep main's 👔 shirt & tie" · "Keep sporty's 🎽 jersey" · "Pick another…", **Finish** · **Cancel** (`git merge --abort`, `git revert --abort`, `git rebase --abort`), and Git's conflicted `outfit.txt` with markers behind the door.
 - **Toasts:** one line each, naming the next move. No "SHA", "ref" or "HEAD" in body copy outside Behind the door and the technical cards.
@@ -229,7 +229,7 @@ Without any key the page says to open the Teacher link. The pages hold no secret
 - **Top:** people count, **Join QR** (also on the projector while open), **Start presenting** (opens /screen in a named window; F = full screen).
 - **Main card:** "Scene N of 19 · plan 0:42", title, timer ("0:12 / 5:00 · 2 min behind"). **Say** · **Do** · **Ask** (**Show on projector**, the answer folded) · live answers ("4/9 answered", **Show answers on projector**, names only **with names**) · takeaway count · **Board** · **Predict** (Steps 3–5, live: "Predicted right: 7 of 10 · merge fancy 3/5 · merge sporty 4/5", and during a task "· 3 waiting for Git") · **Paths** (Step 4 reveal and the paper: each lab's times, "starts at a copy") · only this scene's tools (Sabotage on the Step 4 reveal and Step 5 task; Audit in Step 6; **Empty the Wall's bin** on the Step 6 reveal; Export at the wrap) · "Labs done: 2/3 · Lab 3: Merging: TOP to pick" · a big **Next: <scene>** and a small **Back**.
 - **Presenter column:** "On the projector now" (a live preview, the same renderer) and "Next" (title, line, what Next will do, the lab picker for Step 4 / Step 6).
-- **Lab tiles:** name, people, mini outfit, goal checks, status ("Working", "Done", "Merging: TOP to pick", red for "Refused twice in a row", "In a conflict for 2:10", "No clicks for 2:00"; practice lab: "Plays by itself"), the lab's choice ("Chose: Replay on top (rebase) · "why"" in Step 4; "Chose: Move my note back (reset)" in Step 5), counts at the wrap, **Rescue** (confirm).
+- **Lab tiles:** name, people, mini outfit, goal checks, status ("Working", "Done", "Merging: TOP to pick", red for "Refused twice in a row", "In a conflict for 2:10", "No clicks for 2:00"; practice lab: "Plays by itself"), the lab's choice ("Chose: Replay on top (rebase) · "why"" in Step 4; "Chose: Move my branch back (reset)" in Step 5), counts at the wrap, **Rescue** (confirm).
 - **Details** (collapsed): lab count, Export, Reset (confirm), **Rehearse with bots** (2–12 bots, real time / 5× / 20×), rosters with move-to-lab, the Wall graph, each lab's graph, the feed.
 
 **Rescue** moves one lab to the step's expected end with the normal engine, doing only what's missing, as
@@ -239,7 +239,7 @@ S4: get the Wall's cards the lab's way (Get & combine if it had not chosen; logg
 the 🥸 card (logged even when another lab's fix already undid it), send. S6 (boss lab): replace the Wall.
 
 **Rehearse with bots** (`server/bots.js`): bots join by name ("(bot)"), are placed like people, and follow the click
-of their own Stuck? Hint through the same student actions, with human-like pauses; they answer and write takeaways
+of their own Need a hint? through the same student actions, with human-like pauses; they answer and write takeaways
 from sample text. They predict: in the panel for the lab's next action, and with every Merge and Send they press;
 one bot in three guesses naively (no conflict; the Wall accepts), so the reveals show a mix. Where a hint offers two
 ways, they choose a mix: Step 4 by the order the Wall refused their labs (first combines, next replays; a lone
@@ -256,7 +256,7 @@ room, the question while Ask is on, answers while shown, the takeaway wall at th
 
 Node 22 + Express 5, no database. Exactly one process: state, mutexes and repos all live in it.
 Env: `PORT` (3000), `ADMIN_KEY` (default: random, saved once in `DATA_DIR/admin.key`), `DATA_DIR` (`./data`),
-`LABS` (fixed count), `HINT_DELAY` (seconds before "Stuck? Hint", default 45; the browser tests use 1). Disk: `session.json`, `wall.git` (bare), `labs/<id>/` (no worktree is used;
+`LABS` (fixed count), `HINT_DELAY` (seconds before "Need a hint?", default 45; the browser tests use 1). Disk: `session.json`, `wall.git` (bare), `labs/<id>/` (no worktree is used;
 `core.logAllRefUpdates=always`, `gc.auto=0`; remote `wall` → `../../wall.git`).
 
 **Init:** `git init --bare -b main --object-format=sha1 --ref-format=files wall.git`; Start written with

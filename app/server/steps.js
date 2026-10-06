@@ -12,13 +12,13 @@
 // goals(v) and hint(v, me) read a lab view built by session.js (labView there):
 //   v.labId · v.isBoss
 //   v.way() — Step 4: the way this lab chose to get the Wall's cards, 'merge' | 'rebase', or null
-//   v.card(note) — the outfit on the note's card, or null when the note does not exist
-//   v.draft(note) — the note's unsaved parts {part: value} · v.merging(note) — its open merge, or null
-//   v.mainHasIdea(note) — main's history has a card with that pair's mission parts (true after the note is deleted)
+//   v.card(note) — the outfit on the branch's card, or null when the branch does not exist
+//   v.draft(note) — the branch's unsaved parts {part: value} · v.merging(note) — its open merge, or null
+//   v.mainHasIdea(note) — main's history has a card with that pair's mission parts (true after the branch is deleted)
 //   v.wall() — main against the Wall's main: 'same' | 'ahead' | 'behind' | 'diverged'
 //   v.wallHas(part, value) — some card on the Wall's main has it · v.wallOutfit() · v.wallIsClean()
 //   v.gotSabotage() — the lab has the Intern's card · v.mainHasSabotage() — main's history has it
-//   v.undidSabotage() — in this step the lab pressed Undo on the Intern's card, or moved its note back
+//   v.undidSabotage() — in this step the lab pressed Undo on the Intern's card, or moved its branch back
 //   v.savers() — {saved, online, waiting: [names of online people who haven't saved]}
 //   v.did('refused' | 'reset') — the lab did it in this step
 //   me = {pair, branch, saved, both} (both: nobody else in the lab is online, so you do both pairs' work)
@@ -65,7 +65,7 @@ export const TRUST_LINE = 'Git records the name and clock your laptop gives it, 
 // Step 2's reveal: the app's one simplification, said once, plainly.
 export const ONE_REPO_LINE = 'In real Git, each of you would have your own clone with one working directory. Here your lab shares one repository.';
 
-// Step 2: Switch with unsaved parts on the note you're on (session.js refuses it, as Git would).
+// Step 2: Switch with unsaved parts on the branch you're on (session.js refuses it, as Git would).
 export const SWITCH_UNSAVED = 'Save your card first. Git keeps one working copy and will not drop your unsaved parts.';
 
 // Step 4's reveal and the paper: a replayed change's integration path (the paper, §6), and a combined one's.
@@ -147,7 +147,7 @@ export const PREDICT = {
   waiting: 'Saved. You can change it until your lab presses.',
 };
 
-// The dialog and the panel box: {title, q, tip, options: [{id, words}]}. target: the note merged (Step 3).
+// The dialog and the panel box: {title, q, tip, options: [{id, words}]}. target: the branch merged (Step 3).
 export function predictCopy(kind, target) {
   const { q, tip, options } = PREDICT[kind];
   return {
@@ -165,7 +165,7 @@ const guessWords = (guess) => ({ ff: 'fast-forward', clean: 'merge, no conflict'
 const outcomeWords = (o) => ({ ff: 'fast-forward', clean: 'merge, no conflict', accepted: 'accepted' }[o.result]
   ?? (o.result === 'refused' ? `refused (${o.reason})` : `conflict on ${partsWord(o.parts)}`));
 const WHY = {
-  ff: () => 'main had no new card since the split, so Git only slid its note.',
+  ff: () => 'main had no new card since the split, so Git only slid its branch.',
   clean: () => 'both sides had new cards, but no part changed on both, so Git made the merge card itself.',
   conflict: (o) => `${partsWord(o.parts)} changed on both sides since the split; a part changed on one side only merges by itself.`,
   refused: () => "the Wall has cards your main doesn't, so the send is not a fast-forward.",
@@ -204,10 +204,10 @@ export const NOT_CHOSEN = {
 // Step 5: each lab chooses how to undo the Intern's card.
 export const UNDO_WAYS = {
   revert: { name: 'Undo this card (revert)' },
-  reset: { name: 'Move my note back (reset)' },
+  reset: { name: 'Move my branch back (reset)' },
 };
 export const UNDO_NOT_CHOSEN = {
-  reset: `No lab moved its note back (reset). Its next send would have been refused, because the Wall still has the ${DISGUISE} card, and Get & combine would have brought that card back.`,
+  reset: `No lab moved its branch back (reset). Its next send would have been refused, because the Wall still has the ${DISGUISE} card, and Get & combine would have brought that card back.`,
   revert: `No lab added a fix card (revert) first. Undo this card adds a card that reverses the ${DISGUISE} change, and that card is sent like any other.`,
 };
 
@@ -228,7 +228,7 @@ const GET = 'Press **Get & combine**.';
 const AGAIN = { merge: 'Press **Get & combine**. Then **Send to Wall** again.', rebase: 'Press **Replay on top**. Then **Send to Wall** again.' };
 const CHOOSE_WAY = 'Pick a way: press **Get & combine** (merge) or **Replay on top** (rebase). Then **Send to Wall** again.';
 const UNDO = `Click the ${DISGUISE} card. Press **Undo this card**.`;
-const CHOOSE_UNDO = `Click the ${DISGUISE} card and press **Undo this card**, or click the card right before it and press **Move my note back here**.`;
+const CHOOSE_UNDO = `Click the ${DISGUISE} card and press **Undo this card**, or click the card right before it and press **Move my branch back here**.`;
 const SAVE_FIRST = H('Git keeps one working copy. Save your unsaved parts before you move your pin to another note.', SAVE);
 
 // Steps 3–6 work on main: be on it, with no open merge.
@@ -241,10 +241,10 @@ function onMain(v, me) {
   return open ? finish(open) : null;
 }
 
-// Make a pair's sticky note and save its mission on it (Step 2, or a Step 3 lab that is behind).
+// Make a pair's branch and save its mission on it (Step 2, or a Step 3 lab that is behind).
 function buildNote(v, me, note) {
   if (me.branch !== note && unsaved(v, me.branch)) return SAVE_FIRST;
-  if (!v.card(note)) return H('Your pair\'s idea needs its own sticky note (a branch), so that main stays as it is.', `Press **New sticky note**. Name it **${note}**.`);
+  if (!v.card(note)) return H('Your pair\'s idea needs its own branch, so that main stays as it is.', `Press **New branch**. Name it **${note}**.`);
   if (me.branch !== note) return H(`Your pin is on another note. Your pair's work belongs on **${note}**.`, `Press **Switch to** and pick **${note}**.`);
   const open = v.merging(note);
   if (open) return finish(open);
@@ -254,7 +254,7 @@ function buildNote(v, me, note) {
   return H('Your parts are in the draft (shown dashed), not on a card yet.', SAVE);
 }
 
-// The sticky notes this person builds in Step 2: their pair's, or both when nobody else is here.
+// The branches this person builds in Step 2: their pair's, or both when nobody else is here.
 const notesFor = (me) => (me.both ? Object.values(PAIR_NOTES) : [PAIR_NOTES[me.pair]]);
 
 // Get main level with the Wall, then send. Students meet the refusal before the hint names a way to get
@@ -273,6 +273,12 @@ export const STEPS = [
   {
     id: 'chaos',
     title: 'Everyone edits the same outfit',
+    // What students read first: what is happening, what to do, and the Git behind it.
+    story: {
+      now: 'Your whole lab is editing one outfit at the same time, and nothing is being saved.',
+      job: 'For a minute and a half, change any part as often as you like.',
+      git: 'There is no Git in this step. That is the point.',
+    },
     instruction: 'Your lab shares one outfit. For the next minute and a half, change any part you like, as often as you like.',
     screen: 'Your lab shares one outfit. Change any part you like, as often as you like.',
     unlocks: ['chaos'],
@@ -284,6 +290,12 @@ export const STEPS = [
   {
     id: 'commit',
     title: 'Save every version',
+    // What students read first: what is happening, what to do, and the Git behind it.
+    story: {
+      now: 'From now on, every save is kept as a card: a snapshot of the outfit, with your name and the time.',
+      job: 'Take turns. Change one part, then press **Save card**. Each of you saves once.',
+      git: 'A card is a commit. **Save card** runs `git commit`.',
+    },
     instruction: 'The outfit from Step 0 is gone. From now on, every save makes a card, which Git calls a commit. Take turns: change one part, then press **Save card**. Each of you saves once.',
     screen: 'Take turns: change one part, then press Save card. Each of you saves once.',
     unlocks: ['draft', 'commit', 'inspect'],
@@ -313,22 +325,28 @@ export const STEPS = [
   {
     id: 'branch',
     title: 'Give each idea its own branch',
-    instruction: 'Your lab has one sticky note (a branch) so far: main. Each pair makes a sticky note for its own idea, changes the outfit on that note, and saves.',
-    screen: 'Pair A builds fancy and Pair B builds sporty, each on its own sticky note (branch).',
+    // What students read first: what is happening, what to do, and the Git behind it.
+    story: {
+      now: 'Your lab wants to try two looks, fancy and sporty, without the two getting in each other\'s way. Right now there is one branch: main.',
+      job: 'Each pair makes its own branch, changes the outfit on that branch, and saves. Pair A makes fancy; Pair B makes sporty.',
+      git: 'A branch is a name that points at one card. Making one copies nothing. **New branch** runs `git switch -c`, and it always starts from main.',
+    },
+    instruction: 'Your lab has one branch so far: main. Each pair makes a branch for its own idea, changes the outfit on that branch, and saves.',
+    screen: 'Pair A builds fancy and Pair B builds sporty, each on its own branch (branch).',
     unlocks: ['branch', 'switch', 'pair'],
     tips: [
-      { action: 'branch', text: 'A sticky note is a branch for one idea.' },
-      { action: 'switch', text: 'Switch to takes you to another sticky note.' },
+      { action: 'branch', text: 'A branch keeps one idea apart from main.' },
+      { action: 'switch', text: 'Switch to takes you to another branch.' },
     ],
-    mainLocked: 'main keeps the outfit you have. Make a sticky note, or switch to one, to edit.',
+    mainLocked: 'main keeps the outfit you have. Make a branch, or switch to one, to edit.',
     mission: {
-      A: `One of you: press **New sticky note** and keep the name **fancy**. The other: wait for it, then press **Switch to** and pick **fancy**. Then set ${changes(PAIR_PARTS.fancy)} and press **Save card**.`,
-      B: `One of you: press **New sticky note** and keep the name **sporty**. The other: wait for it, then press **Switch to** and pick **sporty**. Then set ${changes(PAIR_PARTS.sporty)} and press **Save card**.`,
+      A: `1. One of you presses **New branch** and keeps the name **fancy**. 2. The other waits, then presses **Switch to** and picks **fancy**. 3. Set ${changes(PAIR_PARTS.fancy)}. 4. Press **Save card**.`,
+      B: `1. One of you presses **New branch** and keeps the name **sporty**. 2. The other waits, then presses **Switch to** and picks **sporty**. 3. Set ${changes(PAIR_PARTS.sporty)}. 4. Press **Save card**.`,
       // A pair of one (a lab of 3 has one) needs no partner.
-      soloA: `Press **New sticky note** and keep the name **fancy**. Then set ${changes(PAIR_PARTS.fancy)} and press **Save card**.`,
-      soloB: `Press **New sticky note** and keep the name **sporty**. Then set ${changes(PAIR_PARTS.sporty)} and press **Save card**.`,
+      soloA: `1. Press **New branch** and keep the name **fancy**. 2. Set ${changes(PAIR_PARTS.fancy)}. 3. Press **Save card**.`,
+      soloB: `1. Press **New branch** and keep the name **sporty**. 2. Set ${changes(PAIR_PARTS.sporty)}. 3. Press **Save card**.`,
       // Nobody else in the lab: both missions, one after the other.
-      both: `You're both pairs today. First press **New sticky note** **fancy**, set ${changes(PAIR_PARTS.fancy)} and press **Save card**. Then press **New sticky note** **sporty**, set ${changes(PAIR_PARTS.sporty)} and press **Save card**.`,
+      both: `You do both pairs today. 1. Press **New branch** and keep the name **fancy**. 2. Set ${changes(PAIR_PARTS.fancy)}. 3. Press **Save card**. 4. Press **New branch** and keep the name **sporty** (it starts from main again). 5. Set ${changes(PAIR_PARTS.sporty)}. 6. Press **Save card**.`,
     },
     goals: (v) => Object.entries(PAIR_PARTS).map(([note, parts]) => ({
       text: `${note} has ${Object.entries(parts).map(([p, value]) => emoji(p, value)).join(' + ')}`,
@@ -342,26 +360,32 @@ export const STEPS = [
     },
     bonus: 'Press **Switch to** main and then back again, and watch the outfit change. Look, but do not edit.',
     behind: {
-      text: 'A sticky note (branch) is a tiny file holding one card\'s ID. Making one copies nothing. Your pin (HEAD) shows which note you are on. Switch refuses while you have unsaved parts, because Git keeps one working copy.',
+      text: 'A branch (branch) is a tiny file holding one card\'s ID. Making one copies nothing. Your pin (HEAD) shows which note you are on. Switch refuses while you have unsaved parts, because Git keeps one working copy.',
       cmds: ['git switch -c', 'git switch'],
     },
   },
   {
     id: 'merge',
     title: 'Combine two branches',
-    instruction: 'The client wants one outfit with both ideas in it. On **main**, merge **fancy**, delete its note, then merge **sporty**. Before each merge, predict what Git will do.',
-    screen: 'On main: predict and merge fancy, delete its note, then predict and merge sporty.',
+    // What students read first: what is happening, what to do, and the Git behind it.
+    story: {
+      now: 'The client wants one outfit with both ideas in it. Right now they live on two branches.',
+      job: 'On **main**: merge **fancy**, delete the fancy branch, then merge **sporty**. Before each merge, say what you think Git will do.',
+      git: '**Merge** runs `git merge`. If both branches changed the same part, Git stops and asks you to pick.',
+    },
+    instruction: 'The client wants one outfit with both ideas in it. On **main**, merge **fancy**, delete its branch, then merge **sporty**. Before each merge, predict what Git will do.',
+    screen: 'On main: predict and merge fancy, delete its branch, then predict and merge sporty.',
     unlocks: ['merge', 'resolve', 'abort', 'deleteNote'],
     tips: [
       { action: 'merge', text: 'Merge brings a branch\'s cards into main.' },
-      { action: 'deleteNote', text: 'Delete sticky note removes only the label. Its cards stay.' },
+      { action: 'deleteNote', text: 'Delete branch removes only the label. Its cards stay.' },
     ],
     mainLocked: 'In this step, main changes only by merging. Press Merge.',
     // Shown once main has fancy's card (the fast-forward).
-    mission: { deleteFancy: 'Delete the fancy note (`git branch -d fancy`).' },
+    mission: { deleteFancy: 'Delete the fancy branch (`git branch -d fancy`).' },
     goals: (v) => [
       { text: 'main has fancy', done: v.mainHasIdea('fancy') },
-      { text: 'The fancy note is deleted', done: v.mainHasIdea('fancy') && !v.card('fancy') },
+      { text: 'The fancy branch is deleted', done: v.mainHasIdea('fancy') && !v.card('fancy') },
       { text: 'main has sporty', done: v.mainHasIdea('sporty') },
     ],
     hint(v, me) {
@@ -374,19 +398,25 @@ export const STEPS = [
       const stop = onMain(v, me);
       if (stop) return stop;
       if (!v.mainHasIdea('fancy')) return H('main needs fancy\'s cards. Before you press, ask yourselves: has main changed since fancy split off?', 'Press **Merge fancy into main**.');
-      if (v.card('fancy')) return H('main has fancy\'s card now. The fancy note is only a label, and its cards stay without it.', 'Press **Delete sticky note** and pick **fancy**.');
+      if (v.card('fancy')) return H('main has fancy\'s card now. The fancy branch is only a label, and its cards stay without it.', 'Press **Delete branch** and pick **fancy**.');
       return v.mainHasIdea('sporty') ? null
         : H('main needs sporty\'s cards too. Compare each side with the card where they split: which parts changed on both sides?', 'Press **Merge sporty into main**.');
     },
     bonus: 'Open the merge card. Why does it have two parents?',
     behind: {
-      text: 'If main has nothing new since the split, `git merge` only moves main\'s note forward: a fast-forward. Otherwise Git compares both sides with the card where they split. A part changed differently on both sides is a conflict, and a person picks. `git branch -d` deletes a note only if the note you are on already has its cards.',
+      text: 'If main has nothing new since the split, `git merge` only moves main\'s note forward: a fast-forward. Otherwise Git compares both sides with the card where they split. A part changed differently on both sides is a conflict, and a person picks. `git branch -d` deletes a note only if the branch you are on already has its cards.',
       cmds: ['git merge', 'git branch -d'],
     },
   },
   {
     id: 'share',
     title: 'Share your work through the Wall',
+    // What students read first: what is happening, what to do, and the Git behind it.
+    story: {
+      now: 'The Wall is the class\'s shared copy of the history (a remote, like GitHub). Your lab holds a full copy of it, made with `git clone`. The Wall started from {wallLab}\'s outfit, so your lab\'s cards are now a copy of that history.',
+      job: 'Make your lab\'s one change, press **Save card**, then **Send to Wall**. Before each send, say whether you think the Wall will accept it.',
+      git: '**Send to Wall** runs `git push`. **Get & combine** runs `git pull`. **Replay on top** runs `git pull --rebase`.',
+    },
     instruction: 'The Wall is the class\'s shared copy of the history (a remote, like GitHub). Your lab holds a full copy of it, made with `git clone`. The Wall started from {wallLab}\'s outfit, so your lab\'s cards are now a copy of that history. Make your lab\'s one change, press **Save card**, then **Send to Wall** (`git push`). Before each send, predict whether the Wall will accept it.',
     screen: 'Make your lab\'s change and save it. Then predict, and press Send to Wall.',
     // What the fresh copy holds (true: entering Step 4 clones every lab again from the Wall).
@@ -439,18 +469,24 @@ export const STEPS = [
   {
     id: 'undo',
     title: 'Undo a change everyone already has',
+    // What students read first: what is happening, what to do, and the Git behind it.
+    story: {
+      now: `A ${DISGUISE} card reached the Wall, and every lab already has it.`,
+      job: 'Remove it without breaking anyone\'s copy. Your lab picks the way: **Undo this card**, or **Move my branch back**. Then send. Before each send, say whether the Wall will accept it.',
+      git: '**Undo this card** runs `git revert`. **Move my branch back** runs `git reset`.',
+    },
     instruction: `A ${DISGUISE} card reached the Wall, and every lab now has it. Remove it without breaking anyone's copy. Your lab chooses how. Predict before each send.`,
     screen: `A ${DISGUISE} card reached the Wall. Remove it without breaking anyone's copy.`,
     unlocks: ['revert', 'reset', 'reflog'],
     tips: [
       { action: 'revert', text: 'Undo this card (revert) adds a card that reverses it.' },
-      { action: 'reset', text: 'Move my note back here (reset) moves main back.' },
+      { action: 'reset', text: 'Move my branch back here (reset) moves main back.' },
       { action: 'reflog', text: 'The Safety diary (reflog) lists where main has been.' },
     ],
     // Entering the step gives every lab the card. A lab that had unsent work gets it with Get & combine.
     mission: {
       get: `Your lab does not have the ${DISGUISE} card yet. Press **Get & combine**.`,
-      choose: `Your lab has the ${DISGUISE} card. Choose one way to remove it: click the ${DISGUISE} card and press **Undo this card** (\`git revert\`, which adds a fix card), or click the card right before it and press **Move my note back here** (\`git reset\`, which moves main back). Then **Send to Wall**.`,
+      choose: `Your lab has the ${DISGUISE} card. Choose one way to remove it: click the ${DISGUISE} card and press **Undo this card** (\`git revert\`, which adds a fix card), or click the card right before it and press **Move my branch back here** (\`git reset\`, which moves main back). Then **Send to Wall**.`,
       undone: 'You added a fix card. Now press **Send to Wall**. If the Wall refuses, press **Get & combine**, then send again.',
       movedBack: 'You moved main back. Now press **Send to Wall** and see what the Wall does.',
       refused: `The Wall refused the send. Open the **Safety diary** (\`git reflog\`) to see where main has been, then press **Get & combine**. If the ${DISGUISE} card comes back, click it, press **Undo this card**, then send.`,
@@ -466,14 +502,14 @@ export const STEPS = [
       if (!v.gotSabotage()) return H('The Intern\'s card is on the Wall, but not in your lab yet.', GET);
       if (!v.mainHasSabotage()) {
         return v.did('refused')
-          ? H(`The Wall still has the ${DISGUISE} card. Your Safety diary shows where your note was. Then get the Wall's cards.`, 'Open the **Safety diary**. Then press **Get & combine**.')
+          ? H(`The Wall still has the ${DISGUISE} card. Your Safety diary shows where your branch was. Then get the Wall's cards.`, 'Open the **Safety diary**. Then press **Get & combine**.')
           : H(`Your main no longer has the ${DISGUISE} card, but the Wall does. Predict, then try sending.`, SEND);
       }
       // Still showing the card, or its fix came from another lab (Get & combine): this lab undoes it once itself.
       const showing = v.card('main')[SABOTAGE.part] === SABOTAGE.value;
       if (showing || !v.undidSabotage()) {
         if (showing && !v.did('reset')) {
-          return H(`Every lab has the ${DISGUISE} card. There are two ways to remove it: add a card that reverses it, or move your note back to before it. Which one is safe when other people already have the card?`, CHOOSE_UNDO);
+          return H(`Every lab has the ${DISGUISE} card. There are two ways to remove it: add a card that reverses it, or move your branch back to before it. Which one is safe when other people already have the card?`, CHOOSE_UNDO);
         }
         return H(`The ${DISGUISE} card is still in main's history. Add a card that reverses it.`, UNDO);
       }
@@ -481,13 +517,20 @@ export const STEPS = [
     },
     bonus: 'Open the Safety diary and find every card main has pointed to.',
     behind: {
-      text: '`git revert` adds a card that undoes an old one. `git reset` moves your note back, which is safe only if nobody else has the cards you leave behind. `git reflog main` lists every card main has pointed to.',
+      text: '`git revert` adds a card that undoes an old one. `git reset` moves your branch back, which is safe only if nobody else has the cards you leave behind. `git reflog main` lists every card main has pointed to.',
       cmds: ['git revert', 'git reset --hard', 'git reflog main'],
     },
   },
   {
     id: 'rewrite',
     title: 'Rewrite the shared history',
+    // What students read first: what is happening, what to do, and the Git behind it.
+    story: {
+      now: '{boss} plays the boss, who wants the whole history as one clean card.',
+      job: `Press nothing. Find the first card with ${BOOTS} boots among your lab's cards, and note who made it.`,
+      jobBoss: 'Press **Get & combine** first, then **Replace the Wall with one card**.',
+      git: 'The boss runs a squash, then `git push --force`. That rewrites the shared history.',
+    },
     instruction: `Press nothing in this step; watch the Wall. Meanwhile, find the first card with ${BOOTS} boots among your lab's cards, and note who made it.`,
     bossInstruction: 'Your lab plays the boss, who wants the whole history as one clean card. Press **Get & combine** first, then **Replace the Wall with one card**.',
     screen: '{boss} replaces the Wall\'s history with one card. The other labs watch.',
@@ -545,7 +588,7 @@ export const CONCEPTS = [
 
 // Who does what in a step.
 //   Step 2: solo = nobody else in my pair is online; both = nobody else in my lab is online.
-//   Step 3: fancyMerged = main has fancy's card; fancyLeft = the fancy note still exists.
+//   Step 3: fancyMerged = main has fancy's card; fancyLeft = the fancy branch still exists.
 //   Step 4: way = the way the lab chose ('merge' | 'rebase'), or null; refused = its send was refused in this step.
 //   Step 5: got = the lab has the Intern's card; undo = the lab's first undo this step ('revert' | 'reset'), or null;
 //   refused = its send was refused in this step.
@@ -587,7 +630,7 @@ export const PAPER = {
   tradeoff: 'Flat history helps developers find and revert a bad change (bisect, revert). It loses where a change came from and who made it.',
   // What they lived, linked to the paper. none: Step 4's line when no lab replayed on top.
   lived: [
-    { step: 3, text: 'Step 3: after the fast-forward, you deleted the fancy note. No card records which cards were made on it.' },
+    { step: 3, text: 'Step 3: after the fast-forward, you deleted the fancy branch. No card records which cards were made on it.' },
     {
       step: 4,
       text: 'Step 4: Replay on top made a copy with a new ID. The original card is not on the Wall.',
@@ -642,14 +685,14 @@ const SCRIPT = [
   task(2, 4, {
     say: 'The client wants two ideas tried at the same time. In one shared draft you would overwrite each other, as in Step 0.',
     do: 'Ask first. Both missions change TOP on purpose. Do not tell them.',
-    ask: { q: 'Cards never change. How does each half of your lab find its own newest card?', a: 'Each idea puts its own sticky note on its newest card.' },
+    ask: { q: 'Cards never change. How does each half of your lab find its own newest card?', a: 'Each idea puts its own branch on its newest card.' },
   }),
   reveal(2, 3, {
     reveal: { cards: [CARDS.branch], note: ONE_REPO_LINE },
-    say: 'A branch is a tiny file holding one card\'s ID. Your pin (HEAD) says which note you are on. Saving moves only that note.',
+    say: 'A branch is a tiny file holding one card\'s ID. Your pin (HEAD) says which note you are on. Saving moves only that branch.',
     do: 'Read the line under the card once: it is the app\'s one simplification. Switch refuses unsaved parts, as Git does with one working copy.',
     ask: { q: 'Where is the original outfit now? Did anything get copied?', a: 'Still on main\'s card. Nothing was copied.' },
-    board: '2. A sticky note (branch) is a label on one card. Saving moves it.',
+    board: '2. A branch (branch) is a label on one card. Saving moves it.',
   }),
   task(3, 8, {
     say: 'The client wants one outfit with both ideas in it. One person presses and everyone watches. Before Merge runs, the app asks what Git will do, and everyone in your lab can predict.',
@@ -658,7 +701,7 @@ const SCRIPT = [
   }),
   reveal(3, 4, {
     reveal: { cards: [CARDS.merge] },
-    say: 'The first merge only moved the note forward: a fast-forward, with no new card. Then Git compared each side with the card where they split. Only TOP changed on both sides, so only TOP needed you.',
+    say: 'The first merge only moved the branch forward: a fast-forward, with no new card. Then Git compared each side with the card where they split. Only TOP changed on both sides, so only TOP needed you.',
     do: 'Read the prediction line aloud: who expected the fast-forward, who expected TOP? If asked: main\'s own Safety diary still says "merge fancy: Fast-forward". It is local, it expires, and it never reaches the Wall.',
     ask: { q: 'Which cards were made on fancy?', a: 'There is no way to tell. Git does not record the branch a commit was made on.' },
     board: '3. A merge compares both sides with the card they share.',
@@ -694,7 +737,7 @@ const SCRIPT = [
   }),
   reveal(5, 3, {
     reveal: { cards: [CARDS.undo] },
-    say: '`git revert` adds a card that undoes the old one, so it is sent like any other card. `git reset` moves your note back, but the Wall still has the card.',
+    say: '`git revert` adds a card that undoes the old one, so it is sent like any other card. `git reset` moves your branch back, but the Wall still has the card.',
     do: 'Read which labs moved back and which added a fix card. If no lab moved back, read the line that says what would have happened.',
     ask: { q: 'Why is adding a fix card safe, but moving back is not?', a: 'A fix card only adds. Moving back drops a card other people already have.' },
     board: '5. For a shared mistake, add a fix card (revert). Move back (reset) only if nobody else has the card.',

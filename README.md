@@ -13,7 +13,7 @@ Teaching materials for Git week in UC Berkeley CS294 *Modern Programming Tools* 
 |---|---|---|---|
 | 0 Chaos | Everyone edits one shared outfit, live. Nothing is saved. | none yet | |
 | 1 Save | Everyone saves a card. Git stores the name and clock your laptop gives it, and checks neither. | `git commit`, `git log`, `git cat-file -p` | §2.1 objects and IDs · §5.6–5.7 clocks and names |
-| 2 Two ideas | Pairs build fancy and sporty, each on its own sticky note. | `git switch -c`, `git switch` | §2.1 refs |
+| 2 Two ideas | Pairs build fancy and sporty, each on its own branch. | `git switch -c`, `git switch` | §2.1 refs |
 | 3 Combine | fancy fast-forwards and its note is deleted. sporty conflicts on TOP; a person picks. | `git merge`, `git branch -d` | §5.1 fast-forward · §3.1 merge commits |
 | 4 Share | The Wall is the class's shared copy. The first send wins; refused labs merge or rebase. Each change's path to main, with this class's times. | `git clone`, `git push`, `git pull --no-rebase`, `git pull --rebase` | §5.2 rebase · §6 integration paths, code velocity |
 | 5 Undo | The Intern's 🥸 card reaches every lab. A fix card (revert) sends like any card. Moving the note back (reset), then sending, is refused. | `git revert`, `git reset --hard`, `git reflog` | §5.5 revert |
@@ -21,12 +21,12 @@ Teaching materials for Git week in UC Berkeley CS294 *Modern Programming Tools* 
 
 ### Thursday · The Humans
 
-80 minutes, User Study Day, in the order of the course's User Studies lecture. The paper is Yang et al., *Do Developers Really Know How to Use Git Commands? A Large-Scale Study Using Stack Overflow*, TOSEM 2022. Its authors published their survey form and all 80,370 posts; the class uses both. Its message: **asking is not using.**
+80 minutes, User Study Day, in the order of the course's User Studies lecture. The paper is Yang et al., *Do Developers Really Know How to Use Git Commands? A Large-Scale Study Using Stack Overflow*, TOSEM 2022. Its authors published their survey form and all 80,370 posts; the class uses both. Its message: **what people ask shows where they get stuck, not what they can do.**
 
 | Part | What happens | Paper |
 |---|---|---|
 | Warm-up | Everyone takes the paper's survey, its real questions. | §2.2 |
-| 1 The study | How it was done (collect, measure, ask). Two quick votes: who is in it (people who *asked*; nobody was watched), and when a question counts for a command (a word search, even in the answer). What they found. | §2, RQ1–RQ5 |
+| 1 The study | How it was done (collect, measure, ask). Then what it found. No reading required: the slides tell students what they need. | §2, RQ1–RQ5 |
 | 2 Check it yourself | Read 8 real posts from its data: is the asker stuck on the command, needs it without knowing it, or not about it? Then sort the paper's own survey comments and compare: it reports no method or agreement. | §2.1, Table 4, Table 8 |
 | 3 Judge it | Groups of about 4 each put one claim on trial: what was measured, and what it really shows. One claim holds as written. | RQ2, RQ4, RQ5, §3.5 |
 | 4 Design | Why must people ask how to undo? One fix, a test, a measure and one risk. Then: what holds and what doesn't in the paper. | §4, §6 |

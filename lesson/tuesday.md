@@ -18,17 +18,17 @@ Every Say, Do, Ask, Hope to hear and Board line below, and every technical card,
 
 **How every scene runs**
 - **Next:** → or Space. **Back:** ←. A clicker works in either window.
-- **Task scene.** Students do the step in the app: what to do, their mission, goals that tick, **Stuck? Hint**. The projector shows the step, one line, a timer and each lab's outfit. From Step 4, it shows the Wall too.
+- **Task scene.** Students do the step in the app: what to do, their mission, goals that tick, **Need a hint?**. The projector shows the step, one line, a timer and each lab's outfit. From Step 4, it shows the Wall too.
 - **Predict before you act (Steps 3–5).** **Merge** (Step 3) and **Send to Wall** (Steps 4–5) open a one-tap prediction for the student who pressed: "What will Git do?" (Fast-forward · Merge, no conflict · Conflict on HAT / GLASSES / TOP / SHOES) or "Will the Wall accept it?" (Yes · No, the Wall has cards we don't). Git runs only after the tap. Everyone else in the lab can predict too, in a small **Predict** box in their panel, while the action is pending. Then each sees one line: "You predicted: conflict on TOP. Git: conflict on TOP. ✓", or the guess, Git's answer and "Why: …". The console's **Predict** row counts them live ("Predicted right: 7 of 10"); the Step 3–5 reveals show the class's accuracy.
-- **Students choose (Steps 4–5).** The app assigns no way. A refused lab chooses Combine (merge) or Replay on top (rebase); each button has one plain line on what it will do, and the lab may say why in one line. In Step 5 each lab chooses Undo this card (revert) or Move my note back (reset). The console tile shows each lab's choice; the reveal shows them all, and what a way nobody chose would have done.
-- **Stuck? Hint** appears 45 seconds after the step starts (and again 45 seconds after the lab's latest refusal or conflict): think first. The first press shows the idea (what to look at, which concept); a second press, **Show the exact click**, shows the click.
+- **Students choose (Steps 4–5).** The app assigns no way. A refused lab chooses Combine (merge) or Replay on top (rebase); each button has one plain line on what it will do, and the lab may say why in one line. In Step 5 each lab chooses Undo this card (revert) or Move my branch back (reset). The console tile shows each lab's choice; the reveal shows them all, and what a way nobody chose would have done.
+- **Need a hint?** appears 45 seconds after the step starts (and again 45 seconds after the lab's latest refusal or conflict): think first. The first press shows the idea (what to look at, which concept); a second press, **Show the exact click**, shows the click.
 - **Reveal scene.** The projector shows one technical card per tool: the command, then What it is · What it does · How Git does it. Students see the same card in the app. Each card's text is under its reveal below.
 - **Ask before the reveal.** Never say a Git name before a student says the idea.
 - Someone says the Git name first? Say: "Right. Now say what it does, without Git words."
 - **Show on projector** puts the question up. The answer stays folded on S's laptop.
 - At each reveal, students can type an answer and a one-line takeaway. The console shows "7/10 answered". **Show answers on projector** shows them, without names.
 - **When to press Next:** the readiness line, e.g. "Labs done: 2/3 · Lab 3: Merging: TOP to pick".
-- **A lab is stuck?** Students have **Stuck? Hint** (idea first, then the click). Still stuck? Press **Rescue** on its tile. The app finishes the step for that lab with real Git.
+- **A lab is stuck?** Students have **Need a hint?** (idea first, then the click). Still stuck? Press **Rescue** on its tile. The app finishes the step for that lab with real Git.
 - From Step 3 on, one student per lab presses. The app says to swap each step.
 
 **Learning objectives** (for us; the Step 0 reveal says them in plain words)
@@ -46,24 +46,24 @@ Checked in: #1, the reveals of Steps 1, 2 and 4. #2, every Merge and Send in Ste
 | Clock | Scene | Min |
 |---|---|---|
 | 0:00 | Join | 3 |
-| 0:03 | Step 0 · Everyone, one outfit | 1.5 |
+| 0:03 | Step 0 · Everyone edits the same outfit | 1.5 |
 | 0:04:30 | Step 0 · What would fix it? | 2 |
 | 0:06:30 | Step 1 · Save every version | 3 |
 | 0:09:30 | Step 1 · How Git does it | 2.5 |
-| 0:12 | Step 2 · Try two ideas at once | 4 |
+| 0:12 | Step 2 · Give each idea its own branch | 4 |
 | 0:16 | Step 2 · How Git does it | 3 |
-| 0:19 | Step 3 · Make one outfit from both (predict each merge) | 8 |
+| 0:19 | Step 3 · Combine two branches (predict each merge) | 8 |
 | 0:27 | Step 3 · How Git does it | 4 |
 | 0:31 | **Break** | 4 |
-| 0:35 | Step 4 · Put your outfit on the Wall (predict each send; refused labs choose) | 9 |
+| 0:35 | Step 4 · Share your work through the Wall (predict each send; refused labs choose) | 9 |
 | 0:44 | Step 4 · How Git does it | 5 |
-| 0:49 | Step 5 · Oops: undo a shared mistake (labs choose; predict each send) | 7 |
+| 0:49 | Step 5 · Undo a change everyone already has (labs choose; predict each send) | 7 |
 | 0:56 | Step 5 · How Git does it | 3 |
-| 0:59 | Step 6 · The boss wants it clean | 4 |
+| 0:59 | Step 6 · Rewrite the shared history | 4 |
 | 1:03 | Step 6 · How Git does it | 4 |
 | 1:07 | The paper | 5 |
 | 1:12 | Exit question | 3 |
-| 1:15 | What you built | 2 |
+| 1:15 | What you did today | 2 |
 | 1:17 | **Buffer** | 3 |
 
 ---
@@ -86,7 +86,7 @@ Checked in: #1, the reveals of Steps 1, 2 and 4. #2, every Merge and Send in Ste
 
 ---
 
-## 0:03 · Step 0 · Everyone, one outfit · no Git yet
+## 0:03 · Step 0 · Everyone edits the same outfit · no Git yet
 
 **Time:** 1.5 min.
 
@@ -134,7 +134,7 @@ Checked in: #1, the reveals of Steps 1, 2 and 4. #2, every Merge and Send in Ste
 
 **Students:** Change one part, then press **Save card**. Everyone saves once.
 
-**Watch for (A):** Anyone who hasn't saved yet. Their lab-mates' Stuck? Hint names them.
+**Watch for (A):** Anyone who hasn't saved yet. Their lab-mates' Need a hint? names them.
 
 ## 0:09:30 · Step 1 · How Git does it · `git commit`
 
@@ -163,7 +163,7 @@ Checked in: #1, the reveals of Steps 1, 2 and 4. #2, every Merge and Send in Ste
 
 ---
 
-## 0:12 · Step 2 · Try two ideas at once
+## 0:12 · Step 2 · Give each idea its own branch
 
 **Time:** 4 min.
 
@@ -173,11 +173,11 @@ Checked in: #1, the reveals of Steps 1, 2 and 4. #2, every Merge and Send in Ste
 
 **Ask:** Cards never change. How does each half of your lab find its own newest card?
 
-**Hope to hear:** Each idea puts its own sticky note on its newest card.
+**Hope to hear:** Each idea puts its own branch on its newest card.
 
 **If silent:** You have cards and arrows. How do you mark 'this is my latest'?
 
-**Students:** Pair A makes sticky note **fancy**: HAT → 🎩, TOP → 👔. Pair B makes **sporty**: TOP → 🎽, SHOES → 🥾. Each saves a card.
+**Students:** Pair A makes branch **fancy**: HAT → 🎩, TOP → 👔. Pair B makes **sporty**: TOP → 🎽, SHOES → 🥾. Each saves a card.
 
 **Watch for (A):** Before a pair edits, the "You're on:" chip shows their own note.
 
@@ -198,7 +198,7 @@ Checked in: #1, the reveals of Steps 1, 2 and 4. #2, every Merge and Send in Ste
 
 **Do:** Read the line under the card once: it is the app's one simplification. Switch refuses unsaved parts, as Git does with one working copy.
 
-**If asked:** Here each sticky note keeps its own shared draft. In real Git one clone has one working directory (more only with `git worktree`), and `git switch` refuses when your uncommitted changes would be overwritten.
+**If asked:** Here each branch keeps its own shared draft. In real Git one clone has one working directory (more only with `git worktree`), and `git switch` refuses when your uncommitted changes would be overwritten.
 
 **Ask:** Where is the original outfit now? Did anything get copied?
 
@@ -206,11 +206,11 @@ Checked in: #1, the reveals of Steps 1, 2 and 4. #2, every Merge and Send in Ste
 
 **If silent:** Count the cards before and after you made the note.
 
-**Board:** 2. Sticky note (branch): a label on one card. Saving moves it.
+**Board:** 2. Branch (branch): a label on one card. Saving moves it.
 
 ---
 
-## 0:19 · Step 3 · Make one outfit from both
+## 0:19 · Step 3 · Combine two branches
 
 **Time:** 8 min (one more than before: predictions).
 
@@ -224,7 +224,7 @@ Checked in: #1, the reveals of Steps 1, 2 and 4. #2, every Merge and Send in Ste
 
 **If silent:** What did HAT look like before you split?
 
-**Students:** Lab-mates predict in their panel: "Before your lab merges fancy into main: What will Git do?" The presser predicts in the dialog, then Git runs. On main, merge **fancy**: main's note slides forward, no new card. Each predictor sees one line, e.g. "You predicted: merge, no conflict. Git: fast-forward. Why: main had no new card since the split, so Git only slid its note." The mission then says: "Delete the fancy note (`git branch -d fancy`)." They press **Delete sticky note**. Then predict and merge **sporty**. HAT 🎩 and SHOES 🥾 combine alone. TOP is red: the lab agrees on one, picks it, and presses **Finish merge**. A merge pressed again after Cancel asks nothing: Git already answered.
+**Students:** Lab-mates predict in their panel: "Before your lab merges fancy into main: What will Git do?" The presser predicts in the dialog, then Git runs. On main, merge **fancy**: main's note slides forward, no new card. Each predictor sees one line, e.g. "You predicted: merge, no conflict. Git: fast-forward. Why: main had no new card since the split, so Git only slid its note." The mission then says: "Delete the fancy note (`git branch -d fancy`)." They press **Delete branch**. Then predict and merge **sporty**. HAT 🎩 and SHOES 🥾 combine alone. TOP is red: the lab agrees on one, picks it, and presses **Finish merge**. A merge pressed again after Cancel asks nothing: Git already answered.
 
 **Watch for:** Delete fancy before merging it? Refused, like `git branch -d`: fancy has cards main doesn't.
 
@@ -249,7 +249,7 @@ Checked in: #1, the reveals of Steps 1, 2 and 4. #2, every Merge and Send in Ste
 
 **Hope to hear:** No way to tell. Git does not record the branch a commit was made on.
 
-**If silent:** Open any card. Press **Show what Git stored**. Which line names a sticky note?
+**If silent:** Open any card. Press **Show what Git stored**. Which line names a branch?
 
 **If asked:** Edits on neighboring lines also conflict. That's why `outfit.txt` has a `---` line between parts. A conflict stops the merge; you fix the file, then `git add` and `git commit`. The merge card has two parents.
 
@@ -269,7 +269,7 @@ Checked in: #1, the reveals of Steps 1, 2 and 4. #2, every Merge and Send in Ste
 
 ---
 
-## 0:35 · Step 4 · Put your outfit on the Wall
+## 0:35 · Step 4 · Share your work through the Wall
 
 **Time:** 9 min (one more than before: predictions and the choice). Students hit the problem first.
 
@@ -277,7 +277,7 @@ Checked in: #1, the reveals of Steps 1, 2 and 4. #2, every Merge and Send in Ste
 
 **Students see, under the step's text (true: entering Step 4 clones every lab again):** "Your lab now starts from [that lab]'s Wall. Your own Steps 1–3 cards are not in this fresh copy." That lab itself reads: "Your lab's main went to the Wall. Your lab is now a fresh copy of the Wall: the same cards, the same IDs."
 
-**Say:** The Wall is the class's shared copy, like GitHub. Your lab already has a full copy of it (that is git clone). It starts as [that lab]'s outfit. Put your outfit on the Wall. Before each send, predict: will the Wall accept it?
+**Say:** The Wall is the class's shared copy, like GitHub. Your lab already has a full copy of it (that is git clone). It starts as [that lab]'s outfit. Share your work through the Wall. Before each send, predict: will the Wall accept it?
 
 **Do:** Don't ask first: students hit the refusal themselves. A refused lab chooses Combine (merge) or Replay on top (rebase), and may say why in one line. The app assigns nothing.
 
@@ -331,7 +331,7 @@ Checked in: #1, the reveals of Steps 1, 2 and 4. #2, every Merge and Send in Ste
 
 ---
 
-## 0:49 · Step 5 · Oops: undo a shared mistake
+## 0:49 · Step 5 · Undo a change everyone already has
 
 **Time:** 7 min (one more than before: the choice and predictions).
 
@@ -345,7 +345,7 @@ Checked in: #1, the reveals of Steps 1, 2 and 4. #2, every Merge and Send in Ste
 
 **Hope to hear:** Go back to before it, or save a new card that removes it.
 
-**Students:** Each lab chooses: "Choose: click the 🥸 card and press **Undo this card** (adds a fix card), or click the card right before it and press **Move my note back here** (moves main back). Then **Send to Wall**." Each send is predicted first. A lab that moved back reads "You moved main back. Now **Send to Wall**. What happens?" and is refused, for real: the Wall still has the card. Its mission then says to open the **Safety diary** and press **Get & combine**; 🥸 comes back, and they undo it.
+**Students:** Each lab chooses: "Choose: click the 🥸 card and press **Undo this card** (adds a fix card), or click the card right before it and press **Move my branch back here** (moves main back). Then **Send to Wall**." Each send is predicted first. A lab that moved back reads "You moved main back. Now **Send to Wall**. What happens?" and is refused, for real: the Wall still has the card. Its mission then says to open the **Safety diary** and press **Get & combine**; 🥸 comes back, and they undo it.
 
 **Watch for:** A lab that moved back is refused. That is the lesson. Of the labs that undid, the second to send is refused; its Get & combine has no red: both made the same fix. No lab chose to move back? The reveal says what would have happened.
 
@@ -357,7 +357,7 @@ Checked in: #1, the reveals of Steps 1, 2 and 4. #2, every Merge and Send in Ste
 
 **Time:** 3 min.
 
-**Projector:** the `git revert / git reset` card, the class's accuracy for Step 5's sends, what each lab chose ("Chose: Lab 1 Undo this card (revert) · Lab 2 Move my note back (reset) · …"), and, if no lab moved back: "No lab moved its note back. It would have been refused: the Wall still has the 🥸 card, and Get & combine brings it back."
+**Projector:** the `git revert / git reset` card, the class's accuracy for Step 5's sends, what each lab chose ("Chose: Lab 1 Undo this card (revert) · Lab 2 Move my branch back (reset) · …"), and, if no lab moved back: "No lab moved its note back. It would have been refused: the Wall still has the 🥸 card, and Get & combine brings it back."
 
 **Card:** `git revert / git reset`
 - **What it is:** two kinds of undo.
@@ -380,7 +380,7 @@ Checked in: #1, the reveals of Steps 1, 2 and 4. #2, every Merge and Send in Ste
 
 ---
 
-## 0:59 · Step 6 · The boss wants it clean
+## 0:59 · Step 6 · Rewrite the shared history
 
 **Time:** 4 min.
 
@@ -481,13 +481,13 @@ Checked in: #1, the reveals of Steps 1, 2 and 4. #2, every Merge and Send in Ste
 
 ---
 
-## 1:15 · What you built
+## 1:15 · What you did today
 
 **Time:** 2 min.
 
-**Projector:** "Cards never change. Sticky notes move. The Wall copies cards." Then a wall of takeaways, without names. Each student sees "My Git in 7 lines" and their lab's counts, with a Copy button.
+**Projector:** "Cards never change. Branches move. The Wall copies cards." Then a wall of takeaways, without names. Each student sees "My Git in 7 lines" and their lab's counts, with a Copy button.
 
-**Say:** Cards never change. Sticky notes move. The Wall copies cards. That's Git. Homework: Yang et al., Sections 3.2 to 3.5. For one finding, write down what they measured.
+**Say:** Cards never change. Branches move. The Wall copies cards. That's Git. Homework: Yang et al., Sections 3.2 to 3.5. For one finding, write down what they measured.
 
 **Do:** Read one lab's counts aloud. Point at the takeaway wall.
 

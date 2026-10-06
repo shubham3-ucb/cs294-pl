@@ -178,16 +178,16 @@ async function swap(ctx, repo, ref, next, old, reason, who) {
   throw new Error(`git update-ref failed: ${r.err.trim()}`);
 }
 
-// Full refnames everywhere. Note names were validated when the note was made; check again here.
+// Full refnames everywhere. Note names were validated when the branch was made; check again here.
 function refOf(note) {
   if (note === 'wall/main') return 'refs/remotes/wall/main';
   if (!NOTE.test(note)) throw new Error(`Bad note name: ${note}`);
   return `refs/heads/${note}`;
 }
 
-const moved = (ctx) => finish(ctx, { moved: true }, '', 'Someone moved this sticky note meanwhile. Nothing changed.');
+const moved = (ctx) => finish(ctx, { moved: true }, '', 'Someone moved this branch meanwhile. Nothing changed.');
 
-// An open merge holds its note: nothing else moves it until someone finishes or cancels.
+// An open merge holds its branch: nothing else moves it until someone finishes or cancels.
 // Checked inside the lock, so two people pressing at once can't open two merges or save under one.
 const holding = (ctx) => finish(ctx, { merging: true }, '', 'Finish or cancel the merge first.');
 
@@ -232,9 +232,9 @@ export function removeLab(id) {
   });
 }
 
-// ---------- Saving and sticky notes ----------
+// ---------- Saving and branches ----------
 
-// Save the note's unsaved parts as a new card. Parts edited during the save stay unsaved.
+// Save the branch's unsaved parts as a new card. Parts edited during the save stay unsaved.
 export function commit(lab, note, author) {
   return onLab(lab.id, async () => {
     const ctx = op();
@@ -264,7 +264,7 @@ export function commit(lab, note, author) {
   });
 }
 
-// A new sticky note on main's card. Nothing is copied: a note is a tiny file holding one ID.
+// A new branch on main's card. Nothing is copied: a note is a tiny file holding one ID.
 export function createBranch(lab, name, author = SYSTEM) {
   return onLab(lab.id, async () => {
     const ctx = op();
@@ -274,17 +274,17 @@ export function createBranch(lab, name, author = SYSTEM) {
       return finish(ctx, { exists: true }, '', `${name} already exists.`);
     }
     return finish(ctx, { id: main, name }, `git switch -c ${name} main`,
-      `Git wrote sticky note ${name} on card ${short(main)}; nothing was copied.`);
+      `Git wrote branch ${name} on card ${short(main)}; nothing was copied.`);
   });
 }
 
-// Delete a sticky note, as `git branch -d`: only when its card is already in the current note's history,
-// and never the note you are on. The cards stay; Git deletes the note's file and its reflog.
+// Delete a branch, as `git branch -d`: only when its card is already in the current branch's history,
+// and never the branch you are on. The cards stay; Git deletes the branch's file and its reflog.
 export function deleteBranch(lab, note, current) {
   return onLab(lab.id, async () => {
     const ctx = op();
     const porcelain = `git branch -d ${note}`;
-    if (note === current) return finish(ctx, { current: true }, porcelain, `You are on ${note}. Git never deletes the note you are on.`);
+    if (note === current) return finish(ctx, { current: true }, porcelain, `You are on ${note}. Git never deletes the branch you are on.`);
     if (lab.merging[note]) return holding(ctx);
     const ref = refOf(note);
     const tip = await tipOf(ctx, lab.id, ref);
@@ -314,8 +314,8 @@ function mergeMessage(into, from) {
   return into === 'main' ? `Merge branch '${from}'` : `Merge branch '${from}' into ${into}`;
 }
 
-// Open a merge on the lab (shared by everyone on the note) and say which parts need a person.
-// intoTip is where the note stays until someone finishes; oursId is the side being built on (a replay's new base).
+// Open a merge on the lab (shared by everyone on the branch) and say which parts need a person.
+// intoTip is where the branch stays until someone finishes; oursId is the side being built on (a replay's new base).
 async function openMerge(ctx, lab, note, { kind, from, intoTip, oursId = intoTip, theirs, baseId, tree, message, who, more = {} }) {
   const conflictedText = (await run(ctx, lab.id, ['cat-file', '-p', `${tree}:${FILE}`])).out;
   const base = await monsterAt(ctx, lab.id, baseId);
@@ -357,7 +357,7 @@ async function mergeIn(ctx, lab, into, from, who) {
 
 function mergeExplain(r, into, from) {
   if (r.merging) return 'Finish or cancel the merge first.';
-  if (r.moved) return 'Someone moved this sticky note meanwhile. Nothing changed.';
+  if (r.moved) return 'Someone moved this branch meanwhile. Nothing changed.';
   if (r.nothing) return `${into} already has every card of ${nameOf(from)}. Nothing to do.`;
   if (r.fastForward) {
     return `Git slid ${into} forward to ${short(r.id)}: a fast-forward, so no new card. Every card on ${into} was already in ${nameOf(from)}.`;
@@ -396,7 +396,7 @@ export function resolve(lab, note, monster, author) {
   });
 }
 
-// Cancel an open merge. No card was made, so the note stays where it was.
+// Cancel an open merge. No card was made, so the branch stays where it was.
 export function abort(lab, note) {
   return onLab(lab.id, async () => {
     const ctx = op();
@@ -427,7 +427,7 @@ async function pushIn(ctx, lab, force) {
 function pushExplain(r) {
   if (r.rejected) return "The Wall's main has a card your main doesn't. Moving the Wall would drop it, so Git refuses.";
   if (r.already) return `The Wall already has card ${short(r.id)}. Nothing to send.`;
-  if (r.forced) return `The Wall's main was forced to ${short(r.id)}. Its old cards have no sticky note now.`;
+  if (r.forced) return `The Wall's main was forced to ${short(r.id)}. Its old cards have no branch now.`;
   return `Git sent the cards the Wall was missing. The Wall's main moved to ${short(r.id)}.`;
 }
 
@@ -602,7 +602,7 @@ export function reset(lab, note, commit, author = SYSTEM) {
   });
 }
 
-// The safety diary: every place the note has been, newest first.
+// The safety diary: every place the branch has been, newest first.
 export function reflog(lab, note) {
   return onLab(lab.id, async () => {
     const ctx = op();
@@ -667,7 +667,7 @@ export function gcWall() {
     const after = await bin();
     touch('wall');
     return finish(ctx, { before, after }, 'git gc --prune=now',
-      `\`git gc --prune=now\` deleted ${before} ${before === 1 ? 'card' : 'cards'} that no sticky note leads to.`);
+      `\`git gc --prune=now\` deleted ${before} ${before === 1 ? 'card' : 'cards'} that no branch leads to.`);
   });
 }
 
@@ -716,7 +716,7 @@ async function readGraph(repo) {
   return { refs, commits };
 }
 
-// The cards and sticky notes of a repo ('wall' or a lab id): {refs: {refname: id}, commits: [...]}.
+// The cards and branches of a repo ('wall' or a lab id): {refs: {refname: id}, commits: [...]}.
 // A commit: {id, parents, author, time (author date), committer, committerTime, message, monster, reachable}.
 // Labs include diary-only cards (reachable: false). Cached until a git op moves a ref.
 export async function graph(repo) {

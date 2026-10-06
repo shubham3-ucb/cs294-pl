@@ -360,7 +360,7 @@ function history(byId, id) {
 // What a lab did since its step began, read from the feed.
 const DID = {
   refused: (e) => e.action === 'Send to Wall' && e.bad,
-  reset: (e) => e.action === 'Move my note back here',
+  reset: (e) => e.action === 'Move my branch back here',
 };
 const didThisStep = (lab, test) => S.feed.some((e) => e.labId === lab.id && e.t >= S.stepStartedAt && test(e));
 
@@ -594,6 +594,11 @@ function stepFor(n, lab) {
     // Only where the lab presses something: in Step 6 only for the boss lab.
     fixedLine: [3, 4, 5].includes(n) || (n === 6 && boss) ? FIXED_LINE : null,
     instruction: fillBoss((boss && s.bossInstruction) || s.instruction).replaceAll('{wallLab}', wallLab),
+    story: s.story && {
+      now: fillBoss(s.story.now).replaceAll('{wallLab}', wallLab),
+      job: fillBoss((boss && s.story.jobBoss) || s.story.job),
+      git: s.story.git,
+    },
     // Step 4: what the fresh copy of the Wall holds, so no lab thinks its history vanished silently.
     fresh: s.fresh && lab && S.wallMet ? (lab.id === S.stepLab[4] ? s.fresh.wallLab : s.fresh.other.replaceAll('{wallLab}', wallLab)) : null,
     screen: fillBoss(s.screen),
@@ -781,7 +786,7 @@ export const state = (pid) => work(async () => {
         solo, both, fancyMerged: view.mainHasIdea('fancy'), fancyLeft: !!view.card('fancy'), way: view.way(), done: labDone,
         got: view.gotSabotage(), undo: S.undos[lab.id]?.way ?? null, refused: didThisStep(lab, DID.refused),
       }),
-      // The name New sticky note suggests: my pair's, or the next one not made yet when I do both.
+      // The name New branch suggests: my pair's, or the next one not made yet when I do both.
       pairNote: both ? (Object.values(PAIR_NOTES).find((n) => !tipOf(graph, n)) ?? PAIR_NOTES.B) : PAIR_NOTES[me.pair],
       hint, // {idea, click}: the page shows the idea first, the click on a second press
       hintAt: hintAt(lab, me),
@@ -1098,7 +1103,7 @@ export const act = (action, input) => work(async () => {
   }
 });
 
-// Shared guards for anything that would move the note: open merge, then unsaved parts.
+// Shared guards for anything that would move the branch: open merge, then unsaved parts.
 function blocked(lab, note) {
   if (lab.merging[note]) return fail(T.merging);
   if (Object.keys(lab.drafts[note] ?? {}).length) return fail(T.unsaved);
@@ -1207,20 +1212,20 @@ const ACTIONS = {
     if (r.exists) return fail(`${note} already exists. Press Switch to join it.`);
     me.branch = note;
     lab.drafts[note] ??= {};
-    return reply(lab, me, r, { action: `New sticky note ${note}`, outcome: 'from main', concepts: ['branch'] },
+    return reply(lab, me, r, { action: `New branch ${note}`, outcome: 'from main', concepts: ['branch'] },
       { message: `You're on ${note} now. Change parts, then Save card.` });
   },
 
-  // Switch runs no git: your pin lives in the session, and each note keeps its own draft.
+  // Switch runs no git: your pin lives in the session, and each branch keeps its own draft.
   // Like git switch, it refuses to leave unsaved parts behind: Git keeps one working copy.
   async switch(me, lab, { branch }) {
     const note = String(branch ?? '');
-    if (!tipOf(await git.graph(lab.id), note)) return fail('That sticky note does not exist.');
+    if (!tipOf(await git.graph(lab.id), note)) return fail('That branch does not exist.');
     if (note !== me.branch && Object.keys(lab.drafts[me.branch] ?? {}).length) return fail(SWITCH_UNSAVED);
     me.branch = note;
     const r = {
       porcelain: `git switch ${note}`,
-      explain: `In real Git, \`git switch ${note}\` writes \`ref: refs/heads/${note}\` into \`.git/HEAD\`. Here your pin (HEAD) is yours alone, so each person can be on a different note, and each note keeps its own draft.`,
+      explain: `In real Git, \`git switch ${note}\` writes \`ref: refs/heads/${note}\` into \`.git/HEAD\`. Here your pin (HEAD) is yours alone, so each person can be on a different note, and each branch keeps its own draft.`,
       commands: [],
     };
     return reply(lab, me, r, { action: `Switch to ${note}`, concepts: ['switch'] }, { message: `You're on ${note} now.` });
@@ -1231,7 +1236,7 @@ const ACTIONS = {
     if (me.branch !== 'main') return fail(T.mainOnly);
     const into = 'main';
     from = String(from ?? '');
-    if (from === into || !tipOf(await git.graph(lab.id), from)) return fail('Pick another sticky note to merge.');
+    if (from === into || !tipOf(await git.graph(lab.id), from)) return fail('Pick another branch to merge.');
     const m = moment(lab, 'merge', from);
     const stop = takeGuess(m, me, guess) || blocked(lab, into) || needGuess(m, me);
     if (stop) return stop;
@@ -1341,12 +1346,12 @@ const ACTIONS = {
     return reply(lab, me, r, rebaseEntry(r), { message });
   },
 
-  // Delete a sticky note, as git branch -d: only once the note you're on has its cards. Anyone else on it
+  // Delete a branch, as git branch -d: only once the branch you're on has its cards. Anyone else on it
   // goes back to main (here each person has a pin; real Git refuses a branch checked out elsewhere).
   async deleteNote(me, lab, { note }) {
     const name = String(note ?? '');
     if (name === 'main') return fail('main stays. Pick another note.');
-    if (!tipOf(await git.graph(lab.id), name)) return fail('That sticky note does not exist.');
+    if (!tipOf(await git.graph(lab.id), name)) return fail('That branch does not exist.');
     if (name === me.branch) return fail(`You're on ${name}. Switch to main first.`);
     if (lab.merging[name]) return fail(T.merging);
     if (Object.keys(lab.drafts[name] ?? {}).length) return fail(`${name} has unsaved parts. Save them on ${name} first.`);
@@ -1355,11 +1360,11 @@ const ACTIONS = {
     for (const p of peopleIn(lab.id)) if (p.branch === name) p.branch = 'main';
     delete lab.drafts[name];
     delete lab.draftBy[name];
-    return reply(lab, me, r, { action: `Delete sticky note ${name}`, outcome: `was ${short(r.id)}` },
-      { message: `Deleted the ${name} note. Its cards stay.` });
+    return reply(lab, me, r, { action: `Delete branch ${name}`, outcome: `was ${short(r.id)}` },
+      { message: `Deleted the ${name} branch. Its cards stay.` });
   },
 
-  // git.js refuses the Start card and cards outside the note's history, in the client's words.
+  // git.js refuses the Start card and cards outside the branch's history, in the client's words.
   async revert(me, lab, { commit }) {
     const note = me.branch;
     const stop = blocked(lab, note);
@@ -1384,7 +1389,7 @@ const ACTIONS = {
     if (stop) return stop;
     const r = await git.reset(lab, note, String(commit ?? ''), authorOf(me));
     if (!r.refused && !r.moved && note === 'main') chooseUndo(lab, 'reset', me);
-    return reply(lab, me, r, { action: 'Move my note back here', outcome: `${note} → ${short(commit)}`, concepts: ['reset'] },
+    return reply(lab, me, r, { action: 'Move my branch back here', outcome: `${note} → ${short(commit)}`, concepts: ['reset'] },
       { message: `${note} moved back to ${short(commit)}.${sendNext(note)}` });
   },
 
@@ -1601,7 +1606,7 @@ async function settle(lab, note, pick, who) {
   }
 }
 
-// Cancel open merges and drop unsaved parts on the notes rescue touches.
+// Cancel open merges and drop unsaved parts on the branchs rescue touches.
 async function clearNotes(lab, notes) {
   for (const note of notes) {
     if (lab.merging[note]) must(await git.abort(lab, note));
@@ -1631,7 +1636,7 @@ async function deleteIn(lab, note, who) {
   if (r.unmerged) throw Object.assign(new Error(`${note} moved during the rescue.`), { busy: true });
   delete lab.drafts[note];
   delete lab.draftBy[note];
-  log(lab, who, { action: `Delete sticky note ${note}`, outcome: `was ${short(r.id)}` }, r);
+  log(lab, who, { action: `Delete branch ${note}`, outcome: `was ${short(r.id)}` }, r);
 }
 
 // Get the Wall's cards the lab's way: Replay on top for a Step 4 lab that chose it, else Get & combine
@@ -1664,7 +1669,7 @@ async function send(lab, pick, who) {
   log(lab, who, { action: 'Send to Wall', outcome: `sent ${short(r.id)}` }, r);
 }
 
-// Build each pair's sticky note with its mission, unless main already has that idea.
+// Build each pair's branch with its mission, unless main already has that idea.
 async function rescueBranches(lab, who) {
   const graph = await git.graph(lab.id);
   const view = labView(lab, graph, null);
@@ -1674,7 +1679,7 @@ async function rescueBranches(lab, who) {
     if (!tipOf(graph, note)) {
       const r = must(await git.createBranch(lab, note));
       lab.drafts[note] = {};
-      log(lab, who, { action: `New sticky note ${note}`, outcome: 'from main' }, r);
+      log(lab, who, { action: `New branch ${note}`, outcome: 'from main' }, r);
     }
     const card = await noteMonster(lab, note);
     const missing = Object.fromEntries(Object.entries(PAIR_PARTS[note]).filter(([p, val]) => card[p] !== val));
@@ -1688,7 +1693,7 @@ const RESCUE = {
   async 3(lab, who = TEACHER) {
     await rescueBranches(lab, who);
     await clearNotes(lab, ['main']);
-    // Merge fancy (a fast-forward), delete its note, merge sporty. A conflicted part takes fancy's value.
+    // Merge fancy (a fast-forward), delete its branch, merge sporty. A conflicted part takes fancy's value.
     const fancy = (part, open) => PAIR_PARTS.fancy[part] ?? open.ours[part];
     for (const note of Object.values(PAIR_NOTES)) {
       if (tipOf(await git.graph(lab.id), note)) await mergeIn(lab, note, fancy, who);

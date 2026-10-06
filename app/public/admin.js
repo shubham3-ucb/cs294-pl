@@ -20,7 +20,7 @@ const COUNTS = [['save', 'card', 'cards'], ['merge', 'merge', 'merges'], ['confl
 
 // Step 4: the way a lab chose to get the Wall's cards. Step 5: how it chose to undo the Intern's card.
 const WAYS = { merge: 'Combine (merge)', rebase: 'Replay on top (rebase)' };
-const UNDOS = { revert: 'Undo this card (revert)', reset: 'Move my note back (reset)' };
+const UNDOS = { revert: 'Undo this card (revert)', reset: 'Move my branch back (reset)' };
 
 // The scene's tools, in the main card only when the scene needs them. Rescue sits on the lab tiles,
 // Show answers with the question.
@@ -272,7 +272,7 @@ function renderComing() {
   $('pick').hidden = !wanted;
   if (wanted) {
     const select = $('pick-lab');
-    // The server's default is the lab its note names.
+    // The server's default is the lab its branch names.
     const fallback = real.find((l) => note.includes(l.name)) ?? real[0];
     $('pick-label').textContent = id === 'task-4' ? 'Whose outfit goes to the Wall:' : 'Boss lab:';
     patch(select, real.map((l) => `<option value="${esc(l.id)}">${esc(l.name)}</option>`).join(''));

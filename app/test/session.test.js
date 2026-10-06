@@ -216,7 +216,7 @@ describe('a whole class, by hints alone', () => {
     for (let i = 0; i < 5; i++) await next(); // join → Step 2's task
     const st = await session.state(me);
     assert.equal(st.me.both, true);
-    assert.match(st.me.mission, /^You're both pairs today\./);
+    assert.match(st.me.mission, /^You do both pairs today\./);
     for (let i = 0; i < 5; i++) ok(await session.admin('back', {}));
 
     const met = await playClass([me]);
@@ -227,9 +227,9 @@ describe('a whole class, by hints alone', () => {
     const a = await adminState();
     assert.ok(a.feed.some((e) => e.who === 'Practice lab' && e.action === 'Send to Wall'));
     assert.equal(a.labs[0].way, 'rebase', 'the one real lab chose to replay on top (the bot rule for a lone refusable lab)');
-    assert.equal(a.labs[0].undo, 'reset', 'a lab alone moved its note back first (the bot rule), and met the refusal');
+    assert.equal(a.labs[0].undo, 'reset', 'a lab alone moved its branch back first (the bot rule), and met the refusal');
     assert.ok(a.feed.some((e) => e.labId === '1' && e.action === 'Replay on top' && /→/.test(e.outcome)));
-    assert.ok(a.feed.some((e) => e.labId === '1' && e.action === 'Delete sticky note fancy'));
+    assert.ok(a.feed.some((e) => e.labId === '1' && e.action === 'Delete branch fancy'));
     const paths = met.integration.paths;
     assert.equal(met.integration.live, true);
     assert.deepEqual(paths.map((p) => [p.name, p.copy]), [['Practice lab', false], ['Lab 1', true]]);
@@ -352,8 +352,8 @@ describe('questions and takeaways', () => {
   });
 });
 
-describe('Step 3: delete the fancy note', () => {
-  test("only once the note you're on has its cards; never the note you're on; never main", async () => {
+describe('Step 3: delete the fancy branch', () => {
+  test("only once the branch you're on has its cards; never the branch you're on; never main", async () => {
     await reset();
     const [ana, ben] = await joinAll(['Ana', 'Ben']);
     for (let i = 0; i < 5; i++) await next(); // Step 2's task
@@ -371,21 +371,21 @@ describe('Step 3: delete the fancy note', () => {
 
     ok(await session.act('merge', { pid: ana, from: 'fancy', guess: 'ff' }));
     st = await session.state(ana);
-    assert.equal(st.me.mission, 'Delete the fancy note (`git branch -d fancy`).');
-    assert.equal(st.me.hint.click, 'Press **Delete sticky note** and pick **fancy**.');
+    assert.equal(st.me.mission, 'Delete the fancy branch (`git branch -d fancy`).');
+    assert.equal(st.me.hint.click, 'Press **Delete branch** and pick **fancy**.');
     const r = ok(await session.act('deleteNote', { pid: ana, note: 'fancy' }));
-    assert.equal(r.result.message, 'Deleted the fancy note. Its cards stay.');
+    assert.equal(r.result.message, 'Deleted the fancy branch. Its cards stay.');
     assert.equal(r.op.porcelain, 'git branch -d fancy');
-    assert.equal((await session.state(ana)).me.mission, null, 'the mission goes once the note is deleted');
+    assert.equal((await session.state(ana)).me.mission, null, 'the mission goes once the branch is deleted');
     st = await session.state(ben);
     assert.equal(st.me.branch, 'main', "Ben's pin went back to main");
     assert.equal(st.lab.branches.fancy, undefined);
     assert.deepEqual(st.lab.goals.map((g) => g.done), [true, true, false]);
     assert.equal(st.me.hint.click, 'Press **Merge sporty into main**.');
-    assert.equal((await session.act('deleteNote', { pid: ana, note: 'fancy' })).error, 'That sticky note does not exist.');
+    assert.equal((await session.act('deleteNote', { pid: ana, note: 'fancy' })).error, 'That branch does not exist.');
   });
 
-  test('Rescue merges fancy, deletes its note, then merges sporty', async () => {
+  test('Rescue merges fancy, deletes its branch, then merges sporty', async () => {
     await reset();
     await joinAll(['Ana', 'Ben']);
     for (let i = 0; i < 7; i++) await next(); // Step 3's task
@@ -393,7 +393,7 @@ describe('Step 3: delete the fancy note', () => {
     const a = await adminState();
     assert.equal(a.labs[0].done, true);
     assert.deepEqual(a.feed.filter((e) => e.labId === '1' && /^(Merge|Delete)/.test(e.action)).map((e) => e.action).reverse(),
-      ['Merge fancy into main', 'Delete sticky note fancy', 'Merge sporty into main']);
+      ['Merge fancy into main', 'Delete branch fancy', 'Merge sporty into main']);
   });
 });
 
@@ -438,7 +438,7 @@ describe('Steps 4 and 5: the Wall', () => {
     const st = await session.state(three);
     assert.equal(st.session.steps[5].instruction, "A 🥸 card reached the Wall, and every lab now has it. Remove it without breaking anyone's copy. Your lab chooses how. Predict before each send.");
     assert.match(st.me.mission, /^Your lab has the 🥸 card\. Choose one way to remove it: /);
-    assert.match(st.me.hint.click, /press \*\*Undo this card\*\*, or click the card right before it and press \*\*Move my note back here\*\*\.$/, 'the hint offers both undos');
+    assert.match(st.me.hint.click, /press \*\*Undo this card\*\*, or click the card right before it and press \*\*Move my branch back here\*\*\.$/, 'the hint offers both undos');
     // Lab 1 undoes and sends. Labs 2 and 3 take that fix with Get & combine before undoing anything.
     for (let i = 0; i < 10 && (await session.state(one)).me.hint; i++) {
       const now = await session.state(one);
@@ -491,7 +491,7 @@ describe('predict before you act', () => {
     assert.deepEqual([first.ok, first.error, first.predict], [false, 'Predict first.', '3:1:merge:fancy'], "Git waits for the presser's prediction");
     assert.equal((await session.state(ana)).lab.branches.main, main, 'nothing ran');
     ok(await session.act('merge', { pid: ana, from: 'fancy', guess: 'conflict:top' }));
-    assert.equal(await verdictOf(ana), 'You predicted: conflict on TOP. Git: fast-forward. Why: main had no new card since the split, so Git only slid its note.');
+    assert.equal(await verdictOf(ana), 'You predicted: conflict on TOP. Git: fast-forward. Why: main had no new card since the split, so Git only slid its branch.');
     assert.equal(await verdictOf(ben), 'You predicted: fast-forward. Git: fast-forward. ✓');
     assert.equal((await session.act('predict', { pid: ben, moment: '3:1:merge:fancy', guess: 'ff' })).error, 'Git already answered this one.');
     assert.deepEqual((await session.state(cat)).lab.moments.map((m) => m.target), ['sporty'], 'next to predict: merge sporty');

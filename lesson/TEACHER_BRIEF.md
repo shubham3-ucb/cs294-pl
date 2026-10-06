@@ -1,12 +1,12 @@
 # Teacher brief · Git week in 10 minutes
 
-Two 80-minute classes, one app. You press **Next**; the class runs. Students use their laptops; the projector is the slide deck; your laptop shows a private console with what to **Say**, what to **Ask**, and the answer you hope to hear.
+Two 80-minute classes, one app. Students need no reading beforehand: each class tells them what they need. You press **Next**; the class runs. Students use their laptops; the projector is the slide deck; your laptop shows a private console with what to **Say**, what to **Ask**, and the answer you hope to hear.
 
 | | Tuesday · Outfit Lab | Thursday · The Humans |
 |---|---|---|
 | Paper | Just et al., *Switching to Git*, ISSRE 2016 | Yang et al., *Do Developers Really Know How to Use Git Commands?*, TOSEM 2022 |
 | Students do | Dress one character in groups of 4; every save, merge, send and undo is real Git; they **predict** before Git acts and **choose** how to fix | See how the study was done, check its rule on real posts, sort its comments, put its claims on trial, design a better undo |
-| The one message | **For analysts, flat history is data loss** (developers gain easy bisect and revert) | **Asking is not using** (check what your data actually records) |
+| The one message | **For analysts, flat history is data loss** (developers gain easy bisect and revert) | **What people ask shows where they get stuck, not what they can do** |
 | Links | `…/` · `…/admin?key=…` · `…/screen?key=…` | `…/thu` · `…/thu/admin?key=…` · `…/thu/screen?key=…` |
 
 Day of: [`DAY_OF.md`](DAY_OF.md) (tmux, Extend displays, test join, Reset, post the link). Full scripts: [`tuesday.md`](tuesday.md), [`thursday.md`](thursday.md).
@@ -24,7 +24,7 @@ Next → read **Say** → students work (watch "done" on the console, or the clo
 | 0:00 | Join | Type a name; the app picks the lab | — |
 | 0:03 | **0 Chaos** | Everyone edits one outfit, 90 s | Nothing was saved. *Ask:* what rule would fix it? → save every version, with a name |
 | 0:06 | **1 Save** · `git commit` | Each saves one card | A commit = a snapshot + parent + name + time. Git trusts your laptop's name and clock |
-| 0:12 | **2 Two ideas** · `git switch -c` | Pairs build fancy and sporty on sticky notes | A branch is a sticky note pointing at a card. Nothing is copied |
+| 0:12 | **2 Two ideas** · `git switch -c` | Pairs build fancy and sporty on branches | A branch is a branch pointing at a card. Nothing is copied |
 | 0:19 | **3 Combine** · `git merge` | **Predict**, merge fancy (fast-forward), delete it; predict, merge sporty (conflict on TOP, a person picks) | After a fast-forward and delete, no card says it was made on fancy |
 | 0:31 | Break | | |
 | 0:35 | **4 Share** · `push`, `pull`, `rebase` | Predict each send. First lab gets in; refused labs **choose** merge or rebase | Push only moves forward. Rebase replays a card: same change and author, new parent → new ID |
@@ -58,17 +58,15 @@ Next → read **Say** → students work (watch "done" on the console, or the clo
 |---|---|---|---|
 | 0:00 | Join | Name | — |
 | 0:03 | **Warm-up** | The paper's real survey | You are respondent 93 |
-| 0:07 | **1 The study**: how it was done | Listen | Collect 80,370 questions · measure views and accepted answers · survey 92 |
-| 0:10 | Who is in this study? | Vote | People who *asked*. Nobody was watched |
-| 0:14 | When does a question count for `git reset`? | Vote | A word search: even a command only in the answer counts |
-| 0:18 | What they found · you vs the 92 | Listen, compare | Five findings; self-ratings are shaky |
-| 0:23 | **2 Check it yourself**: 8 posts | Label: stuck / needs it / not about it | The rule counts fixes as problems |
-| 0:35 | Sort 7 survey comments | Sort into the paper's 6 groups | No method, no agreement reported |
-| 0:43 | Break | Back on /thu | Check "here" = the room |
-| 0:48 | **3 Judge it**: one claim per group | What was measured · what it shows | Experience holds (weakly); three shrink |
-| 1:00 | **4 Design** a better undo | Fix · test · measure + risk · data | Asking finds needs; only a test shows a fix works |
-| 1:12 | What holds, what doesn't | — | Fair to the authors |
-| 1:14 | Exit + **Asking is not using.** | One line each | — |
+| 0:07 | **1 The study**: how it was done, what it found | Listen (no quiz) | 80,370 questions · a command counts when its name appears, even in the answer · 92 surveyed |
+| 0:14 | Your answers next to the 92 | Compare | Self-ratings are judgments; "how I learned" is a memory |
+| 0:17 | **2 Check it yourself**: 8 posts | Label: stuck / needs it / not about it | In 5 of 8 the command is only in the answer |
+| 0:29 | Sort 7 survey comments | Sort into the paper's 6 categories | No method, no agreement reported |
+| 0:37 | Break | Back on /thu | Check "here" = the room |
+| 0:42 | **3 Judge it**: one claim per group | What was measured · what it shows | Experience holds (weakly); three shrink |
+| 0:55 | **4 Design** a better undo | Change · test · measure + risk · data | Asking finds needs; only a test shows a change helps |
+| 1:08 | What holds, and what does not | — | Fair to the authors |
+| 1:11 | One idea to take home · Thank you | One line each | What people ask shows where they get stuck, not what they can do |
 
 **The paper in five lines (Thursday)**
 - 80,370 Stack Overflow questions (2008–2020) that mention a Git command, plus a survey of 92 developers.
@@ -87,7 +85,7 @@ Next → read **Say** → students work (watch "done" on the console, or the clo
 
 ## If something goes wrong
 
-- **Stuck lab (Tue):** Stuck? Hint (after 45 s), then **Rescue** on its tile.
+- **Stuck lab (Tue):** Need a hint? (after 45 s), then **Rescue** on its tile.
 - **Groups wrong (Thu):** **Re-form groups** under People (before groups start typing).
 - **Pressed Next too early:** **Back**.
 - **Link died:** in tmux, `./host.sh` again; post the new link; students type the same name and get their place back.

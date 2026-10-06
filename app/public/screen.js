@@ -167,7 +167,7 @@ const techCard = (card) => `<section class="sl-card">
 const labColor = (state, id) => state.labs.find((l) => l.id === id)?.color ?? 'var(--muted)';
 
 // One line per lab, in the order the changes reached the Wall; the marked path's line is bold. Step 4's
-// reveal adds the note under a replayed change. The type shrinks as lines are added, so six labs still fit.
+// reveal adds the branch under a replayed change. The type shrinks as lines are added, so six labs still fit.
 function pathsHtml(paths, state, { marked = null, notes = false } = {}) {
   const lines = paths.length + (notes ? paths.filter((p) => p.note).length : 0);
   return `<ul class="sl-paths" style="--lines:${lines}">${paths.map((p) => `<li class="${p === marked ? 'on' : ''}"

@@ -2,7 +2,7 @@
 // Bots join by name and act only through the session's student actions (join, state, act), with
 // human-like pauses. Each follows the click of its own Stuck? Hint (the hint's second level), so it does
 // every step's mission: the TOP conflict, deleting fancy, the refused send and a way back it chooses
-// (Get & combine or Replay on top), an undo it chooses (Undo this card or Move my note back), the boss's clean-up.
+// (Get & combine or Replay on top), an undo it chooses (Undo this card or Move my branch back), the boss's clean-up.
 // Bots predict, too: as lab-mates in the panel, and with every Merge and Send they press. One bot in three
 // guesses naively (no conflict; the Wall accepts), so the reveals show a mix of right and wrong.
 // Where a hint offers two ways, bots choose a mix: Step 4 by the order the Wall refused their labs, Step 5 by
@@ -23,10 +23,10 @@ const PAUSE = { arrive: [800, 2500], think: [2500, 7000], click: [800, 2000], wr
 export const ANSWERS = {
   'reveal-0': ['Save every version, with a name on it.', 'Keep a history of who changed what.', 'Take a snapshot after each change.', 'One person edits at a time.'],
   'reveal-1': ["The next card doesn't exist yet when you save.", "A card never changes, so it can't point to later cards.", 'Each card only knows its parent.', 'Adding an arrow would change the old card.'],
-  'reveal-2': ["Still on main's card. Nothing was copied.", 'On main. The note is only a label.', 'main still points at it.', 'Nothing was copied, the notes just point.'],
+  'reveal-2': ["Still on main's card. Nothing was copied.", 'On main. The note is only a label.', 'main still points at it.', 'Nothing was copied, the branchs just point.'],
   'reveal-3': ['No way to tell. A card does not record its branch.', 'We cannot say. The note is gone and no card names it.', 'The fast-forward made no card that says fancy.', 'A commit stores its parents, not its branch.'],
   'reveal-4': ['Its parent is new, so the hash is new.', 'The ID hashes the parent ID too.', 'A new parent means a new card.', 'Same change, different card: the parent changed.'],
-  'reveal-5': ["A fix card only adds, so nobody's copy breaks.", 'Moving back drops a card others already have.', 'The Wall still had the card, so it came back.', 'Revert adds; reset only moves my note.'],
+  'reveal-5': ["A fix card only adds, so nobody's copy breaks.", 'Moving back drops a card others already have.', 'The Wall still had the card, so it came back.', 'Revert adds; reset only moves my branch.'],
   'reveal-6': ['Only in the labs that kept the old cards.', 'Not on the Wall anymore.', 'The other labs still know.', 'Gone from the Wall after gc.'],
   paper: ['Gain: one card per feature to revert. Lose: who wrote which part.', 'A short main and easy bisect; the auditor loses authors and times.',
     'One clean card per feature. Who did what is gone once the branch is deleted.', 'Gain: a readable main. Lose: how the feature was built, and by whom.'],
@@ -36,10 +36,10 @@ export const ANSWERS = {
 export const TAKEAWAYS = {
   0: ['Without saves, nobody knows who changed what.', 'Save every version, with a name on it.', 'One shared draft and no history is chaos.'],
   1: ['A card is a full snapshot plus its parent.', 'Cards never change; a save makes a new card.', 'Git trusts my laptop for my name and the time.'],
-  2: ['A branch is a label on one card.', 'Making a branch copies nothing.', "Saving moves only the note I'm on."],
-  3: ['Merge compares both sides with the split card.', 'A fast-forward only slides the note.', 'No card records the branch it was made on.'],
+  2: ['A branch is a label on one card.', 'Making a branch copies nothing.', "Saving moves only the branch I'm on."],
+  3: ['Merge compares both sides with the split card.', 'A fast-forward only slides the branch.', 'No card records the branch it was made on.'],
   4: ['Push only moves the Wall forward.', 'Refused? Merge or rebase, then push.', 'Rebase copies my cards: new IDs.'],
-  5: ["Shared mistake: revert, don't reset.", 'Reset is fine only if nobody has the card.', 'The reflog remembers where my note was.'],
+  5: ["Shared mistake: revert, don't reset.", 'Reset is fine only if nobody has the card.', 'The reflog remembers where my branch was.'],
   6: ['Squash + force push: the Wall forgets who did what.', 'Force push skips the safety check.', 'For analysts, flat history is data loss.'],
 };
 
@@ -113,10 +113,10 @@ export function movesFor(hint, st, bot = null) {
     return [['draft', anyChange(now, st.session.step)], ['commit', {}]];
   }
   if (hint === 'Press **Save card**.') return [['commit', {}]];
-  if ((m = /^Press \*\*New sticky note\*\*\. Name it \*\*([a-z]+)\*\*\.$/.exec(hint))) return [['branch', { name: m[1] }]];
+  if ((m = /^Press \*\*New branch\*\*\. Name it \*\*([a-z]+)\*\*\.$/.exec(hint))) return [['branch', { name: m[1] }]];
   if ((m = /^Press \*\*Switch to\*\* and pick \*\*([a-z]+)\*\*\.$/.exec(hint))) return [['switch', { branch: m[1] }]];
   if ((m = /^Press \*\*Merge ([a-z]+) into main\*\*\.$/.exec(hint))) return [['merge', { from: m[1], guess: guessFor('merge', st, bot, m[1]) }]];
-  if ((m = /^Press \*\*Delete sticky note\*\* and pick \*\*([a-z]+)\*\*\.$/.exec(hint))) return [['deleteNote', { note: m[1] }]];
+  if ((m = /^Press \*\*Delete branch\*\* and pick \*\*([a-z]+)\*\*\.$/.exec(hint))) return [['deleteNote', { note: m[1] }]];
   if (hint.startsWith('Finish the merge')) {
     // A person picks one side of each conflict, never the disguise.
     const open = st.lab.merging[note];
@@ -129,7 +129,7 @@ export function movesFor(hint, st, bot = null) {
   if (hint.startsWith('Press **Replay on top**.')) return [['rebase', {}]];
   if (hint.startsWith('Open the **Safety diary**.')) return [['reflog', {}], ['pull', {}]];
   const undo = hint.includes('**Undo this card**');
-  const back = hint.includes('**Move my note back here**');
+  const back = hint.includes('**Move my branch back here**');
   if (back && (!undo || undoFor(st) === 'reset')) return [['reset', { commit: intern(st).parents[0] }]];
   if (undo) return [['revert', { commit: intern(st).id }]];
   if (hint.startsWith("Click the newest card in your lab's cards.")) return [['inspect', { repo: 'lab', commit: tipOf(g, 'main') }]];

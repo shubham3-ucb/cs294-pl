@@ -2,7 +2,7 @@
 // presses only Next. The bots join by name (3 labs of 3) and play every scene through the student
 // actions: predictions before every Merge and Send (some right, some wrong), deleting fancy, the TOP conflict,
 // the refused send and a way back each lab chooses (Combine or Replay on top), an undo each lab chooses (Undo
-// this card or Move my note back), the boss's clean-up, every answer and every takeaway. Next is pressed
+// this card or Move my branch back), the boss's clean-up, every answer and every takeaway. Next is pressed
 // only when the console shows the scene is complete: all labs done, or every bot answered and wrote its
 // takeaway. Then Stop rehearsal and Reset remove the bots. Own server on 127.0.0.1:E2E_PORT+2 (3104),
 // fresh DATA_DIR under /tmp, ADMIN_KEY=test, always stopped. Any console error, page error, 5xx or server
@@ -141,7 +141,7 @@ async function run() {
     assert.ok(!a.feed.some((e) => e.who === 'Teacher' && /Finish merge|Save card|Replace/.test(e.action)), 'no Rescue was needed');
     for (const lab of real) {
       assert.ok(did(lab.id, /^Merge fancy into main$/, /^fast-forward$/), `${lab.name}: fancy, a fast-forward`);
-      assert.ok(did(lab.id, /^Delete sticky note fancy$/), `${lab.name}: deleted the fancy note`);
+      assert.ok(did(lab.id, /^Delete branch fancy$/), `${lab.name}: deleted the fancy branch`);
       assert.ok(did(lab.id, /^Merge sporty into main$/, /^conflict: TOP$/), `${lab.name}: the TOP conflict`);
       assert.ok(did(lab.id, /^Finish merge$/, /^merge card/), `${lab.name}: resolved it`);
     }
@@ -150,10 +150,10 @@ async function run() {
     const replayer = real.find((l) => l.way === 'rebase');
     assert.ok(did(replayer.id, /^Replay on top$/, /^[0-9a-f]{7} → [0-9a-f]{7}$/), `${replayer.name}: replayed its card as a new one`);
     assert.ok(did(real.find((l) => l.way === 'merge').id, /^Get & combine$/, /^merge card/), 'the refused lab that combines makes a merge card');
-    // Step 5: every lab got the card on Next, and every lab undid it itself (Undo this card, or Move my note back).
-    for (const lab of real) assert.ok(did(lab.id, /^(Undo card|Move my note back here$)/), `Step 5: ${lab.name} undid the disguise card`);
+    // Step 5: every lab got the card on Next, and every lab undid it itself (Undo this card, or Move my branch back).
+    for (const lab of real) assert.ok(did(lab.id, /^(Undo card|Move my branch back here$)/), `Step 5: ${lab.name} undid the disguise card`);
     assert.ok(real.some((lab) => did(lab.id, /^Undo card/)), 'Step 5: a lab undid it with a fix card');
-    assert.ok(did('2', /^Move my note back here$/) && did('2', /^Send to Wall$/, /^refused/), 'Step 5: Lab 2 chose to move back first, and was refused');
+    assert.ok(did('2', /^Move my branch back here$/) && did('2', /^Send to Wall$/, /^refused/), 'Step 5: Lab 2 chose to move back first, and was refused');
     assert.deepEqual(real.map((l) => l.undo), ['revert', 'reset', 'revert'], 'Step 5: each lab chose its undo (the bots by lab number)');
     const exported = await fetch(`${BASE}/api/admin/export?key=${KEY}`).then((r) => r.text());
     assert.match(exported, /## Predictions/);

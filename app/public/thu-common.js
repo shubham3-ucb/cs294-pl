@@ -103,10 +103,10 @@ function surveyResult(r) {
   const p = r.paper;
   return `<div class="t-two">
     <section class="t-panel"><h2>How you learned Git</h2>${pairBars(LEARN_SHORT, r.learn, r.n, p.learn, p.n)}</section>
-    <section class="t-panel"><h2>Your Git level, self-rated</h2>${pairBars(r.levels, r.level, r.n, p.level, p.n)}</section>
+    <section class="t-panel"><h2>Your self-rated Git level</h2>${pairBars(r.levels, r.level, r.n, p.level, p.n)}</section>
   </div>
   <p class="t-key"><span><i style="background:var(--purple)"></i>You: ${r.n} answered${r.medianYears !== null ? `, median ${r.medianYears} years of Git` : ''}</span>
-    <span><i style="background:#B9B9C2"></i>The paper: 92, median ${p.medianYears} years</span></p>`;
+    <span><i style="background:#B9B9C2"></i>The paper’s 92: median ${p.medianYears} years</span></p>`;
 }
 
 const LABEL_COLORS = ['var(--purple)', '#F59E0B', '#C9C9D1'];
@@ -115,11 +115,11 @@ function labelsResult(r) {
     const n = p.counts.reduce((a, b) => a + b, 0);
     const split = n ? p.counts.map((c, i) => `<span style="width:${pct(c, n)}%;background:${LABEL_COLORS[i]}"></span>`).join('') : '';
     return `<li><span class="tt">${esc(p.title)} <small>· ${p.views.toLocaleString('en-US')} views</small></span><code>${esc(p.command)}</code>
-      <span class="names ${p.askerNamesIt ? '' : 'no'}">${p.askerNamesIt ? 'Yes' : 'Answer only'}</span>
+      <span class="names ${p.askerNamesIt ? '' : 'no'}">${p.askerNamesIt ? 'The asker' : 'Answer only'}</span>
       <span class="t-split">${split}</span><span class="t-split-num">${n ? `${pct(Math.max(...p.counts), n)}% agree` : '—'}</span></li>`;
   }).join('');
   const key = r.labels.map((l, i) => `<span><i style="background:${LABEL_COLORS[i]}"></i>${esc(l.label)}</span>`).join('');
-  return `<ul class="t-posts"><li class="h"><span>Post</span><span>Counted for</span><span>Asker names it</span><span>You</span><span></span></li>${rows}</ul>
+  return `<ul class="t-posts"><li class="h"><span>Post</span><span>Counted for</span><span>Named by</span><span>Your labels</span><span></span></li>${rows}</ul>
     <p class="t-key">${key}</p>`;
 }
 
@@ -129,7 +129,7 @@ function codesResult(r) {
     <span class="t-split"><span style="width:${i.withPaper === null ? 0 : Math.round(100 * i.withPaper)}%;background:var(--purple)"></span></span>
     <span class="t-split-num">${i.withPaper === null ? '—' : `${Math.round(100 * i.withPaper)}% · ${Math.round(100 * i.agreement)}%`}</span></li>`).join('');
   const sum = r.withPaper === null ? '' : `<p class="t-key"><span>You agreed with the paper on ${Math.round(100 * r.withPaper)}% of labels, and with each other on ${Math.round(100 * r.agreement)}%.</span></p>`;
-  return `<ul class="t-posts codes"><li class="h"><span>Comment</span><span>The paper’s category</span><span>Agree</span><span>Paper · peers</span></li>${rows}</ul>${sum}`;
+  return `<ul class="t-posts codes"><li class="h"><span>Comment</span><span>The paper’s category</span><span>With paper</span><span>Paper · peers</span></li>${rows}</ul>${sum}`;
 }
 
 // While groups work: who is in which group (and their claim). At the design reveal: each group's answers.

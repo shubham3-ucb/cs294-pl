@@ -35,7 +35,7 @@ const PHONE = { width: 390, height: 844 };
 const WAIT = 10_000;
 
 const NAMES = ['Ana', 'Raj', 'Mei', 'Priya', 'Tom', 'Lea', 'Sam', 'Kim', 'Ola']; // join order
-const MAIN_LOCKED = 'main keeps the outfit you have. Make a sticky note, or switch to one, to edit.'; // Step 2
+const MAIN_LOCKED = 'main keeps the outfit you have. Make a branch, or switch to one, to edit.'; // Step 2
 const REFUSED = "Refused: the Wall has cards your main doesn't. Press Get & combine first.";
 const REFUSED_CHOOSE = "Refused: the Wall has cards your main doesn't. Choose a way to get them: Get & combine (merge) or Replay on top (rebase). Then send again.";
 const REFUSED_MOVED_BACK = 'Refused: the Wall still has the 🥸 card. Open the Safety diary, then press Get & combine.';
@@ -185,7 +185,7 @@ const cardsIn = (p, svg) => p.$$eval(`${svg} .g-card`, (els, ink) => els.map((e)
   };
 }).sort((a, b) => a.x - b.x), INK);
 const newestIn = async (p, svg) => (await cardsIn(p, svg)).filter((c) => !c.dashed).at(-1)?.id;
-// The card a sticky note sits on (notes sit right above their card, at the same x).
+// The card a branch sits on (notes sit right above their card, at the same x).
 const noteIn = (p, svg, note) => p.$eval(svg, (s, name) => {
   const n = [...s.querySelectorAll('.g-note')].find((e) => e.dataset.key === name);
   return n && [...s.querySelectorAll('.g-card')].find((c) => c.dataset.x === n.dataset.x)?.dataset.key;
@@ -245,7 +245,7 @@ async function pick(p, part, slug) {
 
 async function newNote(p, name) {
   await click(p, '#actions [data-act="branch"]', { position: { x: 10, y: 10 } });
-  assert.equal(await p.inputValue('#popover input'), name, `${WHO.get(p)}: the note name is pre-filled`);
+  assert.equal(await p.inputValue('#popover input'), name, `${WHO.get(p)}: the branch name is pre-filled`);
   return hit(p, '#popover button.primary', 'branch');
 }
 
@@ -367,7 +367,7 @@ async function noOldWords(p, where) {
   assert.equal(found, null, `${where}: ${WHO.get(p)}'s page says "${found}"`);
 }
 
-// Wait until nothing moves: cards, sticky notes, toasts and dialogs finish their animations
+// Wait until nothing moves: cards, branches, toasts and dialogs finish their animations
 // (the hint's gentle nudge loops, so it never finishes).
 async function still(p) {
   await sleep(200); // a refetch after the last click may still be on its way
@@ -614,18 +614,18 @@ async function followHints(p, { moves = Infinity, way = 'merge', undo = 'revert'
     } else if (/^Press Replay on top\./.test(hint)) {
       await hinted(p, '#actions [data-act="rebase"]');
       r = await press(p, 'rebase');
-    } else if ((m = /^Press Delete sticky note and pick (\S+)\.$/.exec(hint))) {
+    } else if ((m = /^Press Delete branch and pick (\S+)\.$/.exec(hint))) {
       await hinted(p, '#actions [data-act="deleteNote"]');
-      assert.equal(await p.inputValue('#actions select[data-pick="deleteNote"]'), m[1], 'the hint picked the note in the dropdown');
+      assert.equal(await p.inputValue('#actions select[data-pick="deleteNote"]'), m[1], 'the hint picked the branch in the dropdown');
       r = await press(p, 'deleteNote');
-    } else if (/^Click the 🥸 card\. Press Undo this card\.$/.test(hint) || (/Undo this card, or click the card right before it and press Move my note back here\.$/.test(hint) && undo === 'revert')) {
+    } else if (/^Click the 🥸 card\. Press Undo this card\.$/.test(hint) || (/Undo this card, or click the card right before it and press Move my branch back here\.$/.test(hint) && undo === 'revert')) {
       await hinted(p, '#graph-scroll');
       await openCard(p, (await intern()).id);
       r = await hit(p, '#card-dialog [data-card-act="revert"]', 'revert');
     } else if ((m = /^Press Switch to and pick (\S+)\.$/.exec(hint))) {
       await hinted(p, '#actions [data-act="switch"]');
       r = await press(p, 'switch');
-      assert.equal(await textOf(p, '#on-note .note-chip'), m[1], 'the hint picked the note in the dropdown');
+      assert.equal(await textOf(p, '#on-note .note-chip'), m[1], 'the hint picked the branch in the dropdown');
     } else {
       throw new Error(`${WHO.get(p)} got a hint the class cannot follow: "${hint}"`);
     }
@@ -820,23 +820,23 @@ async function classRun() {
   await shoot();
   checkClean('Reveal 1');
 
-  // ---------- Step 2: main is read-only; two sticky notes from main ----------
+  // ---------- Step 2: main is read-only; two branches from main ----------
   await next('projector key'); // a clicker on the projector window
-  await sees(S[a1], '#coach .bubble-text', 'A sticky note is a branch for one idea.');
+  await sees(S[a1], '#coach .bubble-text', 'A branch keeps one idea apart from main.');
   await click(S[a1], '#draft [data-part="hat"]');
   await sees(S[a1], '#toasts', MAIN_LOCKED);
   assert.ok(!(await shown(S[a1], '#popover')), 'no palette on main in Step 2');
   await sees(S[a1], '#draft-status', MAIN_LOCKED);
   await sees(S[b1], '#mission .mission-box', "You're in Pair B, on your own"); // a pair of one: the solo mission
   assert.doesNotMatch(await textOf(S[b1], '#mission .mission-box'), /The other/);
-  assert.equal(await hintOf(S[b1]), 'Press New sticky note. Name it sporty.');
+  assert.equal(await hintOf(S[b1]), 'Press New branch. Name it sporty.');
   await hinted(S[b1], '#actions [data-act="branch"]');
   await click(S[c1], '#mission [data-pair]');
   await sees(S[c1], '#mission .mission-box', /sporty.*Pair B/);
   await click(S[c1], '#mission [data-pair]');
   await sees(S[c1], '#mission .mission-box', /fancy.*Pair A/);
   await Promise.all(Object.entries(LAB).map(async ([lab, [a, b, c]]) => {
-    ok(await newNote(S[a], 'fancy'), `${a}: new sticky note`);
+    ok(await newNote(S[a], 'fancy'), `${a}: new branch`);
     await sees(S[a], '#on-note', 'fancy');
     assert.equal(tipIn(lab, 'fancy'), tipIn(lab, 'main'), `Lab ${lab}: fancy starts on main's card`);
     const twice = await newNote(S[c], 'fancy');
@@ -853,7 +853,7 @@ async function classRun() {
     await pick(S[c], 'top', 'tie');
     const saved = ok(await press(S[c], 'commit'), `${c}: save fancy`);
     assert.match(saved.result.message, new RegExp(`It includes ${a}'s HAT\\.$`), `${c}'s save names ${a}'s change`);
-    ok(await newNote(S[b], 'sporty'), `${b}: new sticky note`);
+    ok(await newNote(S[b], 'sporty'), `${b}: new branch`);
     assert.equal(tipIn(lab, 'sporty'), tipIn(lab, 'main'), `Lab ${lab}: sporty starts on main's card`);
     await pick(S[b], 'top', 'jersey');
     await pick(S[b], 'shoes', 'boots');
@@ -890,7 +890,7 @@ async function classRun() {
   await shoot();
   checkClean('Reveal 2');
 
-  // ---------- Step 3: fast-forward fancy, delete its note, then a TOP-only conflict; cancel; a second student finishes ----------
+  // ---------- Step 3: fast-forward fancy, delete its branch, then a TOP-only conflict; cancel; a second student finishes ----------
   await next('space');
   await sees(S[a1], '#mission .fixed-line', FIXED_LINE);
   await sees(S[a1], '#actions', 'Switch to main first');
@@ -922,27 +922,27 @@ async function classRun() {
     assert.deepEqual(view.auto, ['hat', 'glasses', 'shoes'], 'the resolver ticks every part but TOP');
     assert.equal(view.finish, true, 'Finish merge waits for a choice');
   }
-  // Merge fancy, predicted first: only main's note slides (a fast-forward). The mission then asks to delete the fancy note.
+  // Merge fancy, predicted first: only main's note slides (a fast-forward). The mission then asks to delete the fancy branch.
   async function fastForward(p, lab, guess, opts) {
     const fancy = tipIn(lab, 'fancy');
     assert.equal(await count(p, '#actions [data-act="deleteNote"]'), 0, `Lab ${lab}: no note to delete before a merge`);
     const r = await mergeIn(p, 'fancy', guess, opts);
     assert.equal(r.result.fastForward, true, `Lab ${lab}: fancy is a fast-forward`);
     await sees(p, '#mission .verdict', guess === 'ff' ? 'You predicted: fast-forward. Git: fast-forward. ✓'
-      : 'Git: fast-forward. Why: main had no new card since the split, so Git only slid its note.');
+      : 'Git: fast-forward. Why: main had no new card since the split, so Git only slid its branch.');
     assert.equal(tipIn(lab), fancy);
     await sees(p, '#behind-body .last', 'Merge fancy into main → fast-forward');
-    await sees(p, '#mission .mission-box', 'Delete the fancy note (git branch -d fancy).');
+    await sees(p, '#mission .mission-box', 'Delete the fancy branch (git branch -d fancy).');
     return fancy;
   }
-  // git branch -d: the note goes, its cards stay in main. No card says which cards were made on fancy.
+  // git branch -d: the branch goes, its cards stay in main. No card says which cards were made on fancy.
   async function deleted(p, lab, fancyCard) {
-    await until(`Lab ${lab}: the fancy note is gone`, () => !notesIn(lab).includes('fancy'));
+    await until(`Lab ${lab}: the fancy branch is gone`, () => !notesIn(lab).includes('fancy'));
     assert.deepEqual(notesIn(lab), ['main', 'sporty'], `Lab ${lab}: main and sporty are left`);
     assert.ok(inHistory(lab, fancyCard), `Lab ${lab}: fancy's card is still in main`);
-    await until(`${WHO.get(p)} sees no fancy note`, async () => !(await noteIn(p, '#graph', 'fancy')));
-    await sees(p, '#mission .goals li.done', 'The fancy note is deleted');
-    await notSees(p, '#mission', 'Delete the fancy note', `${WHO.get(p)}: the mission goes with the note`);
+    await until(`${WHO.get(p)} sees no fancy branch`, async () => !(await noteIn(p, '#graph', 'fancy')));
+    await sees(p, '#mission .goals li.done', 'The fancy branch is deleted');
+    await notSees(p, '#mission', 'Delete the fancy branch', `${WHO.get(p)}: the mission goes with the branch`);
   }
   async function finish(p) {
     const r = ok(await hit(p, '#resolver-dialog [data-finish]', 'resolve'), `${WHO.get(p)}: finish merge`);
@@ -962,12 +962,12 @@ async function classRun() {
       await sees(S[b1], '#mission .verdict.right', 'You predicted: fast-forward. Git: fast-forward. ✓');
       await sees(S[c1], '#mission .verdict.wrong', 'You predicted: merge, no conflict. Git: fast-forward. Why: main had no new card since the split');
       await sees(S[b1], '#mission .predict-box', 'Before your lab merges sporty into main');
-      assert.equal(await hintOf(S[a1]), 'Press Delete sticky note and pick fancy.');
+      assert.equal(await hintOf(S[a1]), 'Press Delete branch and pick fancy.');
       await hinted(S[a1], '#actions [data-act="deleteNote"]');
       assert.deepEqual(await S[a1].$$eval('#actions select[data-pick="deleteNote"] option', (os) => os.map((o) => o.value)), ['fancy'],
         'Delete offers only a note whose card main has: sporty is not merged yet');
       const gone = ok(await deleteNote(S[a1], 'fancy'), `${a1}: delete fancy`);
-      assert.equal(gone.result.message, 'Deleted the fancy note. Its cards stay.');
+      assert.equal(gone.result.message, 'Deleted the fancy branch. Its cards stay.');
       await deleted(S[a1], '1', fancy);
       await sees(S[a1], '#behind-body', 'git branch -d fancy');
       assert.equal((await mergeIn(S[a1], 'sporty', 'conflict:top')).result.conflict, true);
@@ -1023,7 +1023,7 @@ async function classRun() {
   await sees(admin, '#predictions', ACCURACY_3);
   await shoot();
   checkClean('Step 3');
-  log('step 3: predicted first; fast-forward, the fancy note deleted (only it offered), TOP-only conflict = Git markers, finished by a second student, cancel');
+  log('step 3: predicted first; fast-forward, the fancy branch deleted (only it offered), TOP-only conflict = Git markers, finished by a second student, cancel');
 
   await next();
   for (const p of LEADS.map((n) => S[n])) await sees(p, '#reveal .reveal-fact', ACCURACY_3);
@@ -1208,13 +1208,13 @@ async function classRun() {
   for (const lab of Object.keys(LAB)) assert.equal(tipIn(lab), intern.id, `Lab ${lab} holds the disguise card`);
   for (const name of LEADS) {
     await sees(S[name], '#draft [data-part="glasses"]', 'disguise glasses');
-    await sees(S[name], '#mission .mission-box', 'Your lab has the 🥸 card. Choose one way to remove it: click the 🥸 card and press Undo this card (git revert, which adds a fix card), or click the card right before it and press Move my note back here');
+    await sees(S[name], '#mission .mission-box', 'Your lab has the 🥸 card. Choose one way to remove it: click the 🥸 card and press Undo this card (git revert, which adds a fix card), or click the card right before it and press Move my branch back here');
     await sees(S[name], '#behind-body .last', 'Teacher · Get & combine → fast-forward');
   }
   assert.equal(ok(await press(S[a1], 'pull'), `${a1}: Get & combine`).result.message, 'Nothing new on the Wall.');
   // Lab 2 chooses to move back: move back, send → refused; the diary; Get & combine brings the card back.
   await openCard(S[a2], beforeDisguise);
-  ok(await hit(S[a2], '#card-dialog [data-card-act="reset"]', 'reset'), `${a2}: move my note back`);
+  ok(await hit(S[a2], '#card-dialog [data-card-act="reset"]', 'reset'), `${a2}: move my branch back`);
   assert.equal(tipIn('2'), beforeDisguise);
   await notSees(S[a2], '#draft [data-part="glasses"]', 'disguise');
   await sees(S[a2], '#mission .mission-box', 'see what the Wall does');
@@ -1319,7 +1319,7 @@ async function classRun() {
   await next();
   const facts5 = (await adminState()).projector.scene.facts;
   assert.match(facts5[0], /^Predicted right: \d+ of \d+ · refused sends \d+\/\d+ · accepted sends \d+\/\d+$/);
-  assert.deepEqual(facts5.slice(1), ['Chose: Lab 1 Undo this card (revert) · Lab 2 Move my note back (reset) · Lab 3 Undo this card (revert)']);
+  assert.deepEqual(facts5.slice(1), ['Chose: Lab 1 Undo this card (revert) · Lab 2 Move my branch back (reset) · Lab 3 Undo this card (revert)']);
   for (const line of facts5) await sees(screen, '.sl-facts', line);
   await answer('reveal-5', { show: true });
   await takeaways(5);
@@ -1418,7 +1418,7 @@ async function classRun() {
   await ana.reload();
   await until('the edited line survives a reload', async () => (await ana.inputValue('.git7 [data-field="t:3"]')) === edited);
   await click(ana, '.git7 [data-copy]');
-  await sees(ana, '#toasts', 'Copied. Paste it into your notes.');
+  await sees(ana, '#toasts', 'Copied. Paste it into your branchs.');
   const copied = await ana.evaluate(() => navigator.clipboard.readText());
   assert.ok(copied.startsWith(`My Git in 7 lines\n0. ${anaLines[0]}\n`) && copied.includes(`3. ${edited}`) && copied.split('\n').length === 8,
     `the copy holds the 7 lines:\n${copied}`);
