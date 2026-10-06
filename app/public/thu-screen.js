@@ -1,7 +1,8 @@
 // The projector (/thu/screen): the class's slide deck, live from the server. Keys: F full screen, → next, ← back.
-import { poll, slideHtml, presenterKeys, move } from '/thu-common.js';
+import { key, poll, slideHtml, presenterKeys, move } from '/thu-common.js';
 
 const slide = document.getElementById('slide');
+if (!key) document.body.innerHTML = '<p style="padding:24px;font:18px Inter,sans-serif">Open the teacher link: it ends in ?key=…</p>';
 let shown = '', index = 0;
 
 poll('/api/thu/admin/state', (s) => {

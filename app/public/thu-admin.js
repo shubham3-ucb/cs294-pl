@@ -2,7 +2,16 @@
 import { api, key, poll, slideHtml, presenterKeys, move, md, esc, PROJECTOR_WINDOW } from '/thu-common.js';
 
 const $ = (id) => document.getElementById(id);
-let index = 0, shown = '', projector = null;
+if (!key) document.body.innerHTML = '<p style="padding:24px;font:18px Inter,sans-serif">Open the teacher link: it ends in ?key=…</p>';
+let index = 0, shown = '', projector = null, sceneStart = 0, planned = 0;
+const mmss = (ms) => { const t = Math.max(0, Math.round(ms / 1000)); return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`; };
+// Time in this scene against its plan; red when over.
+setInterval(() => {
+  if (!sceneStart) return;
+  const used = Date.now() - sceneStart;
+  $('clock').textContent = `${mmss(used)} / ${mmss(planned)}`;
+  $('clock').classList.toggle('over', used > planned);
+}, 500);
 const ctx = (s) => ({ joinUrl: s.joinUrl, paper: s.paper, claims: s.claims, progress: s.progress, joined: s.people.length });
 
 poll('/api/thu/admin/state', (s) => {
@@ -10,7 +19,9 @@ poll('/api/thu/admin/state', (s) => {
   const sc = s.scene;
   const html = slideHtml(sc, s.results, ctx(s));
   if (html !== shown) { $('preview').innerHTML = html; shown = html; }
-  $('where').textContent = `Scene ${s.index + 1} of ${s.total} · ${sc.part} · ${sc.minutes} min`;
+  $('where').textContent = `Scene ${s.index + 1} of ${s.total} · ${sc.part}`;
+  sceneStart = Date.now() - s.elapsed;
+  planned = sc.minutes * 60_000;
   $('next-up').textContent = s.next ? `Next: ${s.next.part} · ${s.next.title}` : 'Last scene.';
   // At the verdicts: why each claim in play shrinks, for the teacher to say.
   const whys = s.results?.type === 'claims'
@@ -31,6 +42,7 @@ poll('/api/thu/admin/state', (s) => {
   }
   $('people').innerHTML = s.people.map((x) => `<span class="${x.here ? '' : 'away'}">${esc(x.name)}</span>`).join('') || '<span class="away">Nobody yet</span>';
   $('groups').innerHTML = s.groups.map((g) => `<p><strong>${esc(g.name)}</strong> · ${esc(g.members.join(', '))}</p>`).join('');
+  $('regroup').hidden = !(s.groups.length || sc.kind === 'group');
   const screen = `${location.origin}/thu/screen?key=${encodeURIComponent(key)}`;
   $('links').innerHTML = `<p>Students: <a href="${esc(s.joinUrl)}" target="_blank">${esc(s.joinUrl)}</a></p>
     <p>Projector: <a href="${esc(screen)}" target="_blank">${esc(screen)}</a></p>`;
@@ -51,6 +63,11 @@ $('export').onclick = async (e) => {
   const url = URL.createObjectURL(await res.blob());
   Object.assign(document.createElement('a'), { href: url, download: 'thursday-answers.md' }).click();
   URL.revokeObjectURL(url);
+};
+$('regroup').onclick = async () => {
+  if (!confirm('Re-form the groups from the people in the room? Group answers so far are cleared.')) return;
+  const r = await api('/api/thu/admin/regroup', {});
+  if (!r.ok) alert(r.error);
 };
 $('reset').onclick = async () => {
   if (!confirm('Reset Thursday? Everyone joins again and all answers are deleted.')) return;

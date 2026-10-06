@@ -8,7 +8,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
-import { SCENES, POSTS, CLAIMS, SURVEY } from '../server/thursday_scenes.js';
+import { SCENES, POSTS, COMMENTS, CLAIMS, SURVEY } from '../server/thursday_scenes.js';
 
 const APP = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SHOTS = path.join(APP, 'e2e', 'shots');
@@ -31,14 +31,14 @@ const CLASS = [
   { name: 'Lea', area: 0, degree: 0, years: 3, level: 1, learn: [0, 4], why: '' },
 ];
 const CLAIM_TEXT = {
-  experience: ['Years since the Stack Overflow account was made.', 'Many Git questions come from old accounts.'],
+  experience: ['Years since the Stack Overflow account was made.', 'Some long-registered askers had trouble.'],
   difficulty: ['How often the asker never accepted an answer.', 'Credential questions go unaccepted a bit more often.'],
-  learning: ['Ticked boxes from 92 people found on Stack Overflow.', 'These 92 mostly learned Git online.'],
-  trend: ['Questions per year and their share of all questions.', 'Git’s share has been flat at 0.4%.'],
+  learning: ['Ticked boxes from 92 people found on Stack Overflow.', 'These 92 mostly say they learned Git online.'],
+  selfrating: ['A self-rated level, novice to expert.', 'Most rate themselves competent or below.'],
 };
 const DESIGN_TEXT = [
-  ['`git undo`: reverses the last command, and says what it did.', 'Does git undo decrease time to recover for grad students who just broke a branch?', 'Watch 20 people recover from a staged mistake; time it.'],
-  ['Show the reflog after every risky command: "to go back, run …".', 'Does the hint increase successful recoveries for new Git users?', 'Telemetry: how often people recover after reset --hard.'],
+  ['`git undo`: reverses the last command, and says what it did.', 'Does git undo decrease time to recover for grad students who just broke a branch?', 'Time to recover; threat: a learning effect.', 'Watch 20 people recover from a staged mistake.'],
+  ['Show the reflog after every risky command: "to go back, run …".', 'Does the hint increase successful recoveries for new Git users?', 'Recoveries that succeed; threat: a ceiling effect.', 'Telemetry: how often people recover after reset --hard.'],
 ];
 const EXITS = [
   'Watch people use the tool; what they ask is not what they do.',
@@ -166,12 +166,22 @@ async function main() {
       } else if (scene.kind === 'label') {
         for (const [i, s] of students.entries()) {
           for (const post of POSTS) {
-            const yes = post.askerNamesIt ? i % 6 !== 5 : i % 6 === 0; // most see it: answer-only posts are not about the command
-            await s.page.click(`.s-post[data-id="${post.id}"] button[data-v="${yes ? 'yes' : 'no'}"]`);
+            // Most see it: in answer-only posts the asker is not stuck on the command.
+            const label = post.askerNamesIt ? (i % 6 === 5 ? 'unrelated' : 'stuck') : (i % 3 === 0 ? 'needs' : 'unrelated');
+            await s.page.click(`.s-post[data-id="${post.id}"] button[data-v="${label}"]`);
           }
           await s.page.waitForFunction((k) => document.getElementById('prog')?.textContent.startsWith(`${k} of ${k}`), POSTS.length);
         }
         await students[1].page.screenshot({ path: path.join(SHOTS, 'thu-student-posts.png') });
+      } else if (scene.kind === 'code') {
+        for (const [i, s] of students.entries()) {
+          for (const c of COMMENTS) {
+            const pick = i % 4 === 3 ? (c.category + 1) % 6 : c.category; // most agree with the paper
+            await s.page.click(`.s-post[data-id="${c.id}"] button[data-v="${pick}"]`);
+          }
+          await s.page.waitForFunction((k) => document.getElementById('prog')?.textContent.startsWith(`${k} of ${k}`), COMMENTS.length);
+        }
+        await students[0].page.screenshot({ path: path.join(SHOTS, 'thu-student-codes.png') });
       } else if (scene.kind === 'group') {
         const st = await adminState();
         assert.equal(st.groups.length, Math.max(1, Math.round(CLASS.length / 4)), 'groups of about four');
@@ -209,7 +219,7 @@ async function main() {
       if (id === 'label-reveal') {
         const r = (await adminState()).results;
         const answerOnly = r.posts.filter((p) => !p.askerNamesIt);
-        assert.ok(answerOnly.every((p) => p.no > p.yes), 'answer-only posts: the class says no');
+        assert.ok(answerOnly.every((p) => p.counts[0] < p.counts[1] + p.counts[2]), 'answer-only posts: mostly not "stuck on it"');
       }
       if (id === 'survey-reveal') {
         const r = (await adminState()).results;

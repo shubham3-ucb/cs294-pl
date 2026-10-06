@@ -123,7 +123,7 @@ app.post('/api/thu/join', handle((b) => thu.join(b)));
 app.get('/api/thu/state', handle((q) => thu.state(String(q.pid || ''))));
 app.post('/api/thu/answer', handle((b) => thu.answer(b)));
 app.get('/api/thu/admin/state', adminOnly, handle((q, req) => thu.adminState(`${req.protocol}://${req.get('host')}/thu`)));
-for (const action of ['next', 'back', 'reset']) {
+for (const action of ['next', 'back', 'reset', 'regroup']) {
   app.post(`/api/thu/admin/${action}`, adminOnly, handle((b) => thu.admin(action, b)));
 }
 app.get('/api/thu/admin/export', adminOnly, (req, res) => {
@@ -137,8 +137,8 @@ const page = (file) => (req, res) =>
 app.get('/admin', page('admin.html'));
 app.get('/screen', page('screen.html'));
 app.get('/thu', (req, res) => res.sendFile(path.join(PUBLIC, 'thu.html')));
-app.get('/thu/admin', page('thu-admin.html'));
-app.get('/thu/screen', page('thu-screen.html'));
+app.get('/thu/admin', (req, res) => res.sendFile(path.join(PUBLIC, 'thu-admin.html'))); // same: the API checks the key
+app.get('/thu/screen', (req, res) => res.sendFile(path.join(PUBLIC, 'thu-screen.html')));
 app.use(express.static(PUBLIC));
 app.use('/api', (req, res) => res.status(404).json({ ok: false, error: 'No such thing.' }));
 // Malformed JSON bodies and the like.

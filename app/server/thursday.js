@@ -1,25 +1,31 @@
-// Thursday session: people, the scene, survey answers, votes, post labels, groups and their answers, exit lines.
-// One JSON file (DATA_DIR/thursday.json); no Git here. Clients poll /api/thu/state; `v` changes on every write.
+// Thursday session: people, the scene, survey answers, votes, post labels, comment codes, groups and their
+// answers, exit lines. One JSON file (DATA_DIR/thursday.json); no Git here. Clients poll /api/thu/state; `v`
+// changes on every write.
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { SCENES, SURVEY, POSTS, CLAIMS, CLAIM_FIELDS, DESIGN_FIELDS, PAPER, PAPER_SURVEY } from './thursday_scenes.js';
+import {
+  SCENES, SURVEY, POSTS, LABELS, COMMENTS, CATEGORIES, CLAIMS, CLAIM_FIELDS, DESIGN_FIELDS, PAPER, PAPER_SURVEY, BUFFER_MINUTES,
+} from './thursday_scenes.js';
 
 const DATA_DIR = path.resolve(process.env.DATA_DIR || './data');
 const FILE = path.join(DATA_DIR, 'thursday.json');
-const FORMAT = 1;
+const FORMAT = 2;
 const NAME_MAX = 24;
 const TEXT_MAX = 300;
-const HERE_MS = 10_000; // polled within 10 s = here
+const JOIN_MAX = 80;
+const HERE_MS = 90_000; // polled within 90 s = here (hidden tabs poll slowly)
+const RECENT_MS = 10 * 60_000; // seen within 10 min = in the room, for forming groups
 const GROUP_SIZE = 4;
+const GROUP_MAX = 6; // a late joiner opens a new group when every group has 6
 
 let S;
 let saveTimer = null;
 const seen = new Map(); // pid -> last poll (not saved)
 
 const fresh = () => ({
-  format: FORMAT, boot: crypto.randomBytes(4).toString('hex'), v: 0, scene: 0,
-  people: {}, survey: {}, votes: {}, labels: {}, groups: null, groupAnswers: {}, exit: {},
+  format: FORMAT, boot: crypto.randomBytes(4).toString('hex'), v: 0, scene: 0, sceneAt: Date.now(),
+  people: {}, survey: {}, votes: {}, labels: {}, codes: {}, groups: null, groupAnswers: {}, exit: {},
 });
 
 export function boot() {
@@ -54,16 +60,25 @@ const fail = (error) => ({ ok: false, error });
 const clean = (s, max) => String(s ?? '').replace(/\s+/g, ' ').trim().slice(0, max);
 const scene = () => SCENES[S.scene];
 const sceneById = (id) => SCENES.find((s) => s.id === id);
-const here = () => Object.keys(S.people).filter((pid) => Date.now() - (seen.get(pid) ?? 0) < HERE_MS);
+const indexOf = (id) => SCENES.findIndex((s) => s.id === id);
+const within = (ms) => Object.keys(S.people).filter((pid) => Date.now() - (seen.get(pid) ?? 0) < ms);
+const here = () => within(HERE_MS);
+const isHere = (pid) => Date.now() - (seen.get(pid) ?? 0) < HERE_MS;
 
-// ---------- Groups: formed once, when the class first reaches a group scene ----------
+// Survey, labels and codes stay open until their reveal is over, so a slow student can finish.
+const OPEN_UNTIL = { survey: 'survey-reveal', label: 'label-reveal', code: 'code-reveal' };
+const isOpen = (s) => s === scene() || (OPEN_UNTIL[s.kind] && S.scene > indexOf(s.id) && S.scene <= indexOf(OPEN_UNTIL[s.kind]));
+
+// ---------- Groups: formed when the class first reaches a group scene; the teacher can re-form them ----------
 
 function formGroups() {
-  const pids = here().length ? here() : Object.keys(S.people);
+  const recent = within(RECENT_MS);
+  const pids = recent.length ? recent : Object.keys(S.people);
   for (let i = pids.length - 1; i > 0; i--) {
     const j = crypto.randomInt(i + 1);
     [pids[i], pids[j]] = [pids[j], pids[i]];
   }
+  for (const p of Object.values(S.people)) p.group = null;
   const k = Math.max(1, Math.round(pids.length / GROUP_SIZE));
   S.groups = Array.from({ length: k }, (_, i) => ({ id: `g${i + 1}`, name: `Group ${i + 1}`, claim: i % CLAIMS.length, members: [] }));
   pids.forEach((pid, i) => S.groups[i % k].members.push(pid));
@@ -71,9 +86,14 @@ function formGroups() {
 }
 
 function joinGroup(pid) {
-  const smallest = S.groups.reduce((a, b) => (b.members.length < a.members.length ? b : a));
-  smallest.members.push(pid);
-  S.people[pid].group = smallest.id;
+  let target = S.groups.reduce((a, b) => (b.members.length < a.members.length ? b : a));
+  if (target.members.length >= GROUP_MAX) {
+    const i = S.groups.length;
+    target = { id: `g${i + 1}`, name: `Group ${i + 1}`, claim: i % CLAIMS.length, members: [] };
+    S.groups.push(target);
+  }
+  target.members.push(pid);
+  S.people[pid].group = target.id;
 }
 
 const groupOf = (pid) => S.groups?.find((g) => g.id === S.people[pid]?.group) ?? null;
@@ -81,19 +101,48 @@ const fieldsFor = (s) => (s.fields === 'claim' ? CLAIM_FIELDS : DESIGN_FIELDS);
 
 // ---------- Students ----------
 
+// The same name again, from someone who is not here (a new link after a restart, another laptop): the same
+// person. The same name while that person is here: a second person, "Ana 2".
 export function join({ name, pid }) {
   if (pid && S.people[pid]) {
     seen.set(pid, Date.now());
     return ok({ pid, name: S.people[pid].name });
   }
-  const n = clean(name, NAME_MAX);
+  let n = clean(name, NAME_MAX);
   if (!n) return fail('Type your first name.');
+  const same = Object.entries(S.people).filter(([, p]) => p.name.toLowerCase() === n.toLowerCase());
+  const back = same.find(([id]) => !isHere(id));
+  if (back) {
+    seen.set(back[0], Date.now());
+    changed();
+    return ok({ pid: back[0], name: back[1].name });
+  }
+  if (Object.keys(S.people).length >= JOIN_MAX) return fail('The class is full.');
+  if (same.length) {
+    const taken = new Set(Object.values(S.people).map((p) => p.name.toLowerCase()));
+    let k = 2;
+    while (taken.has(`${n} ${k}`.toLowerCase())) k += 1;
+    n = `${n} ${k}`;
+  }
   const id = crypto.randomBytes(6).toString('hex');
   S.people[id] = { name: n, joined: Date.now(), group: null };
   seen.set(id, Date.now());
   if (S.groups) joinGroup(id);
   changed();
   return ok({ pid: id, name: n });
+}
+
+// What a student still has to finish from an earlier scene that is still open (survey, labels, codes).
+function pending(pid) {
+  for (const [kind, until] of Object.entries(OPEN_UNTIL)) {
+    const s = SCENES.find((x) => x.kind === kind);
+    if (S.scene <= indexOf(s.id) || S.scene > indexOf(until)) continue;
+    const done = kind === 'survey' ? !!S.survey[pid]
+      : kind === 'label' ? Object.keys(S.labels[pid] ?? {}).length === POSTS.length
+        : Object.keys(S.codes[pid] ?? {}).length === COMMENTS.length;
+    if (!done) return publicScene(s);
+  }
+  return null;
 }
 
 export function state(pid) {
@@ -108,12 +157,14 @@ export function state(pid) {
   const g = groupOf(pid);
   return ok({
     boot: S.boot, v: S.v, joined: true, index: S.scene, total: SCENES.length, scene: publicScene(s), paper: PAPER,
+    pending: pending(pid),
     claims: s.shows === 'claims' ? CLAIMS : undefined, // model answers only once the verdicts are on
     me: {
       name: me.name,
       survey: S.survey[pid] ?? null,
       vote: s.kind === 'vote' ? S.votes[s.id]?.[pid] ?? null : null,
       labels: S.labels[pid] ?? {},
+      codes: S.codes[pid] ?? {},
       exit: S.exit[pid] ?? '',
     },
     group: g && {
@@ -126,11 +177,18 @@ export function state(pid) {
   });
 }
 
-// What every client may see of a scene (teacher notes stay on the console).
+// What every client may see of a scene (teacher notes and answer keys stay on the console).
 function publicScene(s) {
   const { say, hope, ...rest } = s;
   if (s.kind === 'survey') rest.survey = SURVEY;
-  if (s.kind === 'label') rest.posts = POSTS.map(({ askerNamesIt, ...p }) => p); // no answer key
+  if (s.kind === 'label') {
+    rest.posts = POSTS.map(({ askerNamesIt, ...p }) => p);
+    rest.labels = LABELS;
+  }
+  if (s.kind === 'code') {
+    rest.comments = COMMENTS.map(({ category, ...c }) => c);
+    rest.categories = CATEGORIES;
+  }
   if (s.kind === 'group') rest[s.fields === 'claim' ? 'claimFields' : 'designFields'] = fieldsFor(s);
   return rest;
 }
@@ -166,11 +224,11 @@ function validSurvey(input) {
 }
 
 // One endpoint for every student input; the scene decides what is accepted.
-export function answer({ pid, scene: sceneId, value, post, field, text }) {
+export function answer({ pid, scene: sceneId, value, post, item, field, text }) {
   if (!S.people[pid]) return fail('Please join again.');
   seen.set(pid, Date.now());
   const s = sceneById(sceneId);
-  if (!s || s !== scene()) return fail('The class has moved on. Look up.');
+  if (!s || !isOpen(s)) return fail('The class has moved on. Look up.');
   if (s.kind === 'survey') {
     let input = value;
     if (typeof value === 'string') {
@@ -185,8 +243,13 @@ export function answer({ pid, scene: sceneId, value, post, field, text }) {
     (S.votes[s.id] ??= {})[pid] = i;
   } else if (s.kind === 'label') {
     const p = POSTS.find((x) => x.id === String(post));
-    if (!p || !['yes', 'no'].includes(value)) return fail('Pick yes or no.');
+    if (!p || !LABELS.some((l) => l.id === value)) return fail('Pick one label.');
     (S.labels[pid] ??= {})[p.id] = value;
+  } else if (s.kind === 'code') {
+    const c = COMMENTS.find((x) => x.id === String(item));
+    const i = Number(value);
+    if (!c || !Number.isInteger(i) || i < 0 || i >= CATEGORIES.length) return fail('Pick one category.');
+    (S.codes[pid] ??= {})[c.id] = i;
   } else if (s.kind === 'group') {
     const g = groupOf(pid);
     if (!g) return fail('Wait a moment: your group is being formed.');
@@ -215,6 +278,12 @@ const median = (xs) => {
   const m = Math.floor(a.length / 2);
   return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2;
 };
+// Agreement on one item: the share of labels that match the most common label.
+const majorityShare = (counts) => {
+  const n = counts.reduce((a, b) => a + b, 0);
+  return n ? Math.max(...counts) / n : null;
+};
+const mean = (xs) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
 
 export function results(what) {
   if (!what) return null;
@@ -236,13 +305,29 @@ export function results(what) {
   }
   if (what === 'labels') {
     const all = Object.values(S.labels);
+    const posts = POSTS.map((p) => {
+      const counts = LABELS.map((l) => all.filter((x) => x[p.id] === l.id).length);
+      return { id: p.id, title: p.title, command: p.command, views: p.views, askerNamesIt: p.askerNamesIt, counts, agreement: majorityShare(counts) };
+    });
     return {
-      type: 'labels',
+      type: 'labels', labels: LABELS, posts,
       n: all.filter((l) => Object.keys(l).length === POSTS.length).length,
-      posts: POSTS.map((p) => ({
-        id: p.id, title: p.title, command: p.command, views: p.views, askerNamesIt: p.askerNamesIt,
-        yes: all.filter((l) => l[p.id] === 'yes').length, no: all.filter((l) => l[p.id] === 'no').length,
-      })),
+      agreement: mean(posts.map((p) => p.agreement).filter((x) => x !== null)),
+    };
+  }
+  if (what === 'codes') {
+    const all = Object.values(S.codes);
+    const items = COMMENTS.map((c) => {
+      const counts = CATEGORIES.map((_, i) => all.filter((x) => x[c.id] === i).length);
+      const n = counts.reduce((a, b) => a + b, 0);
+      return { id: c.id, text: c.text, category: c.category, counts, n, withPaper: n ? counts[c.category] / n : null, agreement: majorityShare(counts) };
+    });
+    const labels = items.reduce((n, i) => n + i.n, 0);
+    return {
+      type: 'codes', categories: CATEGORIES, items,
+      n: all.filter((x) => Object.keys(x).length === COMMENTS.length).length,
+      withPaper: labels ? items.reduce((n, i) => n + i.counts[i.category], 0) / labels : null,
+      agreement: mean(items.map((i) => i.agreement).filter((x) => x !== null)),
     };
   }
   if (what === 'claims' || what === 'design') {
@@ -260,13 +345,13 @@ export function results(what) {
   return null;
 }
 
-// How many have answered the current scene, out of who is here.
+// How many of the people here have answered the current scene.
 function progress(s) {
-  const people = Object.keys(S.people);
   const done = (pid) => {
     if (s.kind === 'survey') return !!S.survey[pid];
     if (s.kind === 'vote') return S.votes[s.id]?.[pid] !== undefined;
     if (s.kind === 'label') return Object.keys(S.labels[pid] ?? {}).length === POSTS.length;
+    if (s.kind === 'code') return Object.keys(S.codes[pid] ?? {}).length === COMMENTS.length;
     if (s.kind === 'exit') return !!S.exit[pid];
     return false;
   };
@@ -276,7 +361,8 @@ function progress(s) {
     const full = groups.filter((g) => fields.every((f) => S.groupAnswers[s.id]?.[g.id]?.[f.id])).length;
     return { done: full, of: groups.length, unit: 'groups' };
   }
-  if (!['survey', 'vote', 'label', 'exit'].includes(s.kind)) return null;
+  if (!['survey', 'vote', 'label', 'code', 'exit'].includes(s.kind)) return null;
+  const people = here();
   return { done: people.filter(done).length, of: people.length, unit: 'people' };
 }
 
@@ -286,8 +372,9 @@ export function adminState(joinUrl) {
   const s = scene();
   return ok({
     boot: S.boot, v: S.v, index: S.scene, total: SCENES.length, scene: s, joinUrl, paper: PAPER, claims: CLAIMS,
+    elapsed: Date.now() - (S.sceneAt ?? Date.now()), buffer: BUFFER_MINUTES,
     next: SCENES[S.scene + 1] ? { title: SCENES[S.scene + 1].title, part: SCENES[S.scene + 1].part } : null,
-    people: Object.entries(S.people).map(([pid, p]) => ({ name: p.name, here: Date.now() - (seen.get(pid) ?? 0) < HERE_MS, group: groupOf(pid)?.name ?? null })),
+    people: Object.entries(S.people).map(([pid, p]) => ({ name: p.name, here: isHere(pid), group: groupOf(pid)?.name ?? null })),
     hereCount: here().length,
     groups: (S.groups ?? []).map((g) => ({ name: g.name, members: g.members.map((m) => S.people[m]?.name), claim: CLAIMS[g.claim].id })),
     progress: progress(s),
@@ -302,6 +389,13 @@ export function admin(action, { from } = {}) {
     flush();
     return ok({ message: 'New session. Everyone joins again.' });
   }
+  if (action === 'regroup') {
+    if (!Object.keys(S.people).length) return fail('Nobody has joined.');
+    formGroups();
+    S.groupAnswers = {};
+    changed();
+    return ok({ message: `${S.groups.length} new groups from the people in the room.` });
+  }
   if (from !== undefined && from !== null && from !== '' && Number(from) !== S.scene) return ok({ unchanged: true });
   if (action === 'next' && S.scene < SCENES.length - 1) {
     S.scene += 1;
@@ -311,12 +405,14 @@ export function admin(action, { from } = {}) {
   } else {
     return ok({ unchanged: true });
   }
+  S.sceneAt = Date.now();
   changed();
   return ok({ index: S.scene });
 }
 
 export function exportMarkdown() {
   const who = (pid) => S.people[pid]?.name ?? '?';
+  const pct = (x) => (x === null ? '—' : `${Math.round(100 * x)}%`);
   const stamp = new Date().toISOString().slice(0, 16).replace('T', ' ');
   const out = [`# Thursday · The Humans · answers`, '', `Exported ${stamp} UTC · ${Object.keys(S.people).length} people`, ''];
   const sv = results('survey');
@@ -336,8 +432,13 @@ export function exportMarkdown() {
     out.push('', `## Vote: ${sceneById(id).title}`, '', ...r.options.map((o, i) => `- ${o}: ${r.counts[i]}`));
   }
   const lb = results('labels');
-  out.push('', '## Posts: is it really about the command?', '');
-  for (const p of lb.posts) out.push(`- ${p.title} (\`${p.command}\`, asker names it: ${p.askerNamesIt ? 'yes' : 'no'}): yes ${p.yes}, no ${p.no}`);
+  out.push('', '## Posts: what is each post about?', '', `Agreement (share matching the most common label, averaged): ${pct(lb.agreement)}`, '');
+  for (const p of lb.posts) {
+    out.push(`- ${p.title} (\`${p.command}\`, asker names it: ${p.askerNamesIt ? 'yes' : 'no'}): ${LABELS.map((l, i) => `${l.label} ${p.counts[i]}`).join(', ')}`);
+  }
+  const cd = results('codes');
+  out.push('', '## Coding the paper’s Table 8 comments', '', `Agreed with the paper: ${pct(cd.withPaper)} · with each other: ${pct(cd.agreement)}`, '');
+  for (const i of cd.items) out.push(`- #${i.id} (paper: ${CATEGORIES[i.category]}): with the paper ${pct(i.withPaper)}, with each other ${pct(i.agreement)}`);
   for (const id of ['claims', 'design']) {
     const r = results(id);
     out.push('', `## ${sceneById(id).title}`, '');

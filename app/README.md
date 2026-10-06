@@ -81,22 +81,25 @@ To see the student side, open the student link in another window and join. Your 
 
 The same server runs Thursday at `/thu`: students `/thu`, teacher `/thu/admin?key=KEY`, projector `/thu/screen?key=KEY` (`./host.sh` prints all three). Same key, same presenter mode: **Start presenting**, then only **Next**. Lesson script: [thursday.md](../lesson/thursday.md).
 
-19 scenes, 78 minutes plus 2 of buffer, in the order of Sarah's User Studies lecture: the research question, the data, the analysis, do we believe it, a design insight.
+20 scenes, 74 minutes plus 6 of buffer, in the order of Sarah's User Studies lecture: the research question, the data, the analysis, do we believe it, a design insight.
 
 - **Take the paper's survey.** The authors' published form, Q2–Q7 word for word. The reveal puts the class beside the paper's 92 respondents.
-- **Two votes.** What kind of study (need-finding, formative, evaluative), and what Stack Overflow posts are (observation, traces, self-report). The reveal shows the class's votes and the answer.
-- **Check the rule on 8 real posts.** Each post shows the command the paper counted it for, the question and the accepted answer. Students answer: is it really about that command? The 8 are a seeded random sample from the paper's data ([`analysis/thursday_numbers.py`](../analysis/thursday_numbers.py), which also computes every number the paper does not print).
-- **Groups of about 4** form when you press Next after the break (never a group of 1 when 2 or more are here). Each group puts one of the paper's claims on trial, then designs one change to Git with a study that would show it works. One shared answer per group; anyone in it can type. A late joiner goes to the smallest group.
+- **Two votes.** What kind of study, and what Stack Overflow posts are. The reveal shows the class's votes and the answer.
+- **Label 8 real posts.** Each shows the command the paper counted it for, the question and the accepted answer. Three labels: stuck on it, needs it but can't name it, not about it. The 8 are drawn at random from the paper's data ([`analysis/thursday_numbers.py`](../analysis/thursday_numbers.py), which also computes every number the paper does not print).
+- **Code 7 comments.** The paper's Table 8 examples, into its 6 categories. The reveal shows agreement with the paper and among the class.
+- **Groups of about 4** form when you press Next after the break, from everyone seen in the last 10 minutes (never a group of 1 when 2 or more are there). **Re-form groups** (under People) shuffles them again and clears group answers. Each group puts one claim on trial, then designs one change with a study, a measure and one threat. One shared answer per group; one person types. Late or returning students join the smallest group.
 - **Exit:** one line each. The last slide shows them without names. **Details → Export answers** downloads everything as Markdown. **Reset** empties Thursday only.
 
-Thursday has no Git and no bots. To try it alone, open `/thu` in two or three private windows.
+The console shows a clock (time in this scene against its plan), who is here (seen in the last 90 seconds) and progress counted over the people here. Survey, labels and codes stay open until their reveal is over; a late student's laptop shows "finish this". After a restart, a student who types the same name gets their answers and group back.
+
+Thursday has no Git and no bots. To try it alone, open `/thu` in two or three private windows, then **Reset**.
 
 ## Tests
 
 - `npm test`: the Git engine and the session, including whole classes played by hints alone.
 - `npm run e2e`: a real browser. 9 students join by name; then 2 students with the practice lab, with live updates blocked at the end; then lab sizes for 1 to 13 people; then the rehearsal. First run `npx playwright install --only-shell chromium`. Screenshots go to `e2e/shots/`. `E2E_PORT` moves its servers off 3102 and 3104.
 - `npm run rehearsal`: only the rehearsal. 9 bots; the teacher presses only Next until every scene completes.
-- `npm run e2e:thursday`: Thursday in a real browser: a console, the projector and 6 students through all 19 scenes, checking that no slide overflows. `THU_STUDENTS=24` runs a bigger class.
+- `npm run e2e:thursday`: Thursday in a real browser: a console, the projector and 6 students through all 20 scenes, checking that no slide overflows. `THU_STUDENTS=24` runs a bigger class.
 
 ## Files
 
@@ -107,7 +110,7 @@ server/steps.js       every word the class reads: steps, missions, hints, techni
 server/git.js         the real Git behind every button
 server/bots.js        Rehearse with bots
 server/monster.js     outfit.txt, the one file in every card
-server/thursday*.js   Thursday: the session, every word of its 19 scenes, and the 8 posts (thursday_posts.json)
+server/thursday*.js   Thursday: the session, every word of its 20 scenes, and the 8 posts (thursday_posts.json)
 public/               student app (index.html, app.js), console (admin.*), projector (screen.*), graph.js, monster.js;
                       Thursday: thu.* (students), thu-admin.*, thu-screen.*, thu-common.js (the shared slide renderer)
 test/  e2e/           npm test · npm run e2e

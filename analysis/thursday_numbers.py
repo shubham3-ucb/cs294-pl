@@ -96,14 +96,14 @@ for c in cmds:
     v = sorted(map(views, ids))
     S[c] = dict(mean=st.mean(v), median=st.median(v), named_mean=st.mean(map(views, nm)) if nm else 0,
                 named_median=st.median(list(map(views, nm))) if nm else 0, answer_only=1 - len(nm) / len(ids),
-                wo_undo=st.mean([views(i) for i in ids if i != UNDO]), wo_top=st.mean(v[:-1]))
+                wo_undo=st.mean([views(i) for i in ids if i != UNDO]), wo_top=st.mean(v[:-1]), wo_top2=st.mean(v[:-2]))
 rank = lambda k: sorted(cmds, key=lambda c: -S[c][k])
-R = {k: rank(k) for k in ['mean', 'median', 'named_mean', 'named_median', 'wo_undo', 'wo_top']}
+R = {k: rank(k) for k in ['mean', 'median', 'named_mean', 'named_median', 'wo_undo', 'wo_top', 'wo_top2']}
 print(f'\nRanks among the {len(cmds)} commands with 200+ posts in the authors\' counts (views from our re-run):')
-print('  command      mean  median  asker-names(mean)  asker-names(median)  without[36]  without-own-top-post  only-in-answer  median-views')
+print('  command      mean  median  asker-names(mean)  asker-names(median)  without[36]  without-own-top-post  without-top-2  only-in-answer  median-views')
 for c in TOP5:
     r = {k: R[k].index(c) + 1 for k in R}
-    print(f'  {c:11} #{r["mean"]:<4} #{r["median"]:<6} #{r["named_mean"]:<17} #{r["named_median"]:<19} #{r["wo_undo"]:<11} #{r["wo_top"]:<21} '
+    print(f'  {c:11} #{r["mean"]:<4} #{r["median"]:<6} #{r["named_mean"]:<17} #{r["named_median"]:<19} #{r["wo_undo"]:<11} #{r["wo_top"]:<21} #{r["wo_top2"]:<13} '
           f'{S[c]["answer_only"]:.0%}            {S[c]["median"]:,.0f}')
 print('  Top 5 by mean (the paper):', ', '.join(R['mean'][:5]))
 print('  Top 5 when the asker names the command (mean):', ', '.join(R['named_mean'][:5]))

@@ -29,29 +29,30 @@
 
 # Thursday · Git, Part 2: The Humans · one page
 
-80 min · the app at `/thu` · press only **Next** (→ / Space; ← = Back) · groups of about 4 form at the break. Sarah's order: the question, the data, the analysis, do we believe it, a design insight. Read Say and Ask from the teacher page.
+80 min (74 + 6 buffer) · the app at `/thu` · press only **Next** (→ / Space; ← = Back) · groups of about 4 form at the break. Sarah's order: the question, the data, the analysis, do we believe it, a design insight. Read Say and Ask from the teacher page; the clock turns red when a scene runs over.
 
 | Time | Scene | The one question | Hope to hear |
 |---|---|---|---|
 | 0:00 | Join. First name only. | — | — |
-| 0:02 | Take the paper's survey: the form's real questions. | — | — |
-| 0:06 | The paper in one slide: five RQs. | — | — |
-| 0:09 | Vote, then reveal: need-finding. | Is the question interesting? | Yes: three of Stack Overflow's five most-voted questions were about Git commands when the paper was written. |
-| 0:14 | Vote, then reveal: traces, of asking. | Can this data answer "do developers know how to use Git commands?" | No. It shows what people asked, not what they can do. |
-| 0:19 | You and the paper's 92. | Which of these numbers would you trust? Did Tuesday change your answer? | People found through Stack Overflow say they learn online: the sample decides the answer. "How I learned" is a memory. |
-| 0:23 | Check the rule on 8 real posts, 9 min. | — | — |
-| 0:32 | The rule and you. | Did they measure "developers find this command hard"? | Often the command is the fix in the answer, not the problem. |
-| 0:37 | One question, 9.1 million views. | Do you believe their answer to RQ3? | Partly: undo questions are the most viewed; which command gets the credit depends on the rule. |
-| 0:41 | **Break, 5 min.** Groups form on Next. | — | — |
-| 0:46 | Put one claim on trial, 8 min. | — | — |
-| 0:54 | The verdicts. | Which claim survives best? | None as written. Nobody was watched using Git. |
-| 1:00 | Design for the need that survived, 10 min. | — | — |
-| 1:10 | Your designs. | Which of these could you test by watching people? | The ones with a visible measure: time to recover. |
-| 1:13 | What Git and Jujutsu did: switch and restore (2019), `jj undo`. | Which data would convince Git's maintainers? | Observation or traces of real use. Not a survey. |
-| 1:15 | Exit, alone: one new idea for building tools for people. | — | — |
-| 1:17 | **Asking is not using.** | — | — |
-| 1:18 | **Buffer, 2 min.** | — | — |
+| 0:03 | Take the paper's survey: the form's real questions. | — | — |
+| 0:07 | The paper in one slide: five RQs. | — | — |
+| 0:09 | Vote, then reveal: need-finding. | Is the question interesting? | Yes, if it tells designers which needs to design for. |
+| 0:13 | Vote, then reveal: traces, of asking. | Can this data answer "do developers know how to use Git commands?" | No. It shows what people asked, not what they can do. |
+| 0:17 | You and the paper's 92. | Your level, and how you learned: which would you trust? | Neither fully: a judgment and a memory; the sample came from Stack Overflow. |
+| 0:20 | Label 8 real posts, 8 min. | — | — |
+| 0:28 | The rule and you. | Did they measure "developers find this command hard"? | They measured "appears near a question": stuck, needs it, and not about it, all the same. |
+| 0:32 | Code 7 of the paper's comments, 5 min. | — | — |
+| 0:37 | Coding without a method. | What would make Table 8 trustworthy? | A named method, a codebook, two coders and their agreement. |
+| 0:40 | **Break, 5 min.** Everyone back on /thu; groups form on Next. | — | — |
+| 0:45 | Put one claim on trial, 7 min. | — | — |
+| 0:52 | The verdicts. | Which claim survives best, and why? | Experience survives as written, because it is weak. Three shrink. |
+| 0:57 | Design for the need that survived, 9 min. | — | — |
+| 1:06 | Your designs. | Which could you test by watching people? Which threat is hardest? | A visible measure, like time to recover. A learning effect. |
+| 1:09 | What Git and Jujutsu did. | Which data would convince Git's maintainers? | Observation or traces of real use. Not a survey. |
+| 1:11 | Exit, alone: one new idea for building tools for people. | — | — |
+| 1:13 | **Asking is not using.** | — | — |
+| 1:14 | **Buffer, 6 min.** | — | — |
 
-**Never cut:** the 8 labels · the verdicts · the design · the exit.
+**Never cut:** the 8 labels · the coding · the verdicts · the design · the exit.
 
 **Say it right:** "81.7% of ticked boxes", never "of developers". "Accounts registered more than 5 years earlier", never "5 years of Git". "Our re-run of their rule on their data" for every number the paper does not print.

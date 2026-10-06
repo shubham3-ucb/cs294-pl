@@ -1,7 +1,16 @@
 // Thursday: what the projector, the console preview and the students' screens share.
 // slideHtml(scene, results, ctx) draws one slide from the scene text (server/thursday_scenes.js) and the class's results.
 
-export const key = new URLSearchParams(location.search).get('key') || '';
+export const key = (() => {
+  const url = new URL(location.href);
+  const k = url.searchParams.get('key') || sessionStorage.getItem('thu-key') || '';
+  if (url.searchParams.has('key')) {
+    sessionStorage.setItem('thu-key', k);
+    url.searchParams.delete('key');
+    history.replaceState(null, '', url.pathname + url.search + url.hash);
+  }
+  return k;
+})();
 
 export async function api(path, body) {
   try {
@@ -99,15 +108,26 @@ function surveyResult(r) {
     <span><i style="background:#B9B9C2"></i>The paper: 92, median ${p.medianYears} years</span></p>`;
 }
 
+const LABEL_COLORS = ['var(--purple)', '#F59E0B', '#C9C9D1'];
 function labelsResult(r) {
   const rows = r.posts.map((p) => {
-    const n = p.yes + p.no;
+    const n = p.counts.reduce((a, b) => a + b, 0);
+    const split = n ? p.counts.map((c, i) => `<span style="width:${pct(c, n)}%;background:${LABEL_COLORS[i]}"></span>`).join('') : '';
     return `<li><span class="tt">${esc(p.title)} <small>· ${p.views.toLocaleString('en-US')} views</small></span><code>${esc(p.command)}</code>
       <span class="names ${p.askerNamesIt ? '' : 'no'}">${p.askerNamesIt ? 'Yes' : 'Answer only'}</span>
-      <span class="t-split">${n ? `<span class="y" style="width:${pct(p.yes, n)}%"></span><span class="n" style="width:${pct(p.no, n)}%"></span>` : ''}</span>
-      <span class="t-split-num">${n ? `${p.yes} yes · ${p.no} no` : '—'}</span></li>`;
+      <span class="t-split">${split}</span><span class="t-split-num">${n ? `${pct(Math.max(...p.counts), n)}% agree` : '—'}</span></li>`;
   }).join('');
-  return `<ul class="t-posts"><li class="h"><span>Post</span><span>Counted for</span><span>Asker names it</span><span>You: about it?</span><span></span></li>${rows}</ul>`;
+  const key = r.labels.map((l, i) => `<i style="background:${LABEL_COLORS[i]}"></i>${esc(l.short)}`).join(' ');
+  return `<ul class="t-posts"><li class="h"><span>Post</span><span>Counted for</span><span>Asker names it</span><span class="legend">You: ${key}</span></li>${rows}</ul>`;
+}
+
+// Coding Table 8: for each comment, the paper's category, and how many of you chose it; how much you agreed.
+function codesResult(r) {
+  const rows = r.items.map((i) => `<li><span class="tt">#${esc(i.id)} “${esc(i.text)}”</span><span class="cat">${esc(r.categories[i.category])}</span>
+    <span class="t-split"><span style="width:${i.withPaper === null ? 0 : Math.round(100 * i.withPaper)}%;background:var(--purple)"></span></span>
+    <span class="t-split-num">${i.withPaper === null ? '—' : `${Math.round(100 * i.withPaper)}% · ${Math.round(100 * i.agreement)}%`}</span></li>`).join('');
+  const sum = r.withPaper === null ? '' : `<p class="t-key"><span>You agreed with the paper on ${Math.round(100 * r.withPaper)}% of labels, and with each other on ${Math.round(100 * r.agreement)}%.</span></p>`;
+  return `<ul class="t-posts codes"><li class="h"><span>Comment</span><span>The paper’s category</span><span>Agree</span><span>Paper · peers</span></li>${rows}</ul>${sum}`;
 }
 
 // While groups work: who is in which group (and their claim). At the design reveal: each group's answers.
@@ -161,7 +181,7 @@ export function slideHtml(s, r, ctx = {}) {
   if (s.kind === 'vote') {
     return `<div class="${k}">${head(s)}<ul class="t-options">${s.options.map((o) => `<li>${esc(o)}</li>`).join('')}</ul>${count(ctx.progress)}</div>`;
   }
-  if (s.kind === 'survey' || s.kind === 'label' || s.kind === 'exit') {
+  if (s.kind === 'survey' || s.kind === 'label' || s.kind === 'code' || s.kind === 'exit') {
     return `<div class="${k}">${head(s)}${lines(s.lines)}${count(ctx.progress)}</div>`;
   }
   if (s.kind === 'group') {
@@ -172,6 +192,7 @@ export function slideHtml(s, r, ctx = {}) {
     if (r?.type === 'vote') body = voteBars(r, s.correct);
     else if (r?.type === 'survey') body = surveyResult(r);
     else if (r?.type === 'labels') body = labelsResult(r);
+    else if (r?.type === 'codes') body = codesResult(r);
     else if (r?.type === 'claims') body = verdicts(r, ctx.claims);
     else if (r?.type === 'design') body = r.groups.length ? groupCards(r, { reveal: true }) : '';
     const before = r?.type === 'vote' ? '' : lines(s.lines);

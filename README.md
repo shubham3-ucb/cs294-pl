@@ -28,9 +28,9 @@ Teaching materials for Git week in UC Berkeley CS294 *Modern Programming Tools* 
 | Be the data | Everyone takes the paper's survey, its real questions. | §2.2 the survey |
 | 1 The question | The five RQs on one slide. Vote: what kind of study is it? Need-finding. | RQ1–RQ5 |
 | 2 The data | Vote: what are Stack Overflow posts? Traces, of asking. The class's survey answers beside the paper's 92, who were found through Stack Overflow. | §2.1, §2.2, Table 7 |
-| 3 The analysis | Students check the paper's counting rule on 8 real posts from its data. Often the command is in the fix, not the question. In our re-run, one question with 9.1 million views moves `git reflog` from #8 to #2. | §2.1 Steps 5–6, Table 4 |
-| 4 Do you believe it? | Groups of about 4 each put one claim on trial: what was measured, and what the data supports. | RQ2, RQ4, RQ5, the abstract |
-| 5 Design | For the need that survives (undo): one change to Git, an evaluative question, and data that is not a survey. Then what Git did in 2.23. | §4 implications; §6 "rather than changing the design of Git" |
+| 3 The analysis | Students label 8 real posts from its data (stuck on the command, need it but can't name it, not about it): the paper's rule counts all three the same. Then they code the paper's Table 8 comments themselves: no method, no agreement reported. | §2.1 Steps 5–6, Table 4, Table 8 |
+| 4 Do you believe it? | Groups of about 4 each put one claim on trial: what was measured, and what the data supports. One claim survives as written. | RQ2, RQ4, RQ5, §3.5 |
+| 5 Design | Why do people have to ask how to undo? One change to Git, an evaluative question, a measure and one threat, and data that is not a survey. Then what Git 2.23 and Jujutsu did. | §4 implications; §6 "rather than changing the design of Git" |
 
 Every number the paper does not print comes from [`analysis/thursday_numbers.py`](analysis/thursday_numbers.py), which applies the paper's rule to the authors' data. It matches their post counts exactly for 73 of 136 commands, and Table 4's rows within 8%.
 

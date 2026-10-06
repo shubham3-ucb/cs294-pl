@@ -32,7 +32,8 @@ READ_APP = """
 const t = await import('./server/thursday_scenes.js');
 process.stdout.write(JSON.stringify({ scenes: t.SCENES, paper: t.PAPER, message: t.MESSAGE, survey: t.SURVEY,
   paperSurvey: t.PAPER_SURVEY, posts: t.POSTS, claims: t.CLAIMS, claimFields: t.CLAIM_FIELDS,
-  designFields: t.DESIGN_FIELDS, minutes: t.TOTAL_MINUTES }));
+  designFields: t.DESIGN_FIELDS, minutes: t.TOTAL_MINUTES, buffer: t.BUFFER_MINUTES, labels: t.LABELS,
+  comments: t.COMMENTS, categories: t.CATEGORIES, categoryCounts: t.CATEGORY_COUNTS }));
 """
 LEARN_SHORT = ['In class', 'Online courses', 'Peers or seniors', 'Documentation', 'Internet', 'Other']
 
@@ -216,11 +217,13 @@ def bars(s, x, y, w, labels, values, total, title):
 # ---------------------------------------------------------------- one slide per scene
 def scene_slide(prs, app, sc):
     kind, sid = sc['kind'], sc['id']
-    activity = kind in ('survey', 'vote', 'label', 'group', 'exit')
+    activity = kind in ('survey', 'vote', 'label', 'code', 'group', 'exit')
     extra = ''
     if sid == 'claims-reveal':
         extra = 'Each claim: what they measured, and why it shrinks.\n' + '\n'.join(
             f'- "{c["quote"]}" Measured: {c["measured"]} {c["why"]}' for c in app['claims'])
+    if sid == 'label-reveal':
+        extra = 'On screen in the app, not on this slide: ' + plain(sc['lines'][2])
     if sid == 'claims':
         extra = 'The hint each group sees:\n' + '\n'.join(f'- "{c["quote"]}" Look at: {c["look"]}' for c in app['claims'])
     if sid == 'claims-reveal':
@@ -229,8 +232,7 @@ def scene_slide(prs, app, sc):
             s = blank(prs, WHITE, notes(sc, extra))
             y = head(s, {**sc, 'title': f'{sc["title"]} ({k + 1}/2)'})
             y = lines_block(s, sc, y, 18, CONTENT_W)
-            parts = [[(None, f'“{c["quote"]}”', 'quote'), ('They measured', c['measured'], 'body'),
-                      ('The data supports', c['supports'], 'model')] for c in half]
+            parts = [[(None, f'“{c["quote"]}”', 'quote'), ('The data supports', c['supports'], 'model')] for c in half]
             y = cards(s, sc, y, parts, 2)
             ask(s, sc, y)
         return
@@ -285,11 +287,13 @@ def scene_slide(prs, app, sc):
         return
     if sid == 'label':
         y = lines_block(s, sc, y)
+        parts = [[(l['label'], l['hint'], 'body')] for l in app['labels']]
+        y = cards(s, sc, y, parts, 3) + Inches(0.25)
         para(s, M, y, LINE_W, [f'On your laptop: {len(app["posts"])} posts, each with the question, the accepted answer, and the command the paper counted it for.',
-                               'Randomly sampled from the paper’s own data (analysis/thursday_numbers.py, seed 294).'], 18, color=MUTED, gap=Pt(6))
+                               'Drawn at random from short, answered posts credited to the top-5 commands (analysis/thursday_numbers.py, seed 294).'], 16, color=MUTED, gap=Pt(4))
         return
     if sid == 'label-reveal':
-        y = lines_block(s, sc, y, 17, CONTENT_W) - Inches(0.1)
+        y = lines_block(s, {**sc, 'lines': sc['lines'][:2]}, y, 15, CONTENT_W) - Inches(0.12)
         rows = [['Post', 'Counted for', 'Asker names it']] + [
             [f'{p["title"]} ({p["views"]:,} views)', f'`{p["command"]}`', 'Yes' if p['askerNamesIt'] else 'Answer only'] for p in app['posts']]
         y = table(s, y, rows, [CONTENT_W - Inches(4.2), Inches(2.2), Inches(2.0)], size=12, header=True, first_bold=False, pad=Inches(0.05))
@@ -308,14 +312,26 @@ def scene_slide(prs, app, sc):
         parts = [[(c['where'], f'“{c["quote"]}”', 'quote')] for c in app['claims']]
         cards(s, sc, y, parts, 2)
         return
+    if sid == 'code':
+        y = lines_block(s, sc, y)
+        y += para(s, M, y, LINE_W, 'The paper’s six categories:', 16, color=MUTED) + Inches(0.08)
+        para(s, M, y, LINE_W, [f'{c} ({n})' for c, n in zip(app['categories'], app['categoryCounts'])], 16, gap=Pt(3))
+        return
+    if sid == 'code-reveal':
+        y = lines_block(s, sc, y, 17, CONTENT_W) - Inches(0.08)
+        rows = [['Comment', 'The paper’s category']] + [[f'#{c["id"]} “{c["text"][:70].rsplit(" ", 1)[0]} …”', app['categories'][c['category']]] for c in app['comments']]
+        y = table(s, y, rows, [CONTENT_W - Inches(4.6), Inches(4.6)], size=12, header=True, first_bold=False, pad=Inches(0.05))
+        check(sc, y)
+        ask(s, sc, y)
+        return
     if sid == 'design':
-        y = lines_block(s, sc, y, 20)
+        y = lines_block(s, sc, y, 18)
         parts = [[(f['label'], f['placeholder'], 'body')] for f in app['designFields']]
-        cards(s, sc, y, parts, 3)
+        cards(s, sc, y, parts, 4)
         return
     if sid == 'design-reveal':
         y = lines_block(s, sc, y)
-        para(s, M, y, LINE_W, 'Each group reads its change, the study that would show it works, and its data. The app shows all of them.', 22, color=MUTED)
+        para(s, M, y, LINE_W, 'Each group reads its change, its study, its measure and threat, and its data. The app shows all of them.', 22, color=MUTED)
         ask(s, sc, y + Inches(1))
         return
     # git-did, exit, anything plain
@@ -327,7 +343,7 @@ def build():
     app = read_app()
     prs = new_deck()
     title_slide(prs, 'Git, Part 2: The Humans', 'User Study Day · ' + app['paper']['title'],
-                f'CS294 Modern Programming Tools · Thursday · 80 minutes ({app["minutes"]} + 2 of buffer)',
+                f'CS294 Modern Programming Tools · Thursday · 80 minutes ({app["minutes"]} + {app["buffer"]} of buffer)',
                 f'{app["paper"]["authors"]}. {app["paper"]["venue"]}. Data: {app["paper"]["data"]}.')
     for sc in app['scenes']:
         scene_slide(prs, app, sc)

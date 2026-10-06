@@ -3,9 +3,12 @@
 # Cloudflare link (a "quick tunnel": no account needed). Ctrl-C stops both.
 #
 #   ./host.sh          optional: PORT=3000 DATA_DIR=./data ADMIN_KEY=...
+#   On a server over SSH, run it inside tmux so closing the window does not stop the class:
+#     tmux new -s class ./host.sh        (detach: Ctrl-b d · back: tmux attach -t class)
+#   A new teacher key for the day:  ADMIN_KEY=$(openssl rand -hex 6) ./host.sh
 #
 # The session lives in DATA_DIR, so running it again picks up where you were.
-# The link changes each run; the teacher key does not.
+# The link changes each run; the teacher key does not (unless you set ADMIN_KEY).
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -16,6 +19,12 @@ LOGS=$(mktemp -d "${TMPDIR:-/tmp}/outfit-lab.XXXXXX")
 APP='' TUNNEL=''
 
 fail() { echo "$*" >&2; exit 1; }
+
+if [ -n "${SSH_CONNECTION:-}" ] && [ -z "${TMUX:-}${STY:-}" ]; then
+  echo "Note: you are on SSH, not inside tmux. If this window closes, the class stops and the link changes."
+  echo "      Safer: Ctrl-C now, then run:  tmux new -s class ./host.sh"
+  echo
+fi
 
 stop() {
   for pid in $TUNNEL $APP; do kill "$pid" 2>/dev/null || true; done # the app saves the session first
@@ -53,7 +62,7 @@ fi
 
 # ---------- The app ----------
 
-curl -s -o /dev/null "http://127.0.0.1:$PORT/" && fail "Port $PORT is busy. Try: PORT=3001 ./host.sh"
+curl -s -o /dev/null "http://127.0.0.1:$PORT/" && fail "Port $PORT is busy: Outfit Lab is probably still running. Stop it first (Ctrl-C in its window, or: pkill -f 'node server/index.js'), then run ./host.sh again."
 echo "Starting Outfit Lab..."
 node server/index.js >"$LOGS/app.log" 2>&1 &
 APP=$!
