@@ -7,7 +7,7 @@
 3. Laptop: plug in, sleep off. Displays set to **Extend** (not mirror), so the class never sees your console.
 4. Open the **Teacher** link. Press **Start presenting**. Drag the new window onto the projector. Press **F**.
 5. Test: join from your phone or a private window. Check the name appears. Then **Details → Reset**, and close the test window.
-6. Post the **Students** link in the course chat (laptops can't scan the QR easily). Thursday: post the paper's PDF too.
+6. Post the **Students** link in the course chat (laptops can't scan the QR easily).
 7. Keep the deck open as the fallback: `slides/tuesday_app_preview.pdf` / `slides/thursday_app_preview.pdf`.
 
 **In class**

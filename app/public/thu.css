@@ -247,3 +247,4 @@ select { font: inherit; font-size: 14px; border: 1px solid var(--line); border-r
 .s-plain .s-sub { color: var(--purple); }
 .s-key { font-size: 14px; line-height: 1.5; color: var(--muted); }
 .s-key b { color: var(--ink); font-weight: 600; }
+.s-facts { display: grid; gap: 6px; padding-left: 18px; list-style: disc; font-size: 15px; line-height: 1.45; }

@@ -229,7 +229,7 @@ def scene_slide(prs, app, sc):
         extra = 'Each claim: what they measured, and why it shrinks.\n' + '\n'.join(
             f'- "{c["quote"]}" Measured: {c["measured"]} {c["why"]}' for c in app['claims'])
     if sid == 'claims':
-        extra = 'The hint each group sees:\n' + '\n'.join(f'- "{c["quote"]}" Look at: {c["look"]}' for c in app['claims'])
+        extra = 'The facts each group sees with its claim:\n' + '\n'.join(f'- "{c["quote"]}" ' + ' '.join(c['facts']) for c in app['claims'])
     if sid == 'claims-reveal':
         # Two slides of two claims: the deck has no class answers to show beside them.
         for k, half in enumerate([app['claims'][:2], app['claims'][2:]]):

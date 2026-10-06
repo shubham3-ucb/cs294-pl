@@ -36,7 +36,7 @@ assert.equal(r('labels').n, 8);
 assert.ok(r('labels').posts.every((p) => p.counts.reduce((a, b) => a + b) === 8), 'every post labelled by all 8');
 assert.equal(r('codes').n, 8);
 assert.ok(r('codes').withPaper > 0.3 && r('codes').withPaper < 1, 'some agree with the paper, not all');
-assert.ok(r('claims').groups.length === 2 && r('claims').groups.every((g) => g.answers?.measured && g.answers?.supports));
+assert.ok(r('claims').groups.length === 2 && r('claims').groups.every((g) => g.answers?.supports && g.answers?.missing));
 assert.ok(r('design').groups.every((g) => ['change', 'rq', 'measure', 'data'].every((f) => g.answers?.[f])));
 assert.equal(r('exit').lines.length, 8);
 assert.equal(new Set(r('exit').lines).size, 8, 'every bot writes its own exit line');

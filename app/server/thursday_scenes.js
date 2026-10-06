@@ -86,7 +86,12 @@ export const CLAIMS = [
   {
     id: 'experience', quote: 'This suggests that even developers with years of development experience can have trouble using Git commands.',
     where: 'RQ2, §3.2',
-    look: 'How did the authors measure experience? See §2.1 Step 4 and §5.',
+    facts: [
+      'The authors measured experience as the years since the asker joined Stack Overflow.',
+      'In 2020, 40.0% of Git askers had joined more than 5 years earlier. Among all Stack Overflow askers, 21.2% had.',
+      'The authors themselves call this a stand-in for experience (§5).',
+      'Two askers are quoted saying they have programmed for years and still struggle with Git.',
+    ],
     measured: 'The years since the asker joined Stack Overflow.',
     supports: 'Some people with old Stack Overflow accounts asked for help. The claim is true as written.',
     why: 'It holds because “can have trouble” asks for very little. But the age of an account is not Git experience: an experienced programmer can be new to Git, like the Microsoft teams in Tuesday’s paper.',
@@ -94,14 +99,23 @@ export const CLAIMS = [
   {
     id: 'difficulty', quote: '…for the more frequently-used commands, git credential and git submodule are among the most difficult ones.',
     where: '§1, finding 4; §3.4',
-    look: 'What does “difficult” mean in §3.4? For comparison, 36.5% of all the Git questions have no accepted answer (our count on the paper’s data).',
+    facts: [
+      '“Difficult” was measured as the share of a command’s questions where the asker never marked an answer as accepted.',
+      'git credential: 43.0% of 328 questions. git submodule: 37.5% of 2,911. All Git questions together: 36.5% (our count on the paper’s data).',
+      'A question counts for a command when the command’s name appears in the question or in its accepted answer.',
+      'Accepting an answer is one click by the asker. The authors note askers may forget it (§5).',
+    ],
     measured: 'The share of a command’s questions that have no accepted answer.',
     supports: 'For git credential the share is above average (43.0% against 36.5% overall); for git submodule it is about average (37.5%).',
     why: 'Accepting an answer is one click by the asker, and it is often forgotten (§5). And a post counted through its accepted answer has one by definition, so commands that appear in fixes look easy.',
   },
   {
     id: 'learning', quote: 'Self-learning is the primary learning approach.', where: 'Abstract; §3.5',
-    look: 'Who was asked, and how were they found? See §2.2.',
+    facts: [
+      'The survey was sent to 508 people. 92 answered.',
+      'The people invited were developers who had recently asked a Git question on Stack Overflow, plus some researchers.',
+      'Of all the learning approaches ticked, 81.7% were self-learning (161 of 197 ticks). By people: 85 of 92 ticked the internet, 76 the documentation.',
+    ],
     measured: 'The boxes that 92 people ticked about how they learned Git.',
     supports: 'These 92 people say they learned mostly from the internet and the documentation.',
     why: 'Most of the 92 were found through Stack Overflow, so people who learn from the internet are over-represented. And how one learned Git is a memory, not a record.',
@@ -109,7 +123,11 @@ export const CLAIMS = [
   {
     id: 'selfrating', quote: 'This result, although surprising, is consistent with the conclusion we obtained in RQ2, indicating that even experienced developers still have doubts about Git usage.',
     where: '§3.5',
-    look: 'What is the evidence for “doubts”? See §3.5 and Figure 4.',
+    facts: [
+      'The 92 rated their own Git level on a five-step scale: novice, advanced beginner, competent, proficient, expert.',
+      '79 of 92 chose competent or below. Many of them had used Git for more than five years.',
+      'Nobody’s Git skill was tested.',
+    ],
     measured: 'People rating their own Git level, from novice to expert.',
     supports: 'Most of the 92 rate themselves competent or below (79 of 92).',
     why: 'A self-rating is a judgment, moved by modesty and by the wording of the levels. It measures neither doubts nor skill.',
@@ -117,8 +135,8 @@ export const CLAIMS = [
 ];
 
 export const CLAIM_FIELDS = [
-  { id: 'measured', label: 'What the authors measured', placeholder: 'The number or count that the claim rests on' },
-  { id: 'supports', label: 'What that measurement really shows', placeholder: 'One sentence your group would stand behind' },
+  { id: 'supports', label: 'What do these facts really show?', placeholder: 'One sentence you would sign' },
+  { id: 'missing', label: 'What would you need, to believe the claim as written?', placeholder: 'For example: watching people use Git, a tested measure, a different sample' },
 ];
 
 export const DESIGN_FIELDS = [
@@ -201,8 +219,8 @@ export const SCENES = [
   },
   {
     id: 'claims', kind: 'group', part: '3 · Judge it', title: 'Check one claim from the paper', minutes: 8, fields: 'claim',
-    lines: ['Your group has one sentence from the paper to check.', 'Write what the authors measured, then what that really shows.'],
-    say: 'One claim per group. The paper is open on their laptops; the hint points to the section.',
+    lines: ['Your group has one sentence from the paper, and the facts behind it.', 'Write what the facts really show, then what you would need to believe the claim.'],
+    say: 'One claim per group. Everything they need is on their screen: the claim and the facts behind it. Nobody needs the paper.',
   },
   {
     id: 'claims-reveal', kind: 'reveal', part: '3 · Judge it', title: 'The four claims, and what the data supports', minutes: 5, shows: 'claims',

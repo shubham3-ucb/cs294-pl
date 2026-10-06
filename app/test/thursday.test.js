@@ -126,7 +126,7 @@ describe('a class', () => {
     assert.equal(thu.state(a).scene.hope, undefined);
     goTo('claims');
     const g = thu.state(a).group;
-    assert.ok(g.claim.quote && !('supports' in g.claim) && !('measured' in g.claim));
+    assert.ok(g.claim.quote && g.claim.facts.length && !('supports' in g.claim) && !('measured' in g.claim) && !('why' in g.claim));
     assert.equal(thu.state(a).claims, undefined);
     goTo('claims-reveal');
     assert.equal(thu.state(a).claims.length, CLAIMS.length);
@@ -189,11 +189,11 @@ describe('groups', () => {
       const late = join('Kim');
       assert.ok(thu.state(late).group);
       const mate = pids.find((p) => thu.state(p).group.name === thu.state(late).group.name);
-      ok(thu.answer({ pid: late, scene: 'claims', field: 'measured', text: 'Registration years.' }));
-      ok(thu.answer({ pid: mate, scene: 'claims', field: 'supports', text: 'Old accounts ask.' }));
+      ok(thu.answer({ pid: late, scene: 'claims', field: 'supports', text: 'Old accounts ask.' }));
+      ok(thu.answer({ pid: mate, scene: 'claims', field: 'missing', text: 'Watch people.' }));
       assert.equal(thu.answer({ pid: late, scene: 'claims', field: 'nope', text: 'x' }).ok, false);
       const mine = thu.state(mate).group.answers;
-      assert.deepEqual([mine.measured, mine.supports], ['Registration years.', 'Old accounts ask.']);
+      assert.deepEqual([mine.supports, mine.missing], ['Old accounts ask.', 'Watch people.']);
       const formed = thu.adminState('').groups.length;
       ok(thu.admin('back'));
       ok(thu.admin('next'));
