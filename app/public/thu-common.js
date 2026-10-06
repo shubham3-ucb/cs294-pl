@@ -174,6 +174,10 @@ export function slideHtml(s, r, ctx = {}) {
       ? `<ul class="t-wall">${r.lines.slice(-12).map((l) => `<li>${md(l)}</li>`).join('')}</ul>` : '';
     return `<div class="${k}"><p class="t-part">${esc(s.part)}</p><h1 class="t-title">${md(s.title)}</h1>${lines(s.lines)}${wall}</div>`;
   }
+  if (s.kind === 'slide' && s.columns) {
+    return `<div class="${k}">${head(s)}<div class="t-cols">${s.columns.map((c, i) => `<section class="t-col ${i ? 'no' : 'yes'}">
+      <h2>${esc(c.title)}</h2><ul>${c.items.map((x) => `<li>${md(x)}</li>`).join('')}</ul></section>`).join('')}</div></div>`;
+  }
   if (s.kind === 'slide') {
     return `<div class="${k}">${head(s)}${lines(s.lines)}${s.table ? table(s.table) : ''}
       ${s.foot ? `<p class="t-foot">${md(s.foot)}</p>` : ''}${ask(s)}</div>`;

@@ -68,7 +68,8 @@ Next → read **Say** → students work (watch "done" on the console, or the clo
 | 0:45 | **4 Do you believe it?** | Groups: one claim each — what was measured, what it supports | Experience survives (it's weak); difficulty, learning, self-rating shrink |
 | 0:57 | **5 Design** | Why must people *ask* how to undo? One change + study + measure/threat + data | Asking finds needs; only an evaluative study shows a fix works |
 | 1:09 | What Git and Jujutsu did | — | `git switch`/`restore` (2019); `jj undo`. Did they help? Nobody measured |
-| 1:11 | Exit + **Asking is not using.** | One line each | — |
+| 1:11 | **What holds, what doesn't** | — | Holds: many steady questions; undo is a real need; experienced devs can struggle; public data. Doesn't: "hardest commands", the ranking, "self-learning", Table 8 and "doubts", the title |
+| 1:13 | Exit + **Asking is not using.** | One line each | — |
 
 **The paper in five lines (Thursday)**
 - 80,370 Stack Overflow questions (2008–2020) that mention a Git command, plus a survey of 92 developers.

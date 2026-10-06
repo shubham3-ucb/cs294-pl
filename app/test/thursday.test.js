@@ -33,7 +33,7 @@ const SURVEY_OK = { area: 0, degree: 1, years: 6, level: 2, why: 'daily use', le
 const survey = (pid, a = SURVEY_OK) => thu.answer({ pid, scene: 'survey', value: JSON.stringify(a) });
 
 describe('the script', () => {
-  test('74 minutes + 6 of buffer, every scene well formed, the survey word for word from the form', () => {
+  test('76 minutes + 4 of buffer, every scene well formed, the survey word for word from the form', () => {
     assert.equal(TOTAL_MINUTES + BUFFER_MINUTES, 80);
     assert.equal(new Set(SCENES.map((s) => s.id)).size, SCENES.length);
     for (const s of SCENES) {

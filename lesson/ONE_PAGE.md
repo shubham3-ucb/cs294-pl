@@ -29,7 +29,7 @@
 
 # Thursday · Git, Part 2: The Humans · one page
 
-80 min (74 + 6 buffer) · the app at `/thu` · press only **Next** (→ / Space; ← = Back) · groups of about 4 form at the break. Sarah's order: the question, the data, the analysis, do we believe it, a design insight. Read Say and Ask from the teacher page; the clock turns red when a scene runs over.
+80 min (76 + 4 buffer) · the app at `/thu` · press only **Next** (→ / Space; ← = Back) · groups of about 4 form at the break. Sarah's order: the question, the data, the analysis, do we believe it, a design insight. Read Say and Ask from the teacher page; the clock turns red when a scene runs over.
 
 | Time | Scene | The one question | Hope to hear |
 |---|---|---|---|
@@ -49,9 +49,10 @@
 | 0:57 | Design for the need that survived, 9 min. | — | — |
 | 1:06 | Your designs. | Which could you test by watching people? Which threat is hardest? | A visible measure, like time to recover. A learning effect. |
 | 1:09 | What Git and Jujutsu did. | Which data would convince Git's maintainers? | Observation or traces of real use. Not a survey. |
-| 1:11 | Exit, alone: one new idea for building tools for people. | — | — |
-| 1:13 | **Asking is not using.** | — | — |
-| 1:14 | **Buffer, 6 min.** | — | — |
+| 1:11 | The paper: what holds, what doesn't. | Fair to the authors? | Need-finding from public data is useful; counts of asking are not difficulty or skill. |
+| 1:13 | Exit, alone: one new idea for building tools for people. | — | — |
+| 1:15 | **Asking is not using.** | — | — |
+| 1:16 | **Buffer, 4 min.** | — | — |
 
 **Never cut:** the 8 labels · the coding · the verdicts · the design · the exit.
 

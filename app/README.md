@@ -81,7 +81,7 @@ To see the student side, open the student link in another window and join. Your 
 
 The same server runs Thursday at `/thu`: students `/thu`, teacher `/thu/admin?key=KEY`, projector `/thu/screen?key=KEY` (`./host.sh` prints all three). Same key, same presenter mode: **Start presenting**, then only **Next**. Lesson script: [thursday.md](../lesson/thursday.md).
 
-20 scenes, 74 minutes plus 6 of buffer, in the order of Sarah's User Studies lecture: the research question, the data, the analysis, do we believe it, a design insight.
+21 scenes, 76 minutes plus 4 of buffer, in the order of Sarah's User Studies lecture: the research question, the data, the analysis, do we believe it, a design insight.
 
 - **Take the paper's survey.** The authors' published form, Q2–Q7 word for word. The reveal puts the class beside the paper's 92 respondents.
 - **Two votes.** What kind of study, and what Stack Overflow posts are. The reveal shows the class's votes and the answer.
@@ -99,7 +99,7 @@ Thursday has no Git and no bots. To try it alone, open `/thu` in two or three pr
 - `npm test`: the Git engine and the session, including whole classes played by hints alone.
 - `npm run e2e`: a real browser. 9 students join by name; then 2 students with the practice lab, with live updates blocked at the end; then lab sizes for 1 to 13 people; then the rehearsal. First run `npx playwright install --only-shell chromium`. Screenshots go to `e2e/shots/`. `E2E_PORT` moves its servers off 3102 and 3104.
 - `npm run rehearsal`: only the rehearsal. 9 bots; the teacher presses only Next until every scene completes.
-- `npm run e2e:thursday`: Thursday in a real browser: a console, the projector and 6 students through all 20 scenes, checking that no slide overflows. `THU_STUDENTS=24` runs a bigger class.
+- `npm run e2e:thursday`: Thursday in a real browser: a console, the projector and 6 students through all 21 scenes, checking that no slide overflows. `THU_STUDENTS=24` runs a bigger class.
 
 ## Files
 
@@ -110,7 +110,7 @@ server/steps.js       every word the class reads: steps, missions, hints, techni
 server/git.js         the real Git behind every button
 server/bots.js        Rehearse with bots
 server/monster.js     outfit.txt, the one file in every card
-server/thursday*.js   Thursday: the session, every word of its 20 scenes, and the 8 posts (thursday_posts.json)
+server/thursday*.js   Thursday: the session, every word of its 21 scenes, and the 8 posts (thursday_posts.json)
 public/               student app (index.html, app.js), console (admin.*), projector (screen.*), graph.js, monster.js;
                       Thursday: thu.* (students), thu-admin.*, thu-screen.*, thu-common.js (the shared slide renderer)
 test/  e2e/           npm test · npm run e2e

@@ -1,6 +1,6 @@
 # Thursday · Git, Part 2: The Humans · lesson script
 
-80 min (74 + 6 buffer) · the app at `/thu`, same server as Tuesday · you press only **Next** · deck for the record: [`slides/thursday_app.pptx`](../slides/thursday_app.pptx)
+80 min (76 + 4 buffer) · the app at `/thu`, same server as Tuesday · you press only **Next** · deck for the record: [`slides/thursday_app.pptx`](../slides/thursday_app.pptx)
 Paper: Yang, Zhang, Pan, Xu, Zhou, Huang. *Do Developers Really Know How to Use Git Commands? A Large-Scale Study Using Stack Overflow.* ACM TOSEM 2022. Its data is public: [github.com/gitcommandstudy/gitcommands](https://github.com/gitcommandstudy/gitcommands).
 
 The console shows **Say**, **Ask** and **Hope to hear** for every scene, and a clock: time in this scene against its plan (red when over). This page is the plan around it. The short version for the day is [`TEACHER_BRIEF.md`](TEACHER_BRIEF.md).
@@ -52,9 +52,10 @@ Sarah's test: completing the activity teaches the concept, and you cannot comple
 | 0:57 | 9 | Design for the need that survived | Groups: change, study, measure + threat, data | — |
 | 1:06 | 3 | Your designs | Read them out | Push on the data: watch, trace, or ask? |
 | 1:09 | 2 | What Git and Jujutsu did | — | A new command makes new questions. Did it help? That needs an evaluative study. |
-| 1:11 | 2 | Exit | One line each | — |
-| 1:13 | 1 | **Asking is not using.** | — | Check what your data records. |
-| 1:14 | 6 | Buffer | | |
+| 1:11 | 2 | The paper: what holds, what doesn't | — | Holds: undo is a real need, the data is public. Doesn't: difficulty, ranking, learning, doubts, the title. |
+| 1:13 | 2 | Exit | One line each | — |
+| 1:15 | 1 | **Asking is not using.** | — | Check what your data records. |
+| 1:16 | 4 | Buffer | | |
 
 **Never cut:** the 8 labels · the coding · the verdicts · the design · the exit.
 **Running late:** "What Git and Jujutsu did" becomes one sentence; "Your designs" takes two groups; "You and the paper's 92" takes 2 minutes.

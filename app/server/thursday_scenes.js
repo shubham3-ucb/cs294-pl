@@ -13,7 +13,7 @@ export const PAPER = {
 };
 
 export const MESSAGE = 'Asking is not using.';
-export const BUFFER_MINUTES = 6;
+export const BUFFER_MINUTES = 4;
 
 // The paper's survey, word for word from the authors' published form (Q1, the donation choice, is left out).
 export const SURVEY = [
@@ -269,6 +269,25 @@ export const SCENES = [
     ask: 'Which data would convince Git’s maintainers your change works?',
     hope: 'Observation or traces of real use: time to recover, recoveries that succeed. Not a survey.',
     say: 'A new command makes new questions. Whether it helped is an evaluative question, and nobody answers it by counting posts.',
+  },
+  {
+    id: 'verdict', kind: 'slide', part: 'Thursday', title: 'The paper: what holds, what doesn’t', minutes: 2,
+    columns: [
+      { title: 'Holds', items: [
+        'Git questions are many, and steady: about 0.4% of Stack Overflow a year.',
+        'Undo is a real need: the most-viewed Git question asks how to undo a commit.',
+        'Experienced developers can have trouble: true, as written.',
+        'The data is public, so anyone can check it. We did.',
+      ] },
+      { title: 'Does not hold, as written', items: [
+        '“Hardest commands”: the rule counts fixes in answers as problems.',
+        'The command ranking: one post moves `git reflog` from #8 to #2.',
+        '“Self-learning is primary”: asked of people found on Stack Overflow.',
+        'Table 8 and “doubts”: no coding method; self-ratings, not skill.',
+        'The title’s question: nobody was watched using Git.',
+      ] },
+    ],
+    say: 'Fair to the authors: need-finding from public data is useful, and they published it. What breaks is turning counts of asking into claims about difficulty and skill.',
   },
   {
     id: 'exit', kind: 'exit', part: 'Exit', title: 'One new idea for building tools for people', minutes: 2,

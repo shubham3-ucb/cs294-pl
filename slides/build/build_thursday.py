@@ -334,6 +334,19 @@ def scene_slide(prs, app, sc):
         para(s, M, y, LINE_W, 'Each group reads its change, its study, its measure and threat, and its data. The app shows all of them.', 22, color=MUTED)
         ask(s, sc, y + Inches(1))
         return
+    if sc.get('columns'):
+        half = int((CONTENT_W - Inches(0.5)) / 2)
+        bottom = y
+        for i, col in enumerate(sc['columns']):
+            x = M + i * (half + Inches(0.5))
+            color = GREEN if i == 0 else RED
+            text(s, x, y, half, Inches(0.4), col['title'], size=20, bold=True, color=color)
+            rule(s, x, y + Inches(0.45), half, Inches(0.05), color)
+            mark = '✓ ' if i == 0 else '✗ '
+            h = para(s, x, y + Inches(0.6), half, [mark + it for it in col['items']], 16, gap=Pt(8))
+            bottom = max(bottom, y + Inches(0.6) + h)
+        check(sc, bottom)
+        return
     # git-did, exit, anything plain
     y = lines_block(s, sc, y)
     ask(s, sc, y)

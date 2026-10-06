@@ -232,3 +232,10 @@ details[open] summary { margin-bottom: 10px; }
 .c-clock.over { color: var(--red); }
 .t-posts li.h .legend { grid-column: span 2; text-transform: none; letter-spacing: 0; font-weight: 500; white-space: nowrap; }
 .t-posts li.h .legend i { display: inline-block; width: calc(var(--u) * 2); height: calc(var(--u) * 1.2); border-radius: 99px; margin: 0 calc(var(--u) * 0.5) 0 calc(var(--u) * 1); vertical-align: middle; }
+.t-cols { display: grid; grid-template-columns: 1fr 1fr; gap: calc(var(--u) * 4); margin-top: calc(var(--u) * 1); }
+.t-col h2 { font-size: calc(var(--u) * 3); font-weight: 700; margin-bottom: calc(var(--u) * 1.4); padding-bottom: calc(var(--u) * 0.8); border-bottom: calc(var(--u) * 0.5) solid var(--green); }
+.t-col.no h2 { border-color: var(--red); }
+.t-col ul { display: grid; gap: calc(var(--u) * 1.4); }
+.t-col li { font-size: calc(var(--u) * 2.8); line-height: 1.32; padding-left: calc(var(--u) * 3.4); position: relative; }
+.t-col li::before { content: "✓"; position: absolute; left: 0; color: var(--green); font-weight: 700; }
+.t-col.no li::before { content: "✗"; color: var(--red); }
