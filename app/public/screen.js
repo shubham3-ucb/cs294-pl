@@ -135,6 +135,9 @@ const goalsHtml = (goals) => `<ul class="sl-goals">${goals.map((g) =>
 // With many labs beside the Wall, each goal shows as a tick only, in the same order on every tile.
 const ticksHtml = (goals) => `<p class="sl-ticks">${goals.map((g) => `<span class="${g.done ? 'done' : ''}" title="${esc(g.text)}">${g.done ? '✓' : '○'}</span>`).join(' ')}</p>`;
 
+// The practice lab (played by the app) is shown only once someone has joined and it is really in play.
+const shownLabs = (labs) => (labs.some((l) => l.members.length) ? labs : labs.filter((l) => !l.practice));
+
 function tile(lab, step, ticks) {
   const body = lab.practice ? '<p class="sl-note">Played by the app, so your lab has someone to share with</p>'
     : step === 0 ? `<p class="sl-note">${esc(lab.members.map((m) => m.name).join(', ') || 'Nobody yet')}</p>`
@@ -202,7 +205,7 @@ function pathsStage(integration, state, facts) {
 const SLIDES = {
   join(scene, state) {
     const url = state.session.joinUrl;
-    const roster = state.labs.map((lab) => `<li style="--lab:${esc(lab.color)}"><span class="chip">${esc(lab.name)}</span>
+    const roster = shownLabs(state.labs).map((lab) => `<li style="--lab:${esc(lab.color)}"><span class="chip">${esc(lab.name)}</span>
       <span>${lab.practice ? 'Played by the app, so your lab has someone to share with' : esc(lab.members.map((m) => m.name).join(', ')) || '<span class="muted">Nobody yet</span>'}</span></li>`);
     return `<div class="sl-join"><div class="sl-join-text">
         <p class="sl-kicker">Outfit Lab</p>
@@ -219,7 +222,8 @@ const SLIDES = {
     const audits = [before && auditHtml('Before the clean-up', before), after && auditHtml('After the clean-up', after)].filter(Boolean);
     // Up to 3 labs: one row of tiles, big, or small beside the Wall. 4 to 6 labs: two rows of small tiles,
     // or beside the Wall one row of tiles whose goals show as ticks.
-    const n = state.labs.length;
+    const labs = shownLabs(state.labs);
+    const n = labs.length;
     const ticks = n > 3 && Boolean(wall);
     const layout = n <= 3 ? (wall ? ' compact' : '') : wall ? ' ticks' : ' compact two-rows';
     const cols = n <= 3 || wall ? n : Math.ceil(n / 2);
@@ -228,7 +232,7 @@ const SLIDES = {
       ${wall ? `<div class="sl-stage${audits.length ? ' split' : ''}">
         <div class="sl-wall"><p class="sl-label">The Wall</p><svg class="graph" data-wall preserveAspectRatio="xMinYMin meet"></svg></div>
         ${audits.length ? `<div class="sl-audits">${audits.join('')}</div>` : ''}</div>` : ''}
-      <div class="sl-labs${layout}" style="--cols:${cols}">${state.labs.map((lab) => tile(lab, scene.step, ticks)).join('')}</div>`;
+      <div class="sl-labs${layout}" style="--cols:${cols}">${labs.map((lab) => tile(lab, scene.step, ticks)).join('')}</div>`;
   },
 
   // The technical card (Step 4 has two), as big as the slide allows. Step 0 has no card yet: what went wrong

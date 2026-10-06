@@ -140,8 +140,9 @@ $('details').addEventListener('toggle', () => state && renderDetails());
 // Rehearse with bots: bot students join and play every step, so one person can run the class alone.
 const SPEEDS = { 1: 'Real time', 5: '5× faster', 20: '20× faster' };
 for (let n = 2; n <= 12; n++) $('bot-count').add(new Option(String(n), n));
-$('bot-count').value = '9';
+$('bot-count').value = '8';
 for (const [speed, label] of Object.entries(SPEEDS)) $('bot-speed').add(new Option(label, speed));
+$('bot-speed').value = '5';
 const rehearse = (on, button) =>
   act('/api/admin/rehearse', { on, count: Number($('bot-count').value), speed: Number($('bot-speed').value) }, { button });
 $('bot-toggle').onclick = (e) => rehearse(!state.rehearsal, e.currentTarget);
@@ -287,13 +288,14 @@ function renderComing() {
 // (Step 4's way, Step 5's undo), and Rescue.
 function renderTiles() {
   const box = $('labs');
-  const ids = state.labs.map((l) => l.id).join();
+  const shown = shownLabs(state.labs);
+  const ids = shown.map((l) => l.id).join();
   if (box.dataset.ids !== ids) {
-    box.innerHTML = state.labs.map(() => '<article class="tile"></article>').join('');
+    box.innerHTML = shown.map(() => '<article class="tile"></article>').join('');
     box.dataset.ids = ids;
   }
   const s = scene();
-  state.labs.forEach((lab, i) => {
+  shown.forEach((lab, i) => {
     const el = box.children[i];
     const offline = lab.members.filter((m) => !m.online).length;
     const who = lab.practice ? ''
@@ -336,6 +338,12 @@ function statusOf(lab, now) {
 
 // ---------- Details (drawn only while open) ----------
 
+// The practice lab (played by the app) is shown only once someone has joined and it is really in play.
+function shownLabs(labs) {
+  const anyone = labs.some((l) => l.members.length);
+  return anyone ? labs : labs.filter((l) => !l.practice);
+}
+
 function renderDetails() {
   const { session, labs } = state;
   const select = $('lab-count');
@@ -344,10 +352,10 @@ function renderDetails() {
   select.disabled = session.step > 0;
   if (!$('details').open) return;
 
-  patch($('rosters'), labs.map((lab) => `<div class="roster" style="--lab:${esc(lab.color)}">
+  const anyone = labs.some((l) => l.members.length);
+  patch($('rosters'), !anyone ? '' : real.map((lab) => `<div class="roster" style="--lab:${esc(lab.color)}">
     <h3><span class="dot"></span>${esc(lab.name)}</h3>
-    ${lab.practice ? '<p class="muted small">The practice lab: no people. It plays its part on the Wall by itself.</p>'
-      : `<ul>${lab.members.map((m) => `<li><span class="online${m.online ? ' on' : ''}"></span>${esc(m.name)}
+    ${`<ul>${lab.members.map((m) => `<li><span class="online${m.online ? ' on' : ''}"></span>${esc(m.name)}
         ${session.step >= 2 ? `<span class="muted">${esc(m.pair)}</span> <span class="note">${esc(m.branch)}</span>` : ''}
         <select data-move="${esc(m.pid)}" aria-label="Move ${esc(m.name)}"><option value="">Move to…</option>
         ${real.filter((o) => o !== lab).map((o) => `<option value="${esc(o.id)}">${esc(o.name)}</option>`).join('')}</select></li>`).join('')
