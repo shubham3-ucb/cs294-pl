@@ -70,7 +70,7 @@ function drawPassive(s) {
     return;
   }
   const why = s.shows === 'claims' && st.claims
-    ? `<div class="s-why"><p class="s-sub">Why the data supports less than each claim says</p>${st.claims.map((c) =>
+    ? `<div class="s-why"><p class="s-sub">Each claim: what was measured, and what that can and cannot show</p>${st.claims.map((c) =>
       `<p><strong>“${esc(c.quote)}”</strong><br>They measured: ${esc(c.measured)} ${esc(c.why)}</p>`).join('')}</div>` : '';
   const slide = slideHtml(s, st.results, { paper: st.paper, claims: st.claims });
   if (slide + why === passive && app.querySelector('.s-slide')) return;
@@ -118,8 +118,8 @@ function question(q, a) {
   if (q.type === 'number') return `<div class="s-q">${label}<input name="${q.id}" type="number" min="${q.min}" max="${q.max}" step="0.5" inputmode="decimal" value="${esc(a[q.id] ?? '')}" style="max-width:140px"></div>`;
   return `<div class="s-q">${label}<textarea name="${q.id}" maxlength="300">${esc(a[q.id] ?? '')}</textarea></div>`;
 }
-// The form's own numbering (Q1, the donation choice, is not asked).
-const SURVEY_NUMBER = { area: 2, degree: 3, years: 4, level: 5, learn: 6, tip: 7 };
+// Numbered 1 to 6 here; on the authors' form these are Q2 to Q7 (Q1, a donation choice, is not asked).
+const SURVEY_NUMBER = { area: 1, degree: 2, years: 3, level: 4, learn: 5, tip: 6 };
 
 // ---------- A vote ----------
 function drawVote(s) {
@@ -162,16 +162,14 @@ const blocks = (bs) => bs.map((b) => (b.code ? `<pre>${esc(b.text)}</pre>` : `<p
 
 function drawLabels(s) {
   const mine = { ...st.me.labels };
-  const key = `<p class="s-key">${s.labels.map((l) => `<b>${esc(l.label)}</b>: ${esc(l.hint)}`).join(' · ')}</p>`;
+  const key = `<div class="s-key"><p class="s-sub">The three labels</p>${s.labels.map((l) => `<p><b>${esc(l.label)}</b>: ${esc(l.hint)}</p>`).join('')}</div>`;
   app.innerHTML = `${top()}${intro(s)}${key}<p class="s-progress" id="prog"></p>${s.posts.map((p, i) => `
     <article class="s-post ${mine[p.id] ? 'done' : ''}" data-id="${esc(p.id)}">
-      <p class="s-credit">The paper counts this post for <code>${esc(p.command)}</code></p>
-      <h2>${i + 1}. ${esc(p.title)}</h2>
-      <p class="s-meta"><span>${p.views.toLocaleString('en-US')} views</span><span>${esc(p.year)}</span>
-        <a href="${esc(p.url)}" target="_blank" rel="noopener">Stack Overflow · ${esc(p.license)}</a></p>
-      ${p.plain ? `<div class="s-plain"><p class="s-sub">In plain words</p><p>${md(p.plain)}</p></div>` : ''}
-      <p class="s-sub">The question, as posted</p><div class="s-body">${blocks(p.question)}</div>
-      <p class="s-sub">From the accepted answer</p><div class="s-body s-answer">${blocks(p.answer)}</div>
+      <div class="s-post-head"><h2>${i + 1}. ${esc(p.title)}</h2><code class="s-cmd">${esc(p.command)}</code></div>
+      <div class="s-thread">
+        <p class="s-sub">Question</p><div class="s-body">${blocks(p.question)}</div>
+        <p class="s-sub">Accepted answer</p><div class="s-body s-answer">${blocks(p.answer)}</div>
+      </div>
       <p><strong>Was this person stuck on <code>${esc(p.command)}</code>?</strong></p>
       <div class="s-yesno">${s.labels.map((l) => `<button data-v="${l.id}" title="${esc(l.hint)}" class="${mine[p.id] === l.id ? 'on' : ''}">${esc(l.label)}</button>`).join('')}</div>
       <p class="s-msg"></p>
@@ -185,7 +183,7 @@ function drawCodes(s) {
   app.innerHTML = `${top()}${intro(s)}<p class="s-progress" id="prog"></p>${s.comments.map((c) => `
     <article class="s-post ${mine[c.id] !== undefined ? 'done' : ''}" data-id="${esc(c.id)}">
       <p class="s-sub">Survey comment #${esc(c.id)}</p><p class="s-quote">“${esc(c.text)}”</p>
-      <p><strong>Which group does this comment belong in?</strong></p>
+      <p><strong>Which of the paper’s 6 categories fits this comment best?</strong></p>
       <div class="s-cats">${s.categories.map((cat, i) => `<button data-v="${i}" class="${mine[c.id] === String(i) ? 'on' : ''}">${esc(cat)}</button>`).join('')}</div>
       <p class="s-msg"></p>
     </article>`).join('')}`;
@@ -198,11 +196,14 @@ function drawGroup(s) {
   const g = st.group;
   if (!g) { app.innerHTML = `${top()}${intro(s)}<p class="s-wait">Your group is being formed…</p>`; return; }
   const fields = s.fields === 'claim' ? s.claimFields : s.designFields;
-  const claim = s.fields === 'claim' && g.claim ? `<div class="s-claim"><p class="s-sub">Your claim</p>
-    <p class="quote">“${esc(g.claim.quote)}”</p><p class="s-sub">The facts behind it</p><ul class="s-facts">${(g.claim.facts ?? []).map((f) => `<li>${esc(f)}</li>`).join('')}</ul></div>` : '';
+  const claim = s.fields === 'claim' && g.claim ? `<div class="s-claim"><p class="s-sub">The claim, in the paper’s words</p>
+    <p class="quote">“${esc(g.claim.quote)}”</p><p class="s-sub">The facts it rests on</p><ul class="s-facts">${(g.claim.facts ?? []).map((f) => `<li>${esc(f)}</li>`).join('')}</ul></div>` : '';
+  // A worked example of a good answer, about something else, so nobody is handed their own answer.
+  const ex = s.example ? `<div class="s-example"><p class="s-sub">${esc(s.example.title)}</p>${s.example.intro ? `<p>${esc(s.example.intro)}</p>` : ''}
+    ${s.example.rows.map(([k, v]) => `<p><b>${esc(k)}:</b> ${esc(v)}</p>`).join('')}</div>` : '';
   app.innerHTML = `${top()}${intro(s)}<p class="muted">${esc(g.name)} is ${esc(g.members.join(', '))}. One answer per group, so pick one person to type.</p>
-    ${claim}${(fields ?? []).map((f) => `<div class="s-field"><label for="f-${f.id}">${esc(f.label)}</label>
-      <textarea id="f-${f.id}" data-f="${f.id}" maxlength="300" placeholder="${esc(f.placeholder)}">${esc(g.answers?.[f.id] ?? '')}</textarea>
+    ${claim}${ex}${(fields ?? []).map((f) => `<div class="s-field"><label for="f-${f.id}">${esc(f.label)}</label>
+      <textarea id="f-${f.id}" data-f="${f.id}" maxlength="300">${esc(g.answers?.[f.id] ?? '')}</textarea>
       <span class="by" id="by-${f.id}"></span></div>`).join('')}`;
   app.querySelectorAll('textarea[data-f]').forEach((t) => {
     // Only text this person changed is sent: clicking in and out never overwrites a groupmate.

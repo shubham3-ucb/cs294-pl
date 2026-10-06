@@ -31,14 +31,14 @@ const CLASS = [
   { name: 'Lea', area: 0, degree: 0, years: 3, level: 1, learn: [0, 4], why: '' },
 ];
 const CLAIM_TEXT = {
-  experience: ['Years since the Stack Overflow account was made.', 'Some long-registered askers had trouble.'],
-  difficulty: ['How often the asker never accepted an answer.', 'Credential questions go unaccepted a bit more often.'],
-  learning: ['Ticked boxes from 92 people found on Stack Overflow.', 'These 92 mostly say they learned Git online.'],
-  selfrating: ['A self-rated level, novice to expert.', 'Most rate themselves competent or below.'],
+  experience: ['Some people with old Stack Overflow accounts asked for help with Git.', 'Years of Git use per asker, and watching some of them use Git.'],
+  difficulty: ['Credential questions go without an accepted answer a bit more often.', 'Watch people use credential and submodule; count who gets stuck.'],
+  learning: ['These 92 people mostly say they learned Git online.', 'The same question put to developers not found on Stack Overflow.'],
+  selfrating: ['Most of the 92 rate themselves competent or below.', 'A test of Git skill next to the self-rating.'],
 };
 const DESIGN_TEXT = [
-  ['`git undo`: reverses the last command, and says what it did.', 'Does git undo decrease time to recover for grad students who just broke a branch?', 'Time to recover; threat: a learning effect.', 'Watch 20 people recover from a staged mistake.'],
-  ['Show the reflog after every risky command: "to go back, run …".', 'Does the hint increase successful recoveries for new Git users?', 'Recoveries that succeed; threat: a ceiling effect.', 'Telemetry: how often people recover after reset --hard.'],
+  ['`git undo`: reverses the last command, and says what it did.', '20 grad students who just broke a branch; half get git undo.', 'Time to recover. What could fool you: a learning effect.', 'Watch them recover from a staged mistake; screen recordings.'],
+  ['Show the reflog after every risky command: "to go back, run …".', 'New Git users in the course, after a reset --hard.', 'Recoveries that succeed. What could fool you: a ceiling effect.', 'Telemetry: how often people recover after reset --hard.'],
 ];
 const EXITS = [
   'Watch people use the tool; what they ask is not what they do.',

@@ -32,7 +32,7 @@ READ_APP = """
 const t = await import('./server/thursday_scenes.js');
 process.stdout.write(JSON.stringify({ scenes: t.SCENES, paper: t.PAPER, message: t.MESSAGE, survey: t.SURVEY,
   paperSurvey: t.PAPER_SURVEY, posts: t.POSTS, claims: t.CLAIMS, claimFields: t.CLAIM_FIELDS,
-  designFields: t.DESIGN_FIELDS, minutes: t.TOTAL_MINUTES, buffer: t.BUFFER_MINUTES, labels: t.LABELS,
+  designFields: t.DESIGN_FIELDS, designExample: t.DESIGN_EXAMPLE, minutes: t.TOTAL_MINUTES, buffer: t.BUFFER_MINUTES, labels: t.LABELS,
   comments: t.COMMENTS, categories: t.CATEGORIES, categoryCounts: t.CATEGORY_COUNTS }));
 """
 LEARN_SHORT = ['In class', 'Online courses', 'Peers or seniors', 'Documentation', 'Internet', 'Other']
@@ -262,9 +262,9 @@ def scene_slide(prs, app, sc):
     y = head(s, sc, activity)
     if sid == 'survey':
         y = lines_block(s, sc, y)
-        qs = [f'{n}. {q["q"]}' for n, q in zip(range(2, 8), app['survey'])]
+        qs = [f'{n}. {q["q"]}' for n, q in zip(range(1, 7), app['survey'])]
         y += para(s, M, y, LINE_W, qs, 16, color=INK, gap=Pt(5))
-        para(s, M, y + Inches(0.15), LINE_W, 'Q1 of the form, the donation choice, is left out.', 13, color=MUTED)
+        para(s, M, y + Inches(0.15), LINE_W, 'These are Q2 to Q7 of the authors’ form; its Q1, a donation choice, is left out.', 13, color=MUTED)
         return
     if kind == 'vote':
         options(s, y + Inches(0.1), sc['options'])
@@ -313,7 +313,8 @@ def scene_slide(prs, app, sc):
         return
     if sid == 'claims':
         y = lines_block(s, sc, y, 20)
-        parts = [[(c['where'], f'“{c["quote"]}”', 'quote')] for c in app['claims']]
+        # The paper's sentences only: no section tags, as on the students' screens (nobody needs the paper).
+        parts = [[(None, f'“{c["quote"]}”', 'quote')] for c in app['claims']]
         cards(s, sc, y, parts, 2)
         return
     if sid == 'code':
@@ -329,8 +330,10 @@ def scene_slide(prs, app, sc):
         ask(s, sc, y)
         return
     if sid == 'design':
+        # The four boxes, each with the worked example's line (a different problem, not undo).
         y = lines_block(s, sc, y, 18)
-        parts = [[(f['label'], f['placeholder'], 'body')] for f in app['designFields']]
+        y += para(s, M, y, CONTENT_W, f'{app["designExample"]["title"]}. {app["designExample"]["intro"]}', 13, color=MUTED) + Inches(0.1)
+        parts = [[(f['short'], ex, 'body')] for f, (_, ex) in zip(app['designFields'], app['designExample']['rows'])]
         cards(s, sc, y, parts, 4)
         return
     if sid == 'design-reveal':

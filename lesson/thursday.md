@@ -46,7 +46,7 @@ Sarah's test: completing the activity teaches the concept, and you cannot comple
 | 0:34 | 3 | Your sorting next to the paper's | — | No method named, no agreement reported. |
 | 0:37 | 5 | **Break** | Back on /thu | Groups form on Next. |
 | 0:42 | 8 | Check one claim from the paper | Groups: what was measured, what it shows | — |
-| 0:50 | 5 | The four claims, and what the data supports | Reasons on laptops | The experience claim holds (it is weak); three shrink. |
+| 0:50 | 5 | Each claim, and what the data supports | Reasons on laptops | The experience claim holds (it is weak); three shrink. |
 | 0:55 | 10 | Design a better undo | Groups: change, test, measure + risk, data | — |
 | 1:05 | 3 | Your designs | Read them out | Which can you test by watching? |
 | 1:08 | 3 | What holds in the paper, and what does not | — | Fair to the authors. |

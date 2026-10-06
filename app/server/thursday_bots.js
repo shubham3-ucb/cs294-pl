@@ -18,23 +18,25 @@ const WHY = ['I use it every day, but I still look up rebase.', 'Fine with the b
   'I taught it as a TA and I still search for reflog.', 'I can get out of trouble, slowly.', '', '', ''];
 const TIPS = ['Learn the model first: commits, branches, HEAD.', 'Make a scratch repo and break it on purpose.',
   'Run git status after every command.', 'Draw the graph before you rebase.', '', '', ''];
+// Per claim: [what the facts show, what you would need], as the two boxes ask.
 const CLAIM_TEXT = {
-  experience: [['Years since the asker made a Stack Overflow account.', 'Some long-registered askers had trouble with Git.'],
-    ['Account age on Stack Overflow, not years of Git.', 'People with old accounts ask Git questions too.']],
-  difficulty: [['How often nobody accepted an answer.', 'Credential questions go unaccepted a bit more often than average.'],
-    ['The share of questions with no accepted answer.', 'Some commands get fewer accepted answers; that is not the same as hard.']],
-  learning: [['What 92 people ticked about how they learned.', 'These 92 mostly say they learned online.'],
-    ['Ticked boxes from people found through Stack Overflow.', 'Most respondents report learning from the internet.']],
-  selfrating: [['A self-rated level, novice to expert.', 'Most of the 92 rate themselves competent or below.'],
-    ['How people rated their own skill.', 'People are modest about their Git skill.']],
+  experience: [['Some people with old Stack Overflow accounts asked for help with Git.', 'Years of Git use for each asker, not account age; and watch some of them use Git.'],
+    ['People with old accounts ask Git questions too.', 'How many experienced developers get stuck, out of all of them, not only the ones who asked.']],
+  difficulty: [['Credential questions go without an accepted answer a bit more often than average.', 'Watch people use credential and submodule and count who gets stuck.'],
+    ['Some commands get fewer accepted answers; that is not the same as hard.', 'A measure of difficulty that does not depend on one click by the asker.']],
+  learning: [['These 92 people mostly say they learned online.', 'The same question put to developers not found through Stack Overflow.'],
+    ['Most respondents report learning from the internet.', 'A record of how people learned, not a memory; and a sample that is not from Stack Overflow.']],
+  selfrating: [['Most of the 92 rate themselves competent or below.', 'A test of Git skill, next to the self-rating.'],
+    ['People are modest about their Git skill.', 'Watch the self-rated experts and see whether they have doubts.']],
 };
+// Per design: [the change, who tries it doing what, measure and what could fool you, how the data is got].
 const DESIGN_TEXT = [
-  ['`git undo`: reverses the last command and says what it did.', 'Does git undo decrease time to recover for grad students who just made a bad commit?',
-    'Time to recover; threat: a learning effect if the same people try both.', 'Watch 20 people fix a staged mistake, half with git undo.'],
-  ['After every reset, print the reflog line that brings you back.', 'Does the hint increase successful recoveries for new Git users after a reset?',
-    'Share of recoveries that succeed; threat: a ceiling effect on easy tasks.', 'Course telemetry: recoveries within 5 minutes of a reset.'],
-  ['A timeline of every place HEAD has been, with an Undo button.', 'Does the timeline decrease lost work for students doing their first rebase?',
-    'Commits lost; threat: people in a study are more careful than usual.', 'Lab study with a scripted rebase task; screen recordings.'],
+  ['`git undo`: reverses the last command and says what it did.', '20 grad students who just made a bad commit; half get git undo, half do not.',
+    'Time to recover. What could fool you: a learning effect if the same people try both.', 'Watch them fix the mistake; screen recordings.'],
+  ['After every reset, print the reflog line that brings you back.', 'New Git users in the course, after their first reset.',
+    'Share of recoveries that succeed. What could fool you: a ceiling effect on easy tasks.', 'Course telemetry: recoveries within 5 minutes of a reset.'],
+  ['A timeline of every place HEAD has been, with an Undo button.', 'Students doing their first rebase, with and without the timeline.',
+    'Commits lost. What could fool you: people in a study are more careful than usual.', 'Lab study with a scripted rebase task; screen recordings.'],
 ];
 const EXITS = ['Watch people use the tool; what they ask is not what they do.', 'A safety net nobody can find does not help anyone.',
   'Check what a trace records before you count it.', 'Design undo first: it is what people search for most.',

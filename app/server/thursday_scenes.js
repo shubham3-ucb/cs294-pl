@@ -134,17 +134,38 @@ export const CLAIMS = [
   },
 ];
 
+// The two boxes a group fills in. `short` is the box's name on the projector cards.
 export const CLAIM_FIELDS = [
-  { id: 'supports', label: 'What do these facts really show? One sentence you would sign.', placeholder: 'For example: many people with old Stack Overflow accounts ask Git questions.' },
-  { id: 'missing', label: 'The claim says more than that. What evidence would you need to believe the claim as written?', placeholder: 'For example: watching people use Git, a tested measure of skill, a different sample.' },
+  { id: 'supports', short: 'What the facts show', label: 'What do these facts show? One sentence you are sure is true.' },
+  { id: 'missing', short: 'What you would need', label: 'The claim says more than that. What evidence would you need to believe the claim as written?' },
 ];
+// A worked example on the students' screen, with a made-up claim, so that no group is handed its own answer.
+export const CLAIM_EXAMPLE = {
+  title: 'An example, with a made-up claim',
+  intro: 'Claim: “Students find rebase harder than merge.” Facts: on the course forum, 30 questions mention rebase and 10 mention merge.',
+  rows: [
+    ['What the facts show', 'Students asked about rebase three times as often as about merge.'],
+    ['What you would need', 'Watch students do both and count who gets stuck. Or at least the same count from students who never post.'],
+  ],
+};
 
 export const DESIGN_FIELDS = [
-  { id: 'change', label: 'Your change: what would the user see or type?', placeholder: 'For example: a command that undoes the last thing Git did.' },
-  { id: 'rq', label: 'Your test: who would try it, doing what task?', placeholder: 'For example: 20 students who just made a bad commit, half with the change.' },
-  { id: 'measure', label: 'What would you measure, and what could fool you?', placeholder: 'For example: time to recover; people get faster on the second try.' },
-  { id: 'data', label: 'How would you get the data: watch people, log real use, or ask them?', placeholder: 'For example: screen recordings of the task.' },
+  { id: 'change', short: 'The change', label: 'Your change: what would the user see or type?' },
+  { id: 'rq', short: 'Who tries it, doing what', label: 'Your test: who would try it, doing what task?' },
+  { id: 'measure', short: 'Measure, and what could fool you', label: 'What would you measure, and what could fool you?' },
+  { id: 'data', short: 'How you get the data', label: 'How would you get the data: watch people, log real use, or ask them?' },
 ];
+// A worked example on the students' screen, about a different problem, so it does not hand over an undo design.
+export const DESIGN_EXAMPLE = {
+  title: 'An example, for a different problem',
+  intro: 'The problem: people ask what “detached HEAD” means.',
+  rows: [
+    ['The change', 'Replace the long “detached HEAD” notice with two lines: what just happened, and the one command that puts you back on a branch.'],
+    ['Who tries it, doing what', '20 students check out a tag, then are asked to make a commit on a branch. Half see the new message, half the old one.'],
+    ['Measure, and what could fool you', 'How many are back on a branch within five minutes. What could fool you: students who already knew the fix, if most of them land in one half.'],
+    ['How you get the data', 'Watch them do it, with the screen recorded.'],
+  ],
+};
 
 // kind: join · survey · slide · reveal · label · code · group · break · exit · end
 // shows: what a reveal adds from the class (survey, labels, codes, group answers, exit lines).
@@ -203,7 +224,7 @@ export const SCENES = [
   },
   {
     id: 'code', kind: 'code', part: '2 · Check it yourself', title: 'Sort 7 survey comments', minutes: 5,
-    about: 'The paper read 65 free-text comments from its survey and sorted them into 6 groups. It does not say how. Sort these 7 comments yourself. Then we see how often you agree with the paper, and with each other.',
+    about: 'The paper read 65 free-text comments from its survey and sorted them into 6 categories. It does not say how. Sort these 7 comments yourself: for each one, pick the category that fits best. Then we see how often you agree with the paper, and with each other.',
     lines: ['The paper sorted the 65 comments from its survey into 6 categories.', 'On your laptop, put each of these 7 comments into one of those categories.'],
     say: 'These are the example comments from the paper’s Table 8. Work alone, quickly.',
   },
@@ -221,26 +242,26 @@ export const SCENES = [
   },
   {
     id: 'claims', kind: 'group', part: '3 · Judge it', title: 'Check one claim from the paper', minutes: 8, fields: 'claim',
-    about: 'The paper turns its numbers into claims. Your group gets one claim and the facts it rests on. Decide what the facts really show, and what more you would need to believe the claim.',
+    about: 'The paper turns its numbers into claims. Your group gets one claim, in the paper’s words, and the facts it rests on. Write two things: what the facts show, in one sentence you are sure is true; and what evidence you would need before you believed the claim as written.',
     lines: ['Your group has one sentence from the paper, and the facts behind it.', 'Write what the facts really show, then what you would need to believe the claim.'],
     say: 'One claim per group. Everything they need is on their screen: the claim and the facts behind it. Nobody needs the paper.',
   },
   {
-    id: 'claims-reveal', kind: 'reveal', part: '3 · Judge it', title: 'The four claims, and what the data supports', minutes: 5, shows: 'claims',
-    lines: ['Nobody was watched using Git, so the data cannot answer the paper’s title.'],
+    id: 'claims-reveal', kind: 'reveal', part: '3 · Judge it', title: 'Each claim, and what the data supports', minutes: 5, shows: 'claims',
+    lines: ['Nobody was watched using Git. So the data cannot answer the question in the paper’s title: do developers know how to use Git commands?'],
     ask: 'Which claim holds up best?',
     hope: 'The experience claim, because it asks for little. The other three shrink to what was measured.',
     say: 'Read each group’s sentence, then the model answer. Students see the reasons on their laptops. Be fair: the authors flag the account-age proxy themselves (§5).',
   },
   {
     id: 'design', kind: 'group', part: '4 · Design', title: 'Design a better undo', minutes: 10, fields: 'design',
-    about: 'The most-viewed Git question of all is how to undo the last commit. Design one change to Git that would help, and say how you would find out whether it works.',
-    lines: ['The most-viewed Git question asks how to undo the last commit.', 'Design one change, and say how you would test whether it helps.'],
+    about: 'Git already has commands for undoing: `git reset`, `git revert`, `git reflog`. Still, the most viewed of the paper’s 80,370 questions is “How do I undo the most recent local commits?”, with 9.1 million views. People have the commands and still have to ask. Design one change to Git that would help: a new command, a message Git prints, a different default, or a screen in a tool. Then say how you would test whether it helps.',
+    lines: ['Git has `reset`, `revert` and `reflog`. Still, the most-viewed Git question is how to undo the last commit.', 'Design one change that would help, and say how you would test it.'],
     say: 'Ask them: why do people have to ask how to undo? The most-viewed question asks how to undo the last commit; its accepted answer’s fix is git reset HEAD~, and its further reading points to git reflog. Asking can find a need; only a test with real users shows that a fix works. Tuesday’s Safety diary was the reflog on screen.',
   },
   {
     id: 'design-reveal', kind: 'reveal', part: '4 · Design', title: 'Your designs', minutes: 3, shows: 'design',
-    lines: [],
+    lines: ['Each group reads out its change and its test.'],
     ask: 'Which of these could you test by watching people?',
     hope: 'The ones with a measure you can see: time to recover, or recoveries that work.',
     say: 'One group at a time: change, test, measure and risk, data. Git itself added git switch and git restore in 2019; only a test with users could tell whether they helped. Jujutsu (jj) has an operation log and jj undo. In 2020 a developer “working with Git for years” asked what git checkout [file] does next to git restore (the paper’s reference [41]): new commands bring new questions.',
@@ -255,9 +276,9 @@ export const SCENES = [
         'The data is public, and we could check it ourselves.',
       ] },
       { title: 'Does not hold as written', items: [
-        'The hardness ranking counts a command in the fix as the problem.',
+        'The “hardest commands” ranking counts a command named in the fix as if it were the problem.',
         'The most-viewed ranking rests on a few posts; one post lifts `reflog` from #8 to #2.',
-        'That developers learn on their own was asked of people found on Stack Overflow.',
+        '“Developers learn on their own” comes from 92 people, found mostly through Stack Overflow.',
         'The comment categories have no stated method, and the “doubts” are self-ratings.',
         'The title’s question stays open, because nobody was watched.',
       ] },

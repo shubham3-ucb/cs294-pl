@@ -44,7 +44,7 @@
 | 0:34 | Your sorting next to the paper's. | Would another team get the same categories? | Maybe not: name a method, report agreement. |
 | 0:37 | **Break, 5 min.** Everyone back on /thu; groups form on Next. | — | — |
 | 0:42 | Check one claim from the paper, 8 min. | — | — |
-| 0:50 | The four claims, and what the data supports. | Which claim holds up best? | Experience, because it is weak. Three shrink. |
+| 0:50 | Each claim, and what the data supports. | Which claim holds up best? | Experience, because it is weak. Three shrink. |
 | 0:55 | Design a better undo, 10 min. | — | — |
 | 1:05 | Your designs. | Which could you test by watching people? | A visible measure: time to recover. |
 | 1:08 | What holds in the paper, and what does not. | — | — |

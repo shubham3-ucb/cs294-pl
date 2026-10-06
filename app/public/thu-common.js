@@ -115,30 +115,31 @@ function labelsResult(r) {
     const n = p.counts.reduce((a, b) => a + b, 0);
     const split = n ? p.counts.map((c, i) => `<span style="width:${pct(c, n)}%;background:${LABEL_COLORS[i]}"></span>`).join('') : '';
     return `<li><span class="tt">${esc(p.title)} <small>· ${p.views.toLocaleString('en-US')} views</small></span><code>${esc(p.command)}</code>
-      <span class="names ${p.askerNamesIt ? '' : 'no'}">${p.askerNamesIt ? 'The asker' : 'Answer only'}</span>
+      <span class="names ${p.askerNamesIt ? '' : 'no'}">${p.askerNamesIt ? 'The asker' : 'Only the answer'}</span>
       <span class="t-split">${split}</span><span class="t-split-num">${n ? `${pct(Math.max(...p.counts), n)}% agree` : '—'}</span></li>`;
   }).join('');
   const key = r.labels.map((l, i) => `<span><i style="background:${LABEL_COLORS[i]}"></i>${esc(l.label)}</span>`).join('');
-  return `<ul class="t-posts"><li class="h"><span>Post</span><span>Counted for</span><span>Named by</span><span>Your labels</span><span></span></li>${rows}</ul>
+  return `<ul class="t-posts"><li class="h"><span>Post</span><span>Counted for</span><span>Who names it</span><span>Your labels</span><span></span></li>${rows}</ul>
     <p class="t-key">${key}</p>`;
 }
 
 // Coding Table 8: for each comment, the paper's category, and how many of you chose it; how much you agreed.
 function codesResult(r) {
+  const p = (x) => (x === null ? '—' : `${Math.round(100 * x)}%`);
   const rows = r.items.map((i) => `<li><span class="tt">#${esc(i.id)} “${esc(i.text)}”</span><span class="cat">${esc(r.categories[i.category])}</span>
-    <span class="t-split"><span style="width:${i.withPaper === null ? 0 : Math.round(100 * i.withPaper)}%;background:var(--purple)"></span></span>
-    <span class="t-split-num">${i.withPaper === null ? '—' : `${Math.round(100 * i.withPaper)}% · ${Math.round(100 * i.agreement)}%`}</span></li>`).join('');
-  const sum = r.withPaper === null ? '' : `<p class="t-key"><span>You agreed with the paper on ${Math.round(100 * r.withPaper)}% of labels, and with each other on ${Math.round(100 * r.agreement)}%.</span></p>`;
-  return `<ul class="t-posts codes"><li class="h"><span>Comment</span><span>The paper’s category</span><span>With paper</span><span>Paper · peers</span></li>${rows}</ul>${sum}`;
+    <span class="t-with"><span class="t-split"><span style="width:${i.withPaper === null ? 0 : Math.round(100 * i.withPaper)}%;background:var(--purple)"></span></span><span class="t-split-num">${p(i.withPaper)}</span></span>
+    <span class="t-split-num">${p(i.agreement)}</span></li>`).join('');
+  const sum = r.withPaper === null ? '' : `<p class="t-key"><span>Over all 7 comments: you picked the paper’s category ${p(r.withPaper)} of the time, and agreed with each other ${p(r.agreement)} of the time.</span></p>`;
+  return `<ul class="t-posts codes"><li class="h"><span>Comment</span><span>The paper’s category</span><span>Like the paper</span><span>Like each other</span></li>${rows}</ul>${sum}`;
 }
 
 // While groups work: who is in which group (and their claim). At the design reveal: each group's answers.
 function groupCards(r, { reveal }) {
   const n = r.groups.length;
-  const cols = n > 4 ? 3 : n === 3 ? 3 : 2;
+  const cols = n > 4 ? 3 : Math.max(1, n); // up to four groups in one row; more in rows of three
   return `<div class="t-groups ${reveal ? 'designs' : ''} ${n > 4 ? 'many' : ''}" style="--cols:${cols}">${r.groups.map((g) => {
     const filled = r.fields.every((f) => g.answers?.[f.id]);
-    const theirs = r.fields.map((f) => `<p><span class="lab">${esc(f.label)}</span>${g.answers?.[f.id] ? md(g.answers[f.id]) : '<span class="empty">—</span>'}</p>`).join('');
+    const theirs = r.fields.map((f) => `<div><span class="lab">${esc(f.short ?? f.label)}</span><p class="ans">${g.answers?.[f.id] ? md(g.answers[f.id]) : '<span class="empty">—</span>'}</p></div>`).join('');
     const body = reveal ? theirs : `<p class="muted">${esc(g.members.join(', '))}</p>`;
     return `<article class="t-group ${filled ? 'done' : ''}"><h2>${esc(g.name)}${reveal ? ` <small>${esc(g.members.join(', '))}</small>` : ''}</h2>
       ${g.claim ? `<p class="quote">“${esc(g.claim.quote)}”</p>` : ''}${body}</article>`;
@@ -153,7 +154,7 @@ function verdicts(r, claims) {
   const cards = inPlay.size ? [...inPlay.values()] : (claims ?? []).map((claim) => ({ claim, groups: [] }));
   return `<div class="t-groups verdicts" style="--cols:${Math.max(2, cards.length)}">${cards.map(({ claim, groups }) => `<article class="t-group">
     <p class="quote">“${esc(claim.quote)}”</p>
-    ${groups.length ? groups.map((g) => `<p><span class="lab">${esc(g.name)}</span>${g.answers?.supports ? md(g.answers.supports) : '<span class="empty">—</span>'}</p>`).join('')
+    ${groups.length ? groups.map((g) => `<p><span class="lab">${esc(g.name)} wrote</span>${g.answers?.supports ? md(g.answers.supports) : '<span class="empty">—</span>'}</p>`).join('')
       : `<p><span class="lab">They measured</span>${esc(claim.measured)}</p>`}
     <div class="model"><span class="lab">The data supports</span>${esc(claim.supports)}</div></article>`).join('')}</div>`;
 }
@@ -173,7 +174,7 @@ export function slideHtml(s, r, ctx = {}) {
   }
   if (s.kind === 'break' || s.kind === 'end') {
     const wall = s.kind === 'end' && r?.lines?.length
-      ? `<ul class="t-wall">${r.lines.slice(-12).map((l) => `<li>${md(l)}</li>`).join('')}</ul>` : '';
+      ? `<p class="t-wall-sub">What you wrote: when you build a tool for people, …</p><ul class="t-wall">${r.lines.slice(-12).map((l) => `<li>${md(l)}</li>`).join('')}</ul>` : '';
     return `<div class="${k}"><p class="t-part">${esc(s.part)}</p><h1 class="t-title">${md(s.title)}</h1>${lines(s.lines)}${wall}</div>`;
   }
   if (s.kind === 'slide' && s.columns) {

@@ -5,7 +5,8 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import {
-  SCENES, SURVEY, POSTS, LABELS, COMMENTS, CATEGORIES, CLAIMS, CLAIM_FIELDS, DESIGN_FIELDS, PAPER, PAPER_SURVEY, BUFFER_MINUTES,
+  SCENES, SURVEY, POSTS, LABELS, COMMENTS, CATEGORIES, CLAIMS, CLAIM_FIELDS, DESIGN_FIELDS, CLAIM_EXAMPLE, DESIGN_EXAMPLE, PAPER,
+  PAPER_SURVEY, BUFFER_MINUTES,
 } from './thursday_scenes.js';
 
 const DATA_DIR = path.resolve(process.env.DATA_DIR || './data');
@@ -189,7 +190,10 @@ function publicScene(s) {
     rest.comments = COMMENTS.map(({ category, ...c }) => c);
     rest.categories = CATEGORIES;
   }
-  if (s.kind === 'group') rest[s.fields === 'claim' ? 'claimFields' : 'designFields'] = fieldsFor(s);
+  if (s.kind === 'group') {
+    rest[s.fields === 'claim' ? 'claimFields' : 'designFields'] = fieldsFor(s);
+    rest.example = s.fields === 'claim' ? CLAIM_EXAMPLE : DESIGN_EXAMPLE;
+  }
   return rest;
 }
 
