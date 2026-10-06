@@ -21,7 +21,7 @@ Teaching materials for Git week in UC Berkeley CS294 *Modern Programming Tools* 
 
 ### Thursday · The Humans
 
-80 minutes, User Study Day, in the order of the course's User Studies lecture. The paper is Yang et al., *Do Developers Really Know How to Use Git Commands? A Large-Scale Study Using Stack Overflow*, TOSEM 2022. Its authors published their survey form and all 80,370 posts; the class uses both. Its message: **what people ask shows where they get stuck, not what they can do.**
+80 minutes, User Study Day: how the study was done, check it yourself, judge it, design. Students need no reading beforehand. The paper is Yang et al., *Do Developers Really Know How to Use Git Commands? A Large-Scale Study Using Stack Overflow*, TOSEM 2022. Its authors published their survey form and all 80,370 posts; the class uses both. Its message: **what people ask shows where they get stuck, not what they can do.**
 
 | Part | What happens | Paper |
 |---|---|---|
@@ -35,32 +35,40 @@ Every number the paper does not print comes from [`analysis/thursday_numbers.py`
 
 ## Run it
 
+Needs Node 22+ and Git 2.45+.
+
 ```bash
-cd app
+git clone https://github.com/shubham3-ucb/cs294-pl.git
+cd cs294-pl/app
 npm install
-npm start      # http://localhost:3000; the terminal prints the teacher link
+npm start      # http://localhost:3000; the terminal prints the teacher links for both days
 ```
 
-Needs Node 22+ and Git 2.45+. **Teachers start with [`lesson/TEACHER_BRIEF.md`](lesson/TEACHER_BRIEF.md).** App guide: [`app/README.md`](app/README.md). Day of: [`lesson/DAY_OF.md`](lesson/DAY_OF.md).
+Open the teacher link, press **Start presenting**, then **Details → Rehearse with bots → Start rehearsal**, and press **Next**. That is the whole class, played by bots. Thursday is the same at `/thu/admin?key=…`.
+
+**Teachers start with [`lesson/TEACHER_BRIEF.md`](lesson/TEACHER_BRIEF.md)** (both days in 10 minutes), then [`lesson/DAY_OF.md`](lesson/DAY_OF.md) on class day. App guide: [`app/README.md`](app/README.md).
 
 ## Host it for class
 
-`cd app && ./host.sh` starts the app and a Cloudflare quick tunnel (no account, no firewall change; it downloads `cloudflared` itself). It prints three links for each day: **Students**, **Teacher** (with the key) and **Projector**. Thursday's are the same with `/thu`. The link works while the machine runs and changes on restart.
+```bash
+cd app
+tmux new -s class ./host.sh      # on a server over SSH; plain ./host.sh on a laptop
+```
+
+It starts the app and a Cloudflare quick tunnel (no account, no firewall change; it downloads `cloudflared` itself) and prints three links for each day: **Students**, **Teacher** (with the key) and **Projector**. Thursday's are the same with `/thu`. The link works while the machine runs and changes on restart. In class you press only **Next**; **Details → Reset** starts over.
 
 - A stable link: `./deploy_cloudrun.sh PROJECT REGION` (Cloud Run, one instance).
 - Docker: `docker build -t outfit-lab . && docker run -p 3000:3000 -v outfit-lab-data:/data outfit-lab`.
 
 ## Try it alone
 
-Tuesday: on the teacher page, open **Details → Rehearse with bots**. Pick 2–12 bots and a speed (real time, 5× or 20×). The bots join like students and play every step through the student buttons, following their own hints. You press only Next. To see the student side, open the student link in another window and join.
-
-Thursday: the same, on `/thu/admin?key=…`: **Details → Rehearse with bots**. To see the student side, open `/thu` in a private window.
+On either teacher page: **Details → Rehearse with bots** (2–12 bots; real time, 5× or 20×). The bots join like students, do every step at a human pace, and answer in their own words; you press only Next. To see the student side, open the student link in a private window and join alongside them.
 
 ## Demo
 
 ![Outfit Lab demo](docs/demo.gif)
 
-The full class run, 4:50: [`demo/DEMO.mp4`](demo/DEMO.mp4) (recorded with the first Tuesday version, before predictions and choices). The teacher console, the projector and two students, with a caption naming each Git tool. Every caption with its frame: [`demo/DEMO_STORYBOARD.pdf`](demo/DEMO_STORYBOARD.pdf).
+The full class run, 4:50: [`demo/DEMO.mp4`](demo/DEMO.mp4). The video, the GIF and the screenshots below show the first Tuesday version, before predictions, choices and the plain-words rewrite; the flow is the same. The teacher console, the projector and two students, with a caption naming each Git tool. Every caption with its frame: [`demo/DEMO_STORYBOARD.pdf`](demo/DEMO_STORYBOARD.pdf).
 
 | Student | Teacher console | Projector |
 |---|---|---|
@@ -81,7 +89,7 @@ The full class run, 4:50: [`demo/DEMO.mp4`](demo/DEMO.mp4) (recorded with the fi
 | [`slides/thursday_app.pptx`](slides/thursday_app.pptx) | Thursday as a deck, built from the app's text, with the paper's numbers and the model answers (+ preview PDF) |
 | [`analysis/thursday_numbers.py`](analysis/thursday_numbers.py) | Recomputes Thursday's numbers from the paper's data and samples the 8 posts |
 | [`slides/build/`](slides/build/) | The deck builders |
-| [`story/STORY.pdf`](story/STORY.pdf) | Tuesday in 15 pages of real screenshots (built by `story/build_story.py`) |
+| [`story/STORY.pdf`](story/STORY.pdf) | Tuesday in 15 pages of real screenshots, first version (built by `story/build_story.py`) |
 | [`demo/`](demo/) | The demo video and storyboard; `record_demo.mjs` records both again from a real run |
 | [`papers/README.md`](papers/README.md) | Links to the two papers (PDFs not included) |
 | [`docs/`](docs/) | Images for this page |
