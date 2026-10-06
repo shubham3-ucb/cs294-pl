@@ -27,7 +27,7 @@ Teaching materials for Git week in UC Berkeley CS294 *Modern Programming Tools* 
 |---|---|---|
 | Warm-up | Everyone takes the paper's survey, its real questions. | §2.2 |
 | 1 The study | How it was done (collect, measure, ask). Then what it found. No reading required: the slides tell students what they need. | §2, RQ1–RQ5 |
-| 2 Check it yourself | Read 8 real posts from its data: is the asker stuck on the command, needs it without knowing it, or not about it? Then sort the paper's own survey comments and compare: it reports no method or agreement. | §2.1, Table 4, Table 8 |
+| 2 Check it yourself | Read 8 real posts from its data: did the person ask about the command, did the answer use it, or does it only appear in passing? Then sort the paper's own survey comments and compare: it reports no method or agreement. | §2.1, Table 4, Table 8 |
 | 3 Judge it | Groups of about 4 each put one claim on trial: what was measured, and what it really shows. One claim holds as written. | RQ2, RQ4, RQ5, §3.5 |
 | 4 Design | Why must people ask how to undo? One fix, a test, a measure and one risk. Then: what holds and what doesn't in the paper. | §4, §6 |
 
@@ -66,13 +66,29 @@ On either teacher page: **Details → Rehearse with bots** (2–12 bots; real ti
 
 ## Demo
 
+Run either day yourself in ten minutes, with bots as the students:
+
+1. `cd app && npm start`, then open the teacher link it prints (Tuesday: `/admin?key=…`; Thursday: `/thu/admin?key=…`).
+2. **Start presenting**: the projector window opens.
+3. **Details → Rehearse with bots → Start rehearsal** (8 bots at 5× is a good demo).
+4. Press **Next** whenever the console says the labs or the people are done.
+5. To see a student's screen, open the student link in a private window and join.
+
+**Tuesday**
+
 ![Outfit Lab demo](docs/demo.gif)
 
-The full class run, 4:50: [`demo/DEMO.mp4`](demo/DEMO.mp4). The video, the GIF and the screenshots below show the first Tuesday version, before predictions, choices and the plain-words rewrite; the flow is the same. The teacher console, the projector and two students, with a caption naming each Git tool. Every caption with its frame: [`demo/DEMO_STORYBOARD.pdf`](demo/DEMO_STORYBOARD.pdf).
+The full class run, 4:50: [`demo/DEMO.mp4`](demo/DEMO.mp4); every caption with its frame: [`demo/DEMO_STORYBOARD.pdf`](demo/DEMO_STORYBOARD.pdf). The video, the GIF and the screenshots below show the first Tuesday version, before predictions, choices and the plain-words rewrite; the flow is the same.
 
 | Student | Teacher console | Projector |
 |---|---|---|
 | ![Student page](docs/student.png) | ![Teacher console](docs/console.png) | ![Projector: a technical card](docs/projector.png) |
+
+**Thursday**
+
+| Student: one of the 8 posts | Student: design a better undo | Projector: the class's labels |
+|---|---|---|
+| ![A post to label](docs/thu-student.png) | ![The design activity](docs/thu-design.png) | ![The labels, on the projector](docs/thu-projector.png) |
 
 ## Files
 

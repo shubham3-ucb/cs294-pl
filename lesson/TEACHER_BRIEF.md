@@ -60,7 +60,7 @@ Next → read **Say** → students work (watch "done" on the console, or the clo
 | 0:03 | **Warm-up** | The paper's real survey | You are respondent 93 |
 | 0:07 | **1 The study**: how it was done, what it found | Listen (no quiz) | 80,370 questions · a command counts when its name appears, even in the answer · 92 surveyed |
 | 0:14 | Your answers next to the 92 | Compare | Self-ratings are judgments; "how I learned" is a memory |
-| 0:17 | **2 Check it yourself**: 8 posts | Label: stuck / needs it / not about it | In 5 of 8 the command is only in the answer |
+| 0:17 | **2 Check it yourself**: 8 posts | Label: asked about it / used in the answer / in passing | In 5 of 8 the command is only in the answer |
 | 0:29 | Sort 7 survey comments | Sort into the paper's 6 categories | No method, no agreement reported |
 | 0:37 | Break | Back on /thu | Check "here" = the room |
 | 0:42 | **3 Judge it**: one claim per group | What was measured · what it shows | Experience holds (weakly); three shrink |

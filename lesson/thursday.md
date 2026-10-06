@@ -18,7 +18,7 @@ Checked in: (1) the survey comparison and the claim verdicts · (2) the 8 labels
 
 Sarah's test: completing the activity teaches the concept, and you cannot complete it without learning it.
 - **Take the paper's survey.** Students become the paper's self-report data, then see what self-ratings and memories cannot tell.
-- **Label 8 posts.** The paper counts a post for every command in its question *or its accepted answer*. Three labels (stuck on it / needs it, can't name it / not about it) force the difference the rule erases. Nothing is highlighted: you have to read.
+- **Label 8 posts.** The paper counts a post for every command in its question *or its accepted answer*. Three labels (asked about it / used in the answer / in passing) force the difference the rule erases. Nothing is highlighted: you have to read.
 - **Code 7 comments.** The paper's Table 8 sorted 65 comments with no named method and no agreement score. Students code its own examples and see their agreement with the paper and with each other.
 - **Put one claim on trial.** A group must write what was measured before it may write what the data supports. One claim (experience) survives as written: the point is to be fair, not to win.
 - **Design.** Why do people have to *ask* how to undo? One change, Sarah's evaluative question, a measure and one threat (learning effect, ceiling), and data that is not a survey.
@@ -40,7 +40,7 @@ Sarah's test: completing the activity teaches the concept, and you cannot comple
 | 0:07 | 4 | How the study was done | Listen | They collected 80,370 questions, counted a command when its name appears in the question or the accepted answer, measured views and accepted answers, and surveyed 92 people. |
 | 0:11 | 3 | What the paper found | Listen | Five findings; we check them today. |
 | 0:14 | 3 | Your answers next to the paper's 92 | Compare | Self-ratings and memories are weak evidence; the 92 came via Stack Overflow. |
-| 0:17 | 8 | Read 8 real posts | Label each: stuck on it / needs it but doesn't know it / not about it | — |
+| 0:17 | 8 | Read 8 real posts | Label each: asked about it / used in the answer / in passing | — |
 | 0:25 | 4 | Your labels for the 8 posts | — | In 5 of 8 the command is only in the answer; the paper counts all 8. |
 | 0:29 | 5 | Sort 7 survey comments | Sort into the paper's 6 categories | — |
 | 0:34 | 3 | Your sorting next to the paper's | — | No method named, no agreement reported. |

@@ -170,7 +170,7 @@ function drawLabels(s) {
         <p class="s-sub">Question</p><div class="s-body">${blocks(p.question)}</div>
         <p class="s-sub">Accepted answer</p><div class="s-body s-answer">${blocks(p.answer)}</div>
       </div>
-      <p><strong>Was this person stuck on <code>${esc(p.command)}</code>?</strong></p>
+      <p><strong>Which is true of <code>${esc(p.command)}</code> in this post?</strong></p>
       <div class="s-yesno">${s.labels.map((l) => `<button data-v="${l.id}" title="${esc(l.hint)}" class="${mine[p.id] === l.id ? 'on' : ''}">${esc(l.label)}</button>`).join('')}</div>
       <p class="s-msg"></p>
     </article>`).join('')}`;

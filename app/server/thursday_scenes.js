@@ -55,9 +55,9 @@ const ANSWER_ONLY = POSTS.filter((p) => !p.askerNamesIt).length;
 
 // How students label a post the paper counted for a command.
 export const LABELS = [
-  { id: 'stuck', label: 'Yes, stuck on it', short: 'Stuck on it', hint: 'They were asking how to use this command.' },
-  { id: 'needs', label: 'No. They needed it but did not know it', short: 'Needed it', hint: 'The command would have fixed their problem, but they did not name it.' },
-  { id: 'unrelated', label: 'No. It is not about it', short: 'Not about it', hint: 'The command is only mentioned in passing.' },
+  { id: 'stuck', label: 'The person asked about it', short: 'Asked about it', hint: 'They were trying to use this command and asked how.' },
+  { id: 'needs', label: 'The answer used it to fix something else', short: 'Used in the answer', hint: 'They did not ask about it. Someone gave it as the solution to their problem.' },
+  { id: 'unrelated', label: 'It only appears in passing', short: 'In passing', hint: 'In pasted output or a side remark. Not asked about, and not the solution.' },
 ];
 
 // The paper's Table 8: its six categories for 65 survey comments, and its seven example comments, word for word.
@@ -211,7 +211,7 @@ export const SCENES = [
   },
   {
     id: 'label', kind: 'label', part: '2 · Check it yourself', title: `Read ${POSTS.length} real posts`, minutes: 8,
-    about: 'The paper counted a post as a question about a command whenever the command’s name appeared in the post or in its accepted answer. Here are 8 of those posts. For each one, decide: was the person really stuck on that command?',
+    about: 'The paper counted a post as a question about a command whenever the command’s name appeared in the post or in its accepted answer. Here are 8 of those posts, each with the command it was counted for. For each post, say which is true of that command: the person asked about it, the answer used it to fix something else, or it only appears in passing.',
     lines: ['The paper counted each of these posts as a question about one command.', 'Read each post on your laptop and pick one of the three labels.'],
     say: 'Real posts from the paper’s data, drawn at random from short, answered posts. Read the question, then the answer, then pick one label.',
   },
@@ -220,7 +220,7 @@ export const SCENES = [
     lines: [`In ${ANSWER_ONLY} of the ${POSTS.length} posts, the command is named only in the accepted answer, not by the asker.`, `The paper still counts all ${POSTS.length} as questions about that command.`],
     ask: 'Did the paper measure which commands are hard?',
     hope: 'No. It measured where a command’s name appears.',
-    say: '“Needs it but doesn’t know it” is real evidence too: it supports the paper’s idea of recommending commands (§4.1). Our re-run of their rule: the most-viewed question, “How do I undo the most recent local commits?” (9.1 million views), names no command; without it, git reflog falls from #2 to #8.',
+    say: '“The answer used it” is real evidence too: it supports the paper’s idea of recommending commands (§4.1). Our re-run of their rule: the most-viewed question, “How do I undo the most recent local commits?” (9.1 million views), names no command; without it, git reflog falls from #2 to #8.',
   },
   {
     id: 'code', kind: 'code', part: '2 · Check it yourself', title: 'Sort 7 survey comments', minutes: 5,
