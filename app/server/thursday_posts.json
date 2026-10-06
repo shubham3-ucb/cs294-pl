@@ -1,0 +1,365 @@
+{
+ "source": "Stack Overflow via the paper's dataset (github.com/gitcommandstudy/gitcommands); seeded random sample (seed 294) from analysis/thursday_numbers.py; CC BY-SA",
+ "posts": [
+  {
+   "id": "12084583",
+   "command": "git reflog",
+   "title": "git how to move back commit",
+   "year": "2012",
+   "views": 6163,
+   "question": [
+    {
+     "code": false,
+     "text": "I want to go back a committed one. How can I do?"
+    },
+    {
+     "code": true,
+     "text": "$ git reflog\n9b2a45e HEAD@{0}: reset: moving to HEAD~1\n0c54f19 HEAD@{1}: reset: moving to HEAD~1\nb9c157d HEAD@{2}: commit: updated from online\n0c54f19 HEAD@{3}: commit: add img from download folder\n9b2a45e HEAD@{4}: commit: add images"
+    },
+    {
+     "code": false,
+     "text": "I want to go back to \"updated from online\". how can I?"
+    }
+   ],
+   "answer": [
+    {
+     "code": false,
+     "text": "git checkout b9c157d checks out the commit represented by the sha starting with b9c157d -- the commit you asked about."
+    }
+   ],
+   "askerNamesIt": true,
+   "url": "https://stackoverflow.com/q/12084583",
+   "license": "CC BY-SA 3.0"
+  },
+  {
+   "id": "1505948",
+   "command": "git reset",
+   "title": "How do I remove a single file from the staging area (undo git add)?",
+   "year": "2009",
+   "views": 656913,
+   "question": [
+    {
+     "code": false,
+     "text": "Situation: I have a Git repository with files already in the index. I make changes to several files, open Git and add these files to my staging area with \"git add .\""
+    },
+    {
+     "code": false,
+     "text": "Question: How do I remove one of those files from the staging area but not remove it from the index or undo the changes to the file itself?"
+    }
+   ],
+   "answer": [
+    {
+     "code": false,
+     "text": "If you need to remove a single file from the staging area, use"
+    },
+    {
+     "code": false,
+     "text": "git reset HEAD -- <file>"
+    },
+    {
+     "code": false,
+     "text": "If you need to remove a whole directory (folder) from the staging area, use"
+    },
+    {
+     "code": false,
+     "text": "git reset HEAD -- <directoryName>"
+    },
+    {
+     "code": false,
+     "text": "Your modifications will be kept. When you run git status the file will once again show up as modified but not yet staged."
+    },
+    {
+     "code": false,
+     "text": "See the git reset man page for details."
+    }
+   ],
+   "askerNamesIt": false,
+   "url": "https://stackoverflow.com/q/1505948",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "2389361",
+   "command": "git reflog",
+   "title": "Undo a Git merge that hasn't been pushed yet",
+   "year": "2010",
+   "views": 2371183,
+   "question": [
+    {
+     "code": false,
+     "text": "Within my master branch, I did a git merge some-other-branch locally, but never pushed the changes to origin master. I didn't mean to merge, so I'd like to undo it. When doing a git status after my merge, I was getting this message:"
+    },
+    {
+     "code": true,
+     "text": "# On branch master\n# Your branch is ahead of 'origin/master' by 4 commits."
+    },
+    {
+     "code": false,
+     "text": "Based upon some instructions I found , I tried running"
+    },
+    {
+     "code": true,
+     "text": "git revert HEAD -m 1"
+    },
+    {
+     "code": false,
+     "text": "but now I'm getting this message with git status :"
+    },
+    {
+     "code": true,
+     "text": "# On branch master\n# Your branch is ahead of 'origin/master' by 5 commits."
+    }
+   ],
+   "answer": [
+    {
+     "code": false,
+     "text": "With git reflog check which commit is one prior the merge ( git reflog will be a better option than git log ). Then you can reset it using:"
+    },
+    {
+     "code": true,
+     "text": "git reset --hard commit_sha"
+    },
+    {
+     "code": false,
+     "text": "There's also another way:"
+    },
+    {
+     "code": true,
+     "text": "git reset --hard HEAD~1"
+    },
+    {
+     "code": false,
+     "text": "It will get you back 1 commit."
+    },
+    {
+     "code": false,
+     "text": "Be aware that any modified and uncommitted/unstashed files will be reset to their unmodified state . To keep them either stash changes away or see --merge option below."
+    }
+   ],
+   "askerNamesIt": false,
+   "url": "https://stackoverflow.com/q/2389361",
+   "license": "CC BY-SA 3.0"
+  },
+  {
+   "id": "61221773",
+   "command": "git revert",
+   "title": "How can i undo changes between two commits?",
+   "year": "2020",
+   "views": 24,
+   "question": [
+    {
+     "code": false,
+     "text": "I want revert one file changes between two commit,"
+    },
+    {
+     "code": true,
+     "text": "commit 1 hash: abcde1....\n   some code changes\n\ncommit 2 hash : abcde2....\n   some code changes\n"
+    },
+    {
+     "code": false,
+     "text": "i can use git checkout abcde3 -- file/to/restore and revert to commit 3, but lost commit 1 changes, How can i checkout only commit 2 changes?"
+    }
+   ],
+   "answer": [
+    {
+     "code": false,
+     "text": "You can simply use git revert ."
+    },
+    {
+     "code": false,
+     "text": "Revert commit 2, and that will create a new commit which cancels any changes introduced by said commit 2."
+    },
+    {
+     "code": false,
+     "text": "If git revert (which operates at the commit level, and not for a single file) reverts too many file, you can reset the files you did not want reverted ."
+    }
+   ],
+   "askerNamesIt": false,
+   "url": "https://stackoverflow.com/q/61221773",
+   "license": "CC BY-SA 4.0"
+  },
+  {
+   "id": "8769377",
+   "command": "git clean",
+   "title": "git 'merge' only existing files",
+   "year": "2012",
+   "views": 1378,
+   "question": [
+    {
+     "code": false,
+     "text": "Can I perform 'merge' that updates only existing files in current branch?"
+    },
+    {
+     "code": false,
+     "text": "For example, I have branch1: /file1, /x/file2, /file3. And branch2: /file1, /x/file2, /z/file4. I want to update files file1 and file2 in second branch with files from first."
+    },
+    {
+     "code": false,
+     "text": "As a solution I see creating separate commits in branch1 for that files, and than use chery-pick in second branch."
+    },
+    {
+     "code": false,
+     "text": "UPD: Thanks to @fge, I've founded that solution (not so simple as I had expected):"
+    },
+    {
+     "code": true,
+     "text": "git co branch2\ngit co branch1 -- ./\ngit reset ./\ngit ci -a\ngit clean -f"
+    }
+   ],
+   "answer": [
+    {
+     "code": false,
+     "text": "You can proceed as such while on branch2 :"
+    },
+    {
+     "code": true,
+     "text": "git checkout branch1 -- file1 x/file2"
+    },
+    {
+     "code": false,
+     "text": "Then git add the modified files and commit the result."
+    },
+    {
+     "code": false,
+     "text": "If you want to have the commit message of branch1 as well, you could commit with git commit -c branch1 ."
+    },
+    {
+     "code": false,
+     "text": "Note that branch1 really is a refspec. A branch in git is nothing but a commit, but as a commit has links to its parent(s), it is, in effect, a \"branch\"."
+    }
+   ],
+   "askerNamesIt": true,
+   "url": "https://stackoverflow.com/q/8769377",
+   "license": "CC BY-SA 3.0"
+  },
+  {
+   "id": "4339738",
+   "command": "git reset",
+   "title": "Git branch not working the way I expected it to",
+   "year": "2010",
+   "views": 2989,
+   "question": [
+    {
+     "code": false,
+     "text": "In my project master branch I commit changes: git commit -a"
+    },
+    {
+     "code": false,
+     "text": "create & switch to new branch: git checkout -b newbranch"
+    },
+    {
+     "code": false,
+     "text": "try some stuff..."
+    },
+    {
+     "code": false,
+     "text": "realize 'stuff' didn't work out the way I thought it might so switch back to master: git checkout master with intent of moving \u2026"
+    },
+    {
+     "code": false,
+     "text": "\u2026"
+    },
+    {
+     "code": false,
+     "text": "I type git status I still see all the stuff I thought I'd left in newbranch is listed under \"Untracked files\""
+    },
+    {
+     "code": false,
+     "text": "I try: git reset --hard to take me back to that last commit..but changes in newbranch still persist?!?"
+    },
+    {
+     "code": false,
+     "text": "what am I missing?"
+    }
+   ],
+   "answer": [
+    {
+     "code": false,
+     "text": "What are you missing? Well, the files in questions are untracked and git wouldn't touch those with a ten-foot pole. ;)"
+    },
+    {
+     "code": false,
+     "text": "In all honestly, if you weren't going to commit anything there was probably no reason to checkout a new branch."
+    },
+    {
+     "code": false,
+     "text": "You could have tried the new changes as normal. If you didn't like what you saw but wanted to use the new code later, you could have stashed it, like so:"
+    }
+   ],
+   "askerNamesIt": true,
+   "url": "https://stackoverflow.com/q/4339738",
+   "license": "CC BY-SA 2.5"
+  },
+  {
+   "id": "29230073",
+   "command": "git revert",
+   "title": "revert a commit after push, checkout a commit behind and modification of files",
+   "year": "2015",
+   "views": 46,
+   "question": [
+    {
+     "code": false,
+     "text": "I'd like to revert a simple commit e.g. c2 which has been pushed to mater branch. As I introduces some bugs on c2 I checked out one commit behind c2 (e.g. c1) and modify files. Now my app works fine and I just want to commit and push current files. But I can't as I am not on any branch."
+    },
+    {
+     "code": true,
+     "text": "* (no branch)\n  master\n  remotes/origin/HEAD -> origin/master\n  remotes/origin/master"
+    },
+    {
+     "code": false,
+     "text": "I want to make sure what should I do."
+    }
+   ],
+   "answer": [
+    {
+     "code": true,
+     "text": "git checkout master\n git revert c2 #will create a new commit which would effectively negate your c2\n git push origin mater"
+    }
+   ],
+   "askerNamesIt": false,
+   "url": "https://stackoverflow.com/q/29230073",
+   "license": "CC BY-SA 3.0"
+  },
+  {
+   "id": "53168541",
+   "command": "git stash",
+   "title": "Revert erroneous git checkout",
+   "year": "2018",
+   "views": 45,
+   "question": [
+    {
+     "code": false,
+     "text": "I just did:"
+    },
+    {
+     "code": true,
+     "text": "git checkout -- ."
+    },
+    {
+     "code": false,
+     "text": "without realizing that there were important, non-committed changes. I have not touched the repo since making that mistake."
+    },
+    {
+     "code": false,
+     "text": "Is there any way of \"undoing\" that command, or have I lost the uncommitted work?"
+    }
+   ],
+   "answer": [
+    {
+     "code": false,
+     "text": "You can revert git checkout if and only if you have done one of these two:"
+    },
+    {
+     "code": false,
+     "text": "Used git stash to record the previous state of the working directory (before git checkout ). You can revert git checkout by using git stash apply or git stash drop"
+    },
+    {
+     "code": false,
+     "text": "Used an IDE that keeps track of file history. You can revert by using the revert feature of that particular IDE."
+    }
+   ],
+   "askerNamesIt": false,
+   "url": "https://stackoverflow.com/q/53168541",
+   "license": "CC BY-SA 4.0"
+  }
+ ]
+}

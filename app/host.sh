@@ -79,9 +79,15 @@ cat <<EOF
 
   Outfit Lab is live. Keep this window open; Ctrl-C stops it.
 
+  Tuesday · Outfit Lab
   Students   $URL/
   Teacher    $URL/admin?key=$KEY
   Projector  $URL/screen?key=$KEY
+
+  Thursday · The Humans
+  Students   $URL/thu
+  Teacher    $URL/thu/admin?key=$KEY
+  Projector  $URL/thu/screen?key=$KEY
 
   A new link can take a few seconds to start working.
   Logs: $LOGS

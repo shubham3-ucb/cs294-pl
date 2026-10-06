@@ -6,6 +6,7 @@ import express from 'express';
 import QRCode from 'qrcode';
 import * as session from './session.js';
 import * as bots from './bots.js';
+import * as thu from './thursday.js';
 
 const PORT = Number(process.env.PORT) || 3000;
 const PUBLIC = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'public');
@@ -116,12 +117,28 @@ app.get('/api/qr.svg', async (req, res) => {
   res.send(await QRCode.toString(text, { type: 'svg', margin: 1, errorCorrectionLevel: 'M' }));
 });
 
+// ---------- Thursday (/thu): polled, no stream; same teacher key ----------
+
+app.post('/api/thu/join', handle((b) => thu.join(b)));
+app.get('/api/thu/state', handle((q) => thu.state(String(q.pid || ''))));
+app.post('/api/thu/answer', handle((b) => thu.answer(b)));
+app.get('/api/thu/admin/state', adminOnly, handle((q, req) => thu.adminState(`${req.protocol}://${req.get('host')}/thu`)));
+for (const action of ['next', 'back', 'reset']) {
+  app.post(`/api/thu/admin/${action}`, adminOnly, handle((b) => thu.admin(action, b)));
+}
+app.get('/api/thu/admin/export', adminOnly, (req, res) => {
+  res.attachment('thursday-answers.md').type('text/markdown; charset=utf-8').send(thu.exportMarkdown());
+});
+
 // ---------- Pages ----------
 
 const page = (file) => (req, res) =>
   isAdmin(req) ? res.sendFile(path.join(PUBLIC, file)) : res.status(403).type('text').send('Wrong or missing key.');
 app.get('/admin', page('admin.html'));
 app.get('/screen', page('screen.html'));
+app.get('/thu', (req, res) => res.sendFile(path.join(PUBLIC, 'thu.html')));
+app.get('/thu/admin', page('thu-admin.html'));
+app.get('/thu/screen', page('thu-screen.html'));
 app.use(express.static(PUBLIC));
 app.use('/api', (req, res) => res.status(404).json({ ok: false, error: 'No such thing.' }));
 // Malformed JSON bodies and the like.
@@ -130,13 +147,16 @@ app.use((err, req, res, next) => res.status(err.status || 400).json({ ok: false,
 // ---------- Start and stop ----------
 
 await session.boot();
+thu.boot();
 const server = app.listen(PORT, process.env.HOST, () => {
   console.log(`Outfit Lab on http://localhost:${PORT}/`);
   console.log(`Teacher page: http://localhost:${PORT}/admin?key=${session.adminKey()}`);
+  console.log(`Thursday: students http://localhost:${PORT}/thu · teacher http://localhost:${PORT}/thu/admin?key=${session.adminKey()}`);
 });
 
 function stop() {
   session.flush();
+  thu.flush();
   for (const c of clients) c.res.end();
   server.close(() => process.exit(0));
   server.closeAllConnections();

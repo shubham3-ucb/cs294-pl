@@ -274,3 +274,16 @@ the session).
 **Demo** (made after the app): a real run driven by Playwright through every scene. `demo/DEMO.mp4` (H.264,
 ≤ 25 MB): console, projector and students with a plain caption bar naming what happens and the Git tool.
 `demo/DEMO_STORYBOARD.pdf`: every caption with its frame. `docs/demo.gif` (≤ 20 s) heads the root README.
+
+## Thursday: The Humans (`/thu`)
+
+The same server, a separate session (`DATA_DIR/thursday.json`), no Git. User Study Day for Yang et al., TOSEM 2022,
+in the order of the course's User Studies lecture: the research question, the data, the analysis, do we believe it,
+a design insight. One message: "Asking is not using."
+Every word is in `server/thursday_scenes.js`; the projector, the student page and `slides/build/build_thursday.py`
+all read it. Paper numbers are the paper's; every other number comes from `analysis/thursday_numbers.py` on the
+authors' published data, and the 8 posts are its seeded sample (`server/thursday_posts.json`, CC BY-SA).
+Students: the paper's survey word for word, two votes, 8 post labels, one group answer per group (claims, design),
+one exit line. Groups of about 4 form on the first group scene from who is here; returning or late students join the
+smallest group. Pages poll every 1.5–2 s (no stream), so they work through any proxy. Students never receive teacher
+notes or answer keys before the reveal. Done when `npm test` and `npm run e2e:thursday` (also with `THU_STUDENTS=24`) pass.

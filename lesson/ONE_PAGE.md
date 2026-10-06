@@ -29,26 +29,29 @@
 
 # Thursday · Git, Part 2: The Humans · one page
 
-80 min · 3 teams (Tuesday's labs) · Shubham before the break, Ananya after. Critique with three questions: Interesting? Can the data answer it? Do we believe the analysis?
+80 min · the app at `/thu` · press only **Next** (→ / Space; ← = Back) · groups of about 4 form at the break. Sarah's order: the question, the data, the analysis, do we believe it, a design insight. Read Say and Ask from the teacher page.
 
-| Time | Step | The one question | Hope to hear |
+| Time | Scene | The one question | Hope to hear |
 |---|---|---|---|
-| 0:00 | Slide 1 · Welcome. Sit with your Tuesday lab. | — | — |
-| 0:02 | Slides 2–3 · Hook. Menti vote, then: revert wins. | Think of Tuesday's 🥸 disguise. Why would "undo" confuse people? | The right undo depends on where the card is. |
-| 0:07 | Slide 4 · The study. No judging yet. | — | — |
-| 0:10 | Slide 5 · What they found. | Which of these three do you believe least? (One word, private.) | — |
-| 0:14 | Slide 6 · Three questions, the ladder. | This paper has two data sources. Where does each sit? | Questions: traces of asking for help. Survey: self-report. |
-| 0:19 | Slide 7 · Claim Court, 12 min. Minute-5 check at 0:24. | What did they measure? | The card's "Measured" line. |
-| 0:31 | Slide 8 · Pitches, jury vote. | Why did one claim survive and two shrink? | Team 3's measure matches its words. |
-| 0:42 | Slide 9 · Claimed ≠ measured. | They counted command names. What would a tool designer rather know? | What people tried to do, and where they got stuck. |
-| 0:48 | **Break, 4 min.** "Back in 4 minutes." Deal finding cards. | — | — |
-| 0:52 | Slide 11 · Design sprint. 7 min build, 1 min pitches. | How would you know it worked, without asking anyone? | Something logged or watched. |
-| 1:04 | Slide 12 · Git listened (2019). | Did switch and restore help? How would you find out? | Two groups, same task. Log time, errors, lost work. |
-| 1:09 | Slide 12 · Design question, 1 min. | Each sticky note kept its own draft. Real Git doesn't. Which do you want? | The app's. (Gitless made that choice.) |
-| 1:10 | Slide 13 · Exit, Menti, alone. | Which lesson up there did no slide say? Whose is it? | A student names theirs. |
-| 1:16 | Slide 14 · Close. | — | — |
+| 0:00 | Join. First name only. | — | — |
+| 0:02 | Take the paper's survey: the form's real questions. | — | — |
+| 0:06 | The paper in one slide: five RQs. | — | — |
+| 0:09 | Vote, then reveal: need-finding. | Is the question interesting? | Yes: three of Stack Overflow's five most-voted questions were about Git commands when the paper was written. |
+| 0:14 | Vote, then reveal: traces, of asking. | Can this data answer "do developers know how to use Git commands?" | No. It shows what people asked, not what they can do. |
+| 0:19 | You and the paper's 92. | Which of these numbers would you trust? Did Tuesday change your answer? | People found through Stack Overflow say they learn online: the sample decides the answer. "How I learned" is a memory. |
+| 0:23 | Check the rule on 8 real posts, 9 min. | — | — |
+| 0:32 | The rule and you. | Did they measure "developers find this command hard"? | Often the command is the fix in the answer, not the problem. |
+| 0:37 | One question, 9.1 million views. | Do you believe their answer to RQ3? | Partly: undo questions are the most viewed; which command gets the credit depends on the rule. |
+| 0:41 | **Break, 5 min.** Groups form on Next. | — | — |
+| 0:46 | Put one claim on trial, 8 min. | — | — |
+| 0:54 | The verdicts. | Which claim survives best? | None as written. Nobody was watched using Git. |
+| 1:00 | Design for the need that survived, 10 min. | — | — |
+| 1:10 | Your designs. | Which of these could you test by watching people? | The ones with a visible measure: time to recover. |
+| 1:13 | What Git and Jujutsu did: switch and restore (2019), `jj undo`. | Which data would convince Git's maintainers? | Observation or traces of real use. Not a survey. |
+| 1:15 | Exit, alone: one new idea for building tools for people. | — | — |
+| 1:17 | **Asking is not using.** | — | — |
 | 1:18 | **Buffer, 2 min.** | — | — |
 
-**Never cut:** the minute-5 check · the break · the exit.
+**Never cut:** the 8 labels · the verdicts · the design · the exit.
 
-**Say it right:** "81.7% of survey ticks", never "of developers". "Accounts over 5 years old", never "5 years of Git".
+**Say it right:** "81.7% of ticked boxes", never "of developers". "Accounts registered more than 5 years earlier", never "5 years of Git". "Our re-run of their rule on their data" for every number the paper does not print.

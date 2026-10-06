@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The Humans · teacher</title>
+  <link rel="stylesheet" href="/thu.css">
+  <script type="module" src="/thu-admin.js"></script>
+</head>
+<body>
+  <div class="console">
+    <header class="c-top">
+      <h1>The Humans <span class="muted">· Thursday</span></h1>
+      <span id="where" class="muted"></span>
+      <span class="grow"></span>
+      <span id="here" class="muted"></span>
+      <span id="conn" class="c-dot" title="Connected"></span>
+      <button id="present" class="primary">Start presenting</button>
+    </header>
+    <section>
+      <div id="preview" class="slide c-preview"></div>
+      <p id="next-up" class="c-next"></p>
+    </section>
+    <aside class="c-side">
+      <div class="c-move">
+        <button id="back">← Back</button>
+        <button id="next" class="primary">Next →</button>
+      </div>
+      <div class="c-card">
+        <p class="c-label">Say</p>
+        <p id="say" class="c-say"></p>
+        <div id="ask-box" hidden>
+          <p class="c-label">Ask</p>
+          <p id="ask" class="c-say c-ask"></p>
+          <p class="c-label" style="margin-top:6px">Hope to hear</p>
+          <p id="hope" class="c-say"></p>
+        </div>
+      </div>
+      <div id="progress-box" class="c-card" hidden>
+        <p class="c-label" id="progress-label"></p>
+        <div class="c-progress"><i id="progress-bar"></i></div>
+      </div>
+      <div class="c-card">
+        <p class="c-label">People</p>
+        <div id="people" class="c-people"></div>
+        <div id="groups" class="c-groups"></div>
+      </div>
+      <details>
+        <summary>Details</summary>
+        <div class="c-card">
+          <div class="c-links" id="links"></div>
+          <div class="c-row">
+            <a class="button" id="export" href="#">Export answers</a>
+            <button id="reset">Reset</button>
+          </div>
+          <p class="muted" style="font-size:13px">Reset empties the class: everyone joins again. Export first if you want the answers.</p>
+        </div>
+      </details>
+    </aside>
+  </div>
+</body>
+</html>
