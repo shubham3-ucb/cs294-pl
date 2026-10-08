@@ -26,7 +26,7 @@
 // a second press shows the click (the next concrete move). null when the lab is done. Bots read the click.
 //
 // SCENES (one Next = one scene; the projector shows it, students see it in the app):
-//   id, kind ('join' | 'task' | 'reveal' | 'break' | 'paper' | 'exit' | 'wrap'), step (whose buttons are on),
+//   id, kind ('join' | 'task' | 'reveal' | 'break' | 'paths' | 'paper' | 'exit' | 'wrap'), step (whose buttons are on),
 //   title, minutes (planned length; `at` = planned start, added below), say, do, ask {q, a},
 //   reveal {cards: [{command, is, does, how}], sentence, behind, note}, board, tools,
 //   next (what pressing Next into this scene does), practiceNext (added to `next` when the practice lab plays).
@@ -641,6 +641,33 @@ export const PAPER = {
   ],
 };
 
+// "Find the path back" (after Step 6): the algorithm the paper introduces to find integration paths (§6.2), on the
+// paper's own example (Figure 3, branch A), interactive. public/figure3.js draws it; these are its words.
+export const PATHS = {
+  title: 'Find the path back',
+  source: 'Just et al., ISSRE 2016 · §6, The Ugly',
+  intro: "Code velocity needs each change's integration path: the arrows from the commit where it was made to the commit where it first reached main. Git keeps no such record. The paper's answer reads only the arrows, layer by layer. Here it is on the paper's own Figure 3.",
+  // What the class met, each a reason the path is hard to find.
+  problems: [
+    { step: 3, tool: 'Fast-forward', text: 'No commit says which branch it was made on.' },
+    { step: 4, tool: 'Rebase', text: 'The change gets a new commit that looks like a direct edit to main.' },
+    { step: 1, tool: 'Clocks and names', text: 'Git checks neither, so the algorithm reads no clock until the end.' },
+    { step: null, tool: 'Apply, cherry-pick', text: 'A copied change has no arrow back to where it came from.' },
+    { step: 6, tool: 'Squash', text: 'The arrows are gone. Nothing is left to follow.' },
+  ],
+  // Figure 3's six layers, top to bottom.
+  tiers: [
+    { n: '0', name: 'Global multi graph', text: 'Every commit any branch can reach. Branch A (purple) ends at 8, branch B (blue) at 7; many commits belong to both. Only commits and arrows: no times.' },
+    { n: '1', name: 'Global branch/merge graph', text: 'Label each commit: one parent is an edit (white), two parents is a merge (grey). This never changes.' },
+    { n: '2', name: 'Branch graph (A)', text: "From now on, one branch: A. Each arrow from a commit's first parent is a branch edge; an arrow from a parent merged in is a merge edge." },
+    { n: '3', name: 'Navigation graph (A)', text: "Walk back from A's head along first parents: forward. Every other arrow leaves a line: a switch. Then each side line gets its own forward run (2 → 5 → 7). This partly recovers which branch a commit was made on." },
+    { n: '4', name: 'Integration graph (A)', text: 'For each commit, the shortest way to the first commit on A that reaches it. Those arrows are integration; every other arrow is a delay, a longer way to the same place.' },
+    { n: '5', name: 'Convergence graph (A)', text: "Cut A's line at every merge, from the root forward. Each commit points (visibility) to where it first becomes visible to A: its earliest integration." },
+  ],
+  formula: 'Code velocity = the time from a change being made to it joining main, along its fastest integration path (§6.1). Only this last step reads a clock.',
+  gone: 'After a squash, none of these arrows exist. No tier can bring them back: some loss cannot be recovered.',
+};
+
 // ---------- The scene script: one Next = one scene ----------
 
 const task = (step, minutes, more) => ({
@@ -706,14 +733,6 @@ const SCRIPT = [
     ask: { q: 'Which cards were made on fancy?', a: 'There is no way to tell. Git does not record the branch a commit was made on.' },
     board: '3. A merge compares both sides with the card they share.',
   }),
-  {
-    id: 'break', kind: 'break', step: 3, minutes: 4, title: 'Break', tools: ['timer'],
-    line: 'Break. Back in 4 minutes.',
-    next: 'Starts the 4-minute break. Labs can still finish Step 3.',
-    say: 'Break. Back in 4 minutes.',
-    do: 'Write the return time on the board. Help any lab that is not done.',
-    ask: null,
-  },
   task(4, 9, {
     next: 'Sends {wallLab}\'s outfit to the Wall. Every lab becomes a fresh copy of it. Back does not undo this.',
     practiceNext: 'The practice lab sends its card to the Wall first.',
@@ -759,6 +778,16 @@ const SCRIPT = [
     tools: ['audit', 'gc'],
   }),
   {
+    id: 'paths', kind: 'paths', step: 6, minutes: 8, title: 'Find the path back', tools: ['tierBack', 'tierNext'],
+    line: "The paper rebuilds each change's path to main from the arrows alone.",
+    say: "Every problem today hid where a change came from. The paper's answer is an algorithm that rebuilds each change's path to main from the arrows alone, in six layers. This is the paper's own example, Figure 3.",
+    do: "Press Tier › and read each tier's line. At Tier 4, point at commit 2's path, 2 → 3 → 4. At Tier 5, point at the red arrows. Students can step through each tier and click commits in the app.",
+    ask: {
+      q: 'Commit 2 reaches branch A at 4, through 3. Why not at 6, through 5?',
+      a: 'The algorithm wants the earliest integration: 4 comes before 6 on A\'s line, and 2 → 3 → 4 is the shortest path there. 2 → 5 → 6 is a delay.',
+    },
+  },
+  {
     id: 'paper', kind: 'paper', step: 6, minutes: 5, title: 'The paper', tools: [],
     line: PAPER.message,
     say: 'You have just lived this paper. Teams at Microsoft moved to Git. Microsoft tracks code velocity: how long a change takes to reach main, along its integration path. After the squash, the Wall has no path left. The paper\'s claim: for analysts, flat history is data loss. For developers it helps: a bad change is quick to find and revert.',
@@ -778,17 +807,10 @@ const SCRIPT = [
       a: 'No. Revert adds a card; the old one still holds the password, in every copy. Change the password first. Then rewrite, force push and gc the Wall, and have every lab re-clone. (On GitHub, force-pushed commits can stay fetchable by ID.)',
     },
   },
-  {
-    id: 'wrap', kind: 'wrap', step: 7, minutes: 2, title: 'What you did today', tools: ['export'],
-    line: WRAP_LINE,
-    say: 'A commit never changes, a branch is a pointer that moves, and the Wall holds copies of those commits. That is the whole model. On Thursday we look at a study of people asking about Git. No reading needed.',
-    do: 'Read one lab\'s counts aloud. Point at the takeaway wall.',
-    ask: null,
-  },
 ];
 
 // Students answer the pause question in the app at reveals, the paper and the exit question.
-const ANSWERED = new Set(['reveal', 'paper', 'exit']);
+const ANSWERED = new Set(['reveal', 'paths', 'paper', 'exit']);
 
 // The planned start of each scene, in minutes from the start of class. Every reveal has the same shape.
 export const SCENES = SCRIPT.reduce((out, scene) => {

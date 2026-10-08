@@ -2,7 +2,7 @@
 
 "Dress one character together. Every save, merge, send and undo runs real Git."
 
-A small web app for an 80-minute class (1–40 PhD students, in 1–6 labs). Each lab dresses one character.
+A small web app for an 82-minute class (1–40 PhD students, in 1–6 labs). Each lab dresses one character.
 Every save, merge, send and undo runs **real Git** on the server (Switch, part edits and Cancel merge run none).
 Students feel a problem, predict what Git will do, choose a tool to fix it, and see what Git did behind the
 door. The teacher only presses **Next**: the class is one fixed script of scenes, and the projector is the slide deck.
@@ -79,10 +79,10 @@ shoes: sneakers
 
 ## 3. The scene script (one Next = one scene)
 
-Join → **0 Chaos** → **1 Save** (commit) → **2 Two ideas** (branch) → **3 Combine** (merge) → Break →
+Join → **0 Chaos** → **1 Save** (commit) → **2 Two ideas** (branch) → **3 Combine** (merge) →
 **4 Share** (clone, push, pull: merge or rebase) → **5 Undo** (revert, reset, reflog) → **6 Clean up** (squash,
-force push, gc) → The paper → Exit question → Wrap. Every step is a **task** scene, then a **reveal** ("How Git
-does it"). 19 scenes, 77 planned minutes, 3 minutes of buffer.
+force push, gc) → Find the path back → The paper → Exit question. Every step is a **task** scene, then a **reveal** ("How Git
+does it"). 18 scenes, 79 planned minutes, 3 minutes of buffer.
 
 | Clock | Min | Scene | What students do |
 |---|---|---|---|
@@ -95,17 +95,16 @@ does it"). 19 scenes, 77 planned minutes, 3 minutes of buffer.
 | 0:16 | 3 | Step 2 reveal | `git branch` card + the one-repo line |
 | 0:19 | 8 | Step 3 task | Predict, merge fancy (fast-forward), delete it; predict, merge sporty (TOP conflict) |
 | 0:27 | 4 | Step 3 reveal | `git merge` card + the class's prediction accuracy |
-| 0:31 | 4 | Break | Labs may finish Step 3 |
-| 0:35 | 9 | Step 4 task | Predict each send; a refused lab chooses merge or rebase (and why) |
-| 0:44 | 5 | Step 4 reveal | push/pull + rebase cards, paths, accuracy, each lab's choice |
-| 0:49 | 7 | Step 5 task | Each lab chooses Undo this card or Move my branch back; predict each send |
-| 0:56 | 3 | Step 5 reveal | revert/reset card, accuracy, each lab's choice (and what nobody chose) |
-| 0:59 | 4 | Step 6 task | The boss lab squashes + force-pushes; others find who added 🥾 |
-| 1:03 | 4 | Step 6 reveal | squash card, the audit after, the bin count |
-| 1:07 | 5 | The paper | Pairs: what squash-merge gains, what an auditor loses |
-| 1:12 | 3 | Exit question | The password question, on your own |
-| 1:15 | 2 | Wrap | My Git in 7 lines |
-| 1:17 | 3 | Buffer | |
+| 0:31 | 9 | Step 4 task | Predict each send; a refused lab chooses merge or rebase (and why) |
+| 0:40 | 5 | Step 4 reveal | push/pull + rebase cards, paths, accuracy, each lab's choice |
+| 0:45 | 7 | Step 5 task | Each lab chooses Undo this card or Move my branch back; predict each send |
+| 0:52 | 3 | Step 5 reveal | revert/reset card, accuracy, each lab's choice (and what nobody chose) |
+| 0:55 | 4 | Step 6 task | The boss lab squashes + force-pushes; others find who added 🥾 |
+| 0:59 | 4 | Step 6 reveal | squash card, the audit after, the bin count |
+| 1:03 | 8 | Find the path back | Step through the paper's Figure 3, tier by tier; click a commit for its integration path |
+| 1:11 | 5 | The paper | Pairs: what squash-merge gains, what an auditor loses |
+| 1:16 | 3 | Exit question | The password question, on your own |
+| 1:19 | 3 | Buffer | |
 
 Each scene has: id, kind (`join | task | reveal | break | paper | exit | wrap`), the step whose buttons are on,
 title, minutes (and `at`), **say**, **do**, **ask** `{q, a}`, reveal `{cards, sentence, behind, note}`,
@@ -115,10 +114,10 @@ nothing private reaches the projector.
 - **Join:** big QR + link + each lab's member names.
 - **Task:** step title, one line, timer; from Step 4 the live Wall; one tile per lab (outfit, goal ticks). Step 6: the audit, large.
 - **Reveal:** one technical card per tool (section 5), as big as the slide allows, and the pause question. Step 0 has no tool yet: one sentence and Behind the door. Step 1 adds the trust line, Step 2 the one-repo line. Steps 3–5 add the class's prediction accuracy ("Predicted right: 7 of 10 · merge fancy 3/5 · merge sporty 4/5"; sends split into refused / accepted); Steps 4–5 add what each lab chose ("Chose: Lab 2 Combine (merge) ("why") · Lab 3 Replay on top (rebase)") and, for a way no lab chose, one line on what it would have done (`NOT_CHOSEN`, `UNDO_NOT_CHOSEN`). Step 4 shows the Wall with one change's integration path marked, every lab's times beside it, the facts under the times. Step 6 shows the audit after the clean-up and the bin count. Students see the same cards and lines in the app, with an answer box and a "My takeaway" box (Steps 0–6).
-- **Break:** a 4-minute countdown. Labs can still finish Step 3.
-- **Paper:** Good / Bad / Ugly (Bad: "Squash can drop the cards — and, once the branch is deleted, even who made them.", §5.4) · this class's code velocity (the Step 4 paths, as they were when Step 4 ended; after the squash the Wall has none of those cards) · what they lived: Step 3, after the fast-forward the fancy branch was deleted and no card says which cards were made on it; Step 4, "Replay on top made a copy with a new ID; the original card is not on the Wall." (when no lab replayed: what replaying does); Step 6, the squash dropped the cards and who made them, and the 🥾 audit failed · the message as the paper's claim for analysts, **"For analysts, flat history is data loss."**, with the trade-off next to it: "Flat history helps developers find and revert a bad change (bisect, revert). It loses where a change came from and who made it." (§3.1). The Say: "Microsoft tracks code velocity: how long a change takes to reach main, along its integration path." (the paper defines it, §6.1, and reports no velocity numbers). The pairs question: "Your team squash-merges every feature branch and deletes it. What do you gain, and what can an auditor no longer answer?"
+- **Find the path back:** the algorithm the paper introduces (§6.2, `public/integration.js`), on its own Figure 3 (branch A: commits 1–8; 4, 5, 6 and 8 are merges), drawn as the figure draws it (`public/figure3.js`): arrows forward in time, white edits, grey merges, the figure's edge colours, and the six tier planes stacked as in the figure. Five problems first, each tied to its step (fast-forward, rebase, clocks and names, apply/cherry-pick, squash). Tiers: 0 the global multi graph (which branches reach each commit) · 1 edits and merges · 2 branch and merge edges · 3 forward and switch (forward continues a line: A's first-parent line, and each side line along its longest first-parent run, so 2 → 5 → 7) · 4 integration and delay (the shortest path to the earliest integration) · 5 visibility (each commit to where it first becomes visible to A). Every label comes from running the algorithm, and a test checks each against the figure. The teacher's **‹ Tier / Tier ›** set the projector's tier (commit 2's path marked at Tiers 4–5); students pick a tier, **Step ›** through its labels one at a time with a sentence each, and click a commit for its line, path and integration point.
+- **Paper:** Good / Bad / Ugly (Bad: "Squash can drop the cards — and, once the branch is deleted, even who made them.", §5.4) · this class's code velocity (the Step 4 paths, as they were when Step 4 ended; after the squash the Wall has none of those cards) · the message as the paper's claim for analysts, **"For analysts, flat history is data loss."**, with the trade-off next to it: "Flat history helps developers find and revert a bad change (bisect, revert). It loses where a change came from and who made it." (§3.1). The Say: "Microsoft tracks code velocity: how long a change takes to reach main, along its integration path." (the paper defines it, §6.1, and reports no velocity numbers). The pairs question: "Your team squash-merges every feature branch and deletes it. What do you gain, and what can an auditor no longer answer?"
 - **Exit:** the exit question, answered in the app. Hope to hear: "No. Revert adds a card; the old one still holds the password, in every copy. Change the password first. Then rewrite, force push and gc the Wall, and have every lab re-clone. (On GitHub, force-pushed commits can stay fetchable by ID.)" A lab that kept the old history merges it back on its next Get & combine (git.test.js checks it).
-- **Wrap:** "Cards never change. Branches move. The Wall copies cards." **My Git in 7 lines** (one takeaway per reveal, Steps 0–6, editable, Copy). The projector shows a takeaway wall (a sample, names hidden). **Export** (Markdown, per question and per person).
+- **The end:** the exit question is the last scene. **Export** (under Details: Markdown, per question and per person).
 
 **What Next does by itself** (once; Back never undoes it):
 - Into Step 1: labs lock. Into Steps 2–3: main's unsaved parts are dropped (main is read-only there).
@@ -227,9 +226,9 @@ Without any key the page says to open the Teacher link. The pages hold no secret
 
 **Console** (a presenter view on the teacher's laptop):
 - **Top:** people count, **Join QR** (also on the projector while open), **Start presenting** (opens /screen in a named window; F = full screen).
-- **Main card:** "Scene N of 19 · plan 0:42", title, timer ("0:12 / 5:00 · 2 min behind"). **Say** · **Do** · **Ask** (**Show on projector**, the answer folded) · live answers ("4/9 answered", **Show answers on projector**, names only **with names**) · takeaway count · **Board** · **Predict** (Steps 3–5, live: "Predicted right: 7 of 10 · merge fancy 3/5 · merge sporty 4/5", and during a task "· 3 waiting for Git") · **Paths** (Step 4 reveal and the paper: each lab's times, "starts at a copy") · only this scene's tools (Sabotage on the Step 4 reveal and Step 5 task; Audit in Step 6; **Empty the Wall's bin** on the Step 6 reveal; Export at the wrap) · "Labs done: 2/3 · Lab 3: Merging: TOP to pick" · a big **Next: <scene>** and a small **Back**.
+- **Main card:** "Scene N of 18 · plan 0:42", title, timer ("0:12 / 5:00 · 2 min behind"). **Say** · **Do** · **Ask** (**Show on projector**, the answer folded) · live answers ("4/9 answered", **Show answers on projector**, names only **with names**) · takeaway count · **Board** · **Predict** (Steps 3–5, live: "Predicted right: 7 of 10 · merge fancy 3/5 · merge sporty 4/5", and during a task "· 3 waiting for Git") · **Paths** (Step 4 reveal and the paper: each lab's times, "starts at a copy") · only this scene's tools (Sabotage on the Step 4 reveal and Step 5 task; Audit in Step 6; **Empty the Wall's bin** on the Step 6 reveal; **‹ Tier / Tier ›** on Find the path back) · "Labs done: 2/3 · Lab 3: Merging: TOP to pick" · a big **Next: <scene>** and a small **Back**.
 - **Presenter column:** "On the projector now" (a live preview, the same renderer) and "Next" (title, line, what Next will do, the lab picker for Step 4 / Step 6).
-- **Lab tiles:** name, people, mini outfit, goal checks, status ("Working", "Done", "Merging: TOP to pick", red for "Refused twice in a row", "In a conflict for 2:10", "No clicks for 2:00"; practice lab: "Plays by itself"), the lab's choice ("Chose: Replay on top (rebase) · "why"" in Step 4; "Chose: Move my branch back (reset)" in Step 5), counts at the wrap, **Rescue** (confirm).
+- **Lab tiles:** name, people, mini outfit, goal checks, status ("Working", "Done", "Merging: TOP to pick", red for "Refused twice in a row", "In a conflict for 2:10", "No clicks for 2:00"; practice lab: "Plays by itself"), the lab's choice ("Chose: Replay on top (rebase) · "why"" in Step 4; "Chose: Move my branch back (reset)" in Step 5), **Rescue** (confirm).
 - **Details** (collapsed): lab count, Export, Reset (confirm), **Rehearse with bots** (2–12 bots, real time / 5× / 20×), rosters with move-to-lab, the Wall graph, each lab's graph, the feed.
 
 **Rescue** moves one lab to the step's expected end with the normal engine, doing only what's missing, as
@@ -247,7 +246,7 @@ refusable lab replays), Step 5 by lab number (even labs and a lone lab move back
 removes them, with their predictions; a choice or press they made stays, without their name.
 
 **Projector** (read-only, live, nothing private): the current scene as a slide readable from the back of the
-room, the question while Ask is on, answers while shown, the takeaway wall at the wrap. The static deck
+room, the question while Ask is on, answers while shown. The static deck
 (slides/tuesday_app.pptx) is a record, regenerated from the same scene text.
 
 ---
@@ -313,13 +312,13 @@ the session).
 
 ## 11. Acceptance (`npm test` + `npm run e2e`)
 
-- A 9-student class (3 labs × 3) walks all 19 scenes in a real browser in the 7-step order, joining by name only; the teacher uses only Next (and Back once).
+- A 9-student class (3 labs × 3) walks all 18 scenes in a real browser in the 7-step order, joining by name only; the teacher uses only Next (and Back once).
 - Step 0: shared live edits, no history. Step 1: everyone saves. Step 2: main read-only; fancy and sporty; "already exists"; Switch with unsaved parts is refused. Step 3: lab-mates predict in the panel, the presser in the dialog; fancy = fast-forward; deleting sporty is refused, deleting fancy works and its card stays in main; sporty = conflict on TOP only, HAT + SHOES automatic; markers = resolver; a second student finishes; Cancel leaves main unchanged, and merging again asks nothing. Each predictor sees Git's answer against the guess; the console and the reveal count right of total.
 - Step 4: every lab is a fresh copy of the Wall, and says so. Every send is predicted. Lab 1 sends; Lab 2 (by hints) is refused and chooses to combine (a merge card with two parents); Lab 3 predicts the refusal, is refused, chooses Replay on top and says why: a new ID, the same author and author date, a later committer date, the original dashed and only in the diary. The app marks no way before a choice. The reveal shows the accuracy and each lab's choice; it and the paper show each path with the class's real times, from Git.
 - The technical cards show word for word in the app, on the projector and in its preview at every reveal; Step 1 shows the trust line.
 - Step 5: 🥸 on the Wall and in every lab at once; each lab chooses; Undo + send works; Move back + send is refused and Get & combine brings 🥸 back; the diary shows the reset; 8 predicted sends at once: exactly one goes in; a restart with a stale lock recovers. The reveal shows each lab's choice (and, if no lab moved back, what would have happened).
 - Step 6: only the boss lab sees Replace; squash + force push leaves Start ← Clean; the 🥾 audit names the author before and is "not found" on the Wall after, but found in the other labs; gc empties the bin.
-- Answers and takeaways save and show; My Git in 7 lines (edit, reload, Copy) and Export work.
+- Answers and takeaways save and show; Export works.
 - A 2-student class (1 lab + the practice lab): the practice lab sends first, the real lab is refused and replays on top. With SSE blocked, a student page and the projector still reach the next scene within 5 s.
 - Lab sizes for 1, 2, 4, 5, 7, 10, 12 and 13 people; a late joiner goes to the smallest lab; one big lab only when forced, with a warning.
 - The rehearsal: 9 bots play every scene, predicting (a mix of right and wrong) and choosing (both ways in Step 4, both undos in Step 5); the teacher presses only Next.

@@ -1,6 +1,6 @@
 # Tuesday · Outfit Lab · lesson script
 
-80 min · 10–12 students in 3 labs · every save, merge, send and undo runs real Git.
+82 min · 10–12 students in 3 labs · every save, merge, send and undo runs real Git.
 
 **S** = Shubham, at the front. He presses **Next** and writes on the board.
 
@@ -54,17 +54,16 @@ Checked in: #1, the reveals of Steps 1, 2 and 4. #2, every Merge and Send in Ste
 | 0:16 | Step 2 · How Git does it | 3 |
 | 0:19 | Step 3 · Combine two branches (predict each merge) | 8 |
 | 0:27 | Step 3 · How Git does it | 4 |
-| 0:31 | **Break** | 4 |
-| 0:35 | Step 4 · Share your work through the Wall (predict each send; refused labs choose) | 9 |
-| 0:44 | Step 4 · How Git does it | 5 |
-| 0:49 | Step 5 · Undo a change everyone already has (labs choose; predict each send) | 7 |
-| 0:56 | Step 5 · How Git does it | 3 |
-| 0:59 | Step 6 · Rewrite the shared history | 4 |
-| 1:03 | Step 6 · How Git does it | 4 |
-| 1:07 | The paper | 5 |
-| 1:12 | Exit question | 3 |
-| 1:15 | What you did today | 2 |
-| 1:17 | **Buffer** | 3 |
+| 0:31 | Step 4 · Share your work through the Wall (predict each send; refused labs choose) | 9 |
+| 0:40 | Step 4 · How Git does it | 5 |
+| 0:45 | Step 5 · Undo a change everyone already has (labs choose; predict each send) | 7 |
+| 0:52 | Step 5 · How Git does it | 3 |
+| 0:55 | Step 6 · Rewrite the shared history | 4 |
+| 0:59 | Step 6 · How Git does it | 4 |
+| 1:03 | Find the path back | 8 |
+| 1:11 | The paper | 5 |
+| 1:16 | Exit question | 3 |
+| 1:19 | **Buffer** | 3 |
 
 ---
 
@@ -257,19 +256,7 @@ Checked in: #1, the reveals of Steps 1, 2 and 4. #2, every Merge and Send in Ste
 
 ---
 
-## 0:31 · Break
-
-**Time:** 4 min. Starts the 4-minute break. Labs can still finish Step 3.
-
-**Say:** Break. Back in 4 minutes.
-
-**Do:** Write the return time on the board. Help any lab that is not done.
-
-**Watch for (A):** Any lab whose Step 3 goals do not all tick. Finish the merge with them, or press **Rescue**.
-
----
-
-## 0:35 · Step 4 · Share your work through the Wall
+## 0:31 · Step 4 · Share your work through the Wall
 
 **Time:** 9 min (one more than before: predictions and the choice). Students hit the problem first.
 
@@ -291,7 +278,7 @@ Checked in: #1, the reveals of Steps 1, 2 and 4. #2, every Merge and Send in Ste
 
 **Watch for:** Done when the Wall shows every lab's change: 👑 🛼 🕶️ with 3 labs.
 
-## 0:44 · Step 4 · How Git does it · `git push / git pull`, `git rebase`
+## 0:40 · Step 4 · How Git does it · `git push / git pull`, `git rebase`
 
 **Time:** 5 min.
 
@@ -331,7 +318,7 @@ Checked in: #1, the reveals of Steps 1, 2 and 4. #2, every Merge and Send in Ste
 
 ---
 
-## 0:49 · Step 5 · Undo a change everyone already has
+## 0:45 · Step 5 · Undo a change everyone already has
 
 **Time:** 7 min (one more than before: the choice and predictions).
 
@@ -353,7 +340,7 @@ Checked in: #1, the reveals of Steps 1, 2 and 4. #2, every Merge and Send in Ste
 
 **Watch for:** Done when each lab undid 🥸 itself and the Wall shows no 🥸.
 
-## 0:56 · Step 5 · How Git does it · `git revert / git reset`
+## 0:52 · Step 5 · How Git does it · `git revert / git reset`
 
 **Time:** 3 min.
 
@@ -380,7 +367,7 @@ Checked in: #1, the reveals of Steps 1, 2 and 4. #2, every Merge and Send in Ste
 
 ---
 
-## 0:59 · Step 6 · Rewrite the shared history
+## 0:55 · Step 6 · Rewrite the shared history
 
 **Time:** 4 min.
 
@@ -400,7 +387,7 @@ Checked in: #1, the reveals of Steps 1, 2 and 4. #2, every Merge and Send in Ste
 
 **Watch for:** The Wall now shows two cards: Start ← Clean history.
 
-## 1:03 · Step 6 · How Git does it · Squash + `git push --force`
+## 0:59 · Step 6 · How Git does it · Squash + `git push --force`
 
 **Time:** 4 min.
 
@@ -429,7 +416,36 @@ Checked in: #1, the reveals of Steps 1, 2 and 4. #2, every Merge and Send in Ste
 
 ---
 
-## 1:07 · The paper
+## 1:03 · Find the path back
+
+**Time:** 8 min.
+
+**Next does:** Nothing new.
+
+**Projector (students see the same figure, and step through it on their own):** Just et al., ISSRE 2016 · §6, The Ugly. Five problems from today, each with its step: Fast-forward (Step 3), Rebase (Step 4), Clocks and names (Step 1), Apply and cherry-pick, Squash (Step 6). Then the paper's integration path detection (§6.2) on the paper's own example, Figure 3: branch A, eight commits, drawn as the figure draws it, with the six tier planes stacked beside it. One tier per press of **Tier ›**:
+- **Tier 0 · Global multi graph:** every commit any branch reaches. A (purple) ends at 8, B (blue) at 7. No times.
+- **Tier 1 · Global branch/merge graph:** edits (white, one parent) and merges (grey, two).
+- **Tier 2 · Branch graph (A):** branch edges (a first parent, orange dashed) and merge edges (purple).
+- **Tier 3 · Navigation graph (A):** forward (blue) back from A's head along first parents, and the side line 2 → 5 → 7; every other edge is a switch (pink dashed).
+- **Tier 4 · Integration graph (A):** integration edges (green), the shortest way to where each commit first reaches A; every other edge a delay (purple dashed). Commit 2's path, 2 → 3 → 4, is bold.
+- **Tier 5 · Convergence graph (A):** visibility (red): each commit points to where it first becomes visible to A: 2 and 3 at 4, 5 at 6, 7 at 8.
+- Under it: code velocity is the time from a change being made to it joining main, along its fastest integration path (§6.1). Only this last step reads a clock.
+
+**In the app:** students click a plane to open its tier, press **Step ›** to watch the algorithm label one edge at a time (with a sentence for each), and click any commit for its line, its integration path and where it joins A.
+
+**Say:** Every problem today hid where a change came from. The paper's answer is an algorithm that rebuilds each change's path to main from the arrows alone, in six layers. This is the paper's own example, Figure 3.
+
+**Do:** Press Tier › and read each tier's line. At Tier 4, point at commit 2's path, 2 → 3 → 4. At Tier 5, point at the red arrows. Students can step through each tier and click commits in the app.
+
+**Ask:** Commit 2 reaches branch A at 4, through 3. Why not at 6, through 5?
+
+**Hope to hear:** The algorithm wants the earliest integration: 4 comes before 6 on A's line, and 2 → 3 → 4 is the shortest path there. 2 → 5 → 6 is a delay.
+
+**If asked:** The algorithm uses no timestamps (§6.2): Git checks no clock (Step 1), but the arrows are part of each commit's ID. Its limit: a cherry-picked or applied change has no arrow back (§6.2, last paragraph), and after a squash (Step 6) there are no arrows left to follow.
+
+---
+
+## 1:11 · The paper
 
 **Time:** 5 min.
 
@@ -437,11 +453,6 @@ Checked in: #1, the reveals of Steps 1, 2 and 4. #2, every Merge and Send in Ste
 - **Good:** Cheap branches. Local commits and reverts. Developers prefer a flat history.
 - **Bad:** Fast-forward forgets which branch a change came from. Rebase rewrites the commit; the patch can change too. Squash can drop the cards — and, once the branch is deleted, even who made them.
 - **Ugly:** Microsoft traces each change's route to main: its integration path. For Git, that tracing had to be redesigned from scratch. Some loss cannot be recovered.
-- What you lived:
-  - Step 3: after the fast-forward, you deleted fancy. No card says which cards were made on it.
-  - Step 4: Replay on top made a copy with a new ID; the original card is not on the Wall. (If no lab replayed: "Step 4: no lab replayed. Replay on top makes a copy with a new ID; the original stays off the Wall.")
-  - Step 6: the squash dropped the cards, and who made them.
-  - Step 6: the 🥾 audit failed. The Wall no longer knows who added the boots.
 - Code velocity in this class: each lab's Step 4 line, as it was at the end of Step 4. Under it: "After the squash, the Wall has none of these cards."
 - **For analysts, flat history is data loss.** Next to it, the trade-off: "Flat history helps developers find and revert a bad change (bisect, revert). It loses where a change came from and who made it."
 
@@ -461,7 +472,7 @@ Checked in: #1, the reveals of Steps 1, 2 and 4. #2, every Merge and Send in Ste
 
 ---
 
-## 1:12 · Exit question
+## 1:16 · Exit question
 
 **Time:** 3 min.
 
@@ -481,21 +492,7 @@ Checked in: #1, the reveals of Steps 1, 2 and 4. #2, every Merge and Send in Ste
 
 ---
 
-## 1:15 · What you did today
-
-**Time:** 2 min.
-
-**Projector:** "Cards never change. Branches move. The Wall copies cards." Then a wall of takeaways, without names. Each student sees "My Git in 7 lines" and their lab's counts, with a Copy button.
-
-**Say:** A commit never changes. A branch is a pointer that moves. The Wall holds copies of commits. That is the whole model. On Thursday we look at a study of people asking about Git. No reading needed.
-
-**Do:** Read one lab's counts aloud. Point at the takeaway wall.
-
-**Watch for:** After class, **Export answers** (under Details) saves every answer and takeaway as Markdown.
-
----
-
-## 1:17 · Buffer
+## 1:19 · Buffer
 
 **Time:** 3 min. Spend it wherever you ran over.
 

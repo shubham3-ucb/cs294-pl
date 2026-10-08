@@ -1,9 +1,10 @@
 // Outfit Lab: the student page.
 // One state object from /api/state, refetched whenever the server's {v, boot} changes.
 // The teacher's Next moves the scene. Join, task, reveal and break scenes show the lab's work;
-// the paper, the exit question and the wrap show one full-width card.
+// Find the path back, the paper, the exit question and the wrap show one full-width card.
 import { PARTS, emoji, nameOf, palette, renderMonsterCard } from '/monster.js';
 import { renderGraph, plainMessage, clockOf, velocity, pathBadges } from '/graph.js';
+import { renderFigure, events as figEvents, pickLines, LEGEND as FIG_LEGEND, COLOR as FIG_COLOR } from '/figure3.js';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
@@ -24,7 +25,7 @@ const KEY = {
 const MERGE_OPEN = 'Finish or cancel the merge first.'; // the server's words; the page adds where to press
 const ANSWER_MAX = 280; // the server's limits
 const TAKEAWAY_MAX = 100;
-const CARD_SCENES = new Set(['paper', 'exit', 'wrap']); // one full-width card instead of the lab's work
+const CARD_SCENES = new Set(['paths', 'paper', 'exit', 'wrap']); // one full-width card instead of the lab's work
 
 // The action row, in step order. Each unlocks at the step whose `unlocks` lists its id.
 // Step 4's two ways to get the Wall's cards (way) sit side by side, as one choice.
@@ -664,12 +665,78 @@ async function copyGitIn7() {
   toast(ok ? 'Copied. Paste it into your notes.' : 'Copy did not work. Select the lines and copy them.', ok ? 'good' : 'bad');
 }
 
-// ---------- The paper, the exit question, the wrap ----------
+// ---------- Find the path back, the paper, the exit question, the wrap ----------
 
 function renderScene() {
   const { scene } = V;
-  patch($('scene-body'), scene.kind === 'paper' ? paperHTML(scene.paper) : scene.kind === 'exit' ? exitHTML(scene) : wrapHTML(scene));
+  if (scene.id !== looking.scene) looking = { scene: scene.id, tier: null, upto: Infinity, pick: null };
+  const html = scene.kind === 'paths' ? pathBackHTML() : scene.kind === 'paper' ? paperHTML(scene.paper) : scene.kind === 'exit' ? exitHTML(scene) : wrapHTML(scene);
+  patch($('scene-body'), html);
   patch($('scene-foot'), scene.kind === 'wrap' ? summaryHTML() : '');
+  if (scene.kind === 'paths') drawFigure();
+}
+
+// Find the path back: the paper's Figure 3, interactive. Each student picks a tier (or follows the projector's
+// until they do), runs it one label at a time with Step, and clicks commits.
+let looking = { scene: null, tier: null, upto: Infinity, pick: null };
+const tierNow = () => looking.tier ?? state.session.paths?.tier ?? 0;
+
+function pathBackHTML() {
+  const p = state.session.paths;
+  const tier = tierNow();
+  const t = p.tiers[tier];
+  const all = figEvents(tier);
+  const upto = Math.min(looking.upto, all.length);
+  const say = upto < all.length || looking.upto !== Infinity ? all[upto - 1]?.say : null;
+  const lines = looking.pick ? pickLines(looking.pick) : null;
+  const key = (name, color, dashed) => `<span><svg width="30" height="10" aria-hidden="true"><line x1="1" y1="5" x2="29" y2="5" stroke="${color}"
+    stroke-width="2.5"${dashed ? ' stroke-dasharray="5 4"' : ''}/></svg>${esc(name)}</span>`;
+  return `<p class="eyebrow">${esc(p.source)}</p><h1>${esc(p.title)}</h1>
+    <p class="instruction">${rich(p.intro)}</p>
+    <div class="pv-problems">${p.problems.map((x) => `<div><p><b>${esc(x.tool)}</b>${x.step !== null ? ` <span class="muted">· Step ${x.step}</span>` : ''}</p>
+      <p>${rich(x.text)}</p></div>`).join('')}</div>
+    <div class="f3">
+      <div class="f3-stack" role="group" aria-label="The six tiers of Figure 3">${p.tiers.map((x, i) => `<button type="button" data-tier="${i}"
+        class="f3-plane${i === tier ? ' on' : ''}" aria-pressed="${i === tier}"><span class="f3-sheet"><svg data-mini="${i}"></svg></span>
+        <span class="f3-name">Tier ${esc(x.n)} · ${esc(x.name)}</span></button>`).join('')}</div>
+      <div class="f3-main">
+        <div class="pv-tier"><p class="label">Tier ${esc(t.n)} · ${esc(t.name)}</p><p>${rich(t.text)}</p></div>
+        <svg id="f3-svg" class="f3-svg" role="img" aria-label="Figure 3, tier ${esc(t.n)}"></svg>
+        <p class="legend"><span><svg width="14" height="14" aria-hidden="true"><circle cx="7" cy="7" r="6" fill="#fff" stroke="#8A9095"/></svg>edit</span>
+          <span><svg width="14" height="14" aria-hidden="true"><circle cx="7" cy="7" r="6" fill="${FIG_COLOR.merge}"/></svg>merge</span>
+          ${FIG_LEGEND[tier].map(([n, c, d]) => key(n, c, d)).join('')}</p>
+        <div class="f3-controls">
+          <button type="button" data-f3="back"${tier === 0 ? ' disabled' : ''}>‹ Tier</button>
+          <button type="button" data-f3="step" class="primary">${upto >= all.length && looking.upto !== Infinity ? 'Run again' : 'Step ›'}</button>
+          <button type="button" data-f3="all">Show all</button>
+          <button type="button" data-f3="next"${tier === p.tiers.length - 1 ? ' disabled' : ''}>Tier ›</button>
+          <span class="muted small">${upto} / ${all.length} labels</span>
+        </div>
+        <p class="f3-say">${say ? esc(say) : 'Press <b>Step ›</b> to run this tier one label at a time. Click a commit to follow it.'}</p>
+      </div>
+    </div>
+    ${lines ? `<div class="pv-picked"><p class="label">Commit ${esc(looking.pick)}</p>${[lines.what, lines.line, lines.path, lines.joins]
+      .filter(Boolean).map((l) => `<p>${esc(l)}</p>`).join('')}</div>` : ''}
+    <p class="small">${rich(p.formula)}</p><p class="pv-gone">${rich(p.gone)}</p>`;
+}
+
+function drawFigure() {
+  const svg = $('f3-svg');
+  if (!svg) return;
+  const pick = (id) => { looking.pick = looking.pick === id ? null : id; renderScene(); };
+  renderFigure(svg, { tier: tierNow(), upto: looking.upto, pick: looking.pick, onPick: pick });
+  for (const mini of $('scene-body').querySelectorAll('[data-mini]')) renderFigure(mini, { tier: Number(mini.dataset.mini), mini: true });
+}
+
+// Tier ‹ ›, Step, Show all: on this page only.
+function moveFigure(what) {
+  const tier = tierNow();
+  const n = figEvents(tier).length;
+  if (what === 'back' || what === 'next') Object.assign(looking, { tier: Math.max(0, Math.min(5, tier + (what === 'back' ? -1 : 1))), upto: Infinity });
+  if (what === 'all') looking.upto = Infinity;
+  if (what === 'step') looking.upto = looking.upto === Infinity || looking.upto >= n ? 1 : looking.upto + 1;
+  if (what === 'step' || what === 'all') looking.tier = tier;
+  renderScene();
 }
 
 function paperHTML(p) {
@@ -680,7 +747,6 @@ function paperHTML(p) {
     <div class="gbu">${column('The Good', 'good', p.good)}${column('The Bad', 'bad', p.bad)}${column('The Ugly', 'ugly', p.ugly)}</div>
     <p class="paper-message">${esc(p.message)}</p>
     <p class="paper-tradeoff">${esc(p.tradeoff)}</p>
-    <div class="lived"><h3>What you lived</h3><ul>${p.lived.map((l) => `<li>${esc(l.text)}</li>`).join('')}</ul></div>
     ${velocityHTML()}`;
 }
 
@@ -1416,6 +1482,12 @@ function wire() {
     if (e.key === 'Enter' && !e.shiftKey && e.target.dataset.field) { e.preventDefault(); sendField(e.target); }
   });
   $('qa').addEventListener('click', (e) => { if (e.target.closest('[data-copy]')) copyGitIn7(); });
+  $('scene-body').addEventListener('click', (e) => {
+    const tier = e.target.closest('[data-tier]');
+    if (tier) { Object.assign(looking, { tier: Number(tier.dataset.tier), upto: Infinity }); renderScene(); }
+    const move = e.target.closest('[data-f3]');
+    if (move) moveFigure(move.dataset.f3);
+  });
 
   $('draft').addEventListener('click', (e) => {
     const btn = e.target.closest('[data-part]');

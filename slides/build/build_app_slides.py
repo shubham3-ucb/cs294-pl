@@ -273,7 +273,7 @@ def paper(prs, app, scene):
     trade-off for developers. Second: what the class lived, and the pairs question. Each band starts below the last."""
     s = blank(prs, notes=notes(scene))
     p = app['paper']
-    text(s, M, Inches(0.45), CONTENT_W, Inches(0.4), f"Tuesday's paper · {p['source']}", size=18,
+    text(s, M, Inches(0.45), CONTENT_W, Inches(0.4), p['source'], size=18,
          color=MUTED)
     text(s, M, Inches(0.8), CONTENT_W, Inches(0.6), p['title'], size=32, bold=True)
     gap = Inches(0.4)

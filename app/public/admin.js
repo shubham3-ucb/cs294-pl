@@ -29,6 +29,8 @@ const TOOLS = {
   audit: { html: `Ask the Wall who first added ${BOOTS}`, path: '/api/admin/audit' },
   gc: { html: "Empty the Wall's bin <code>git gc --prune=now</code>", path: '/api/admin/gc' },
   timer: { html: 'Restart the break timer', path: '/api/admin/timer' },
+  tierBack: { html: '‹ Tier', path: '/api/admin/tier', body: { dir: 'back' } },
+  tierNext: { html: 'Tier ›', path: '/api/admin/tier', body: { dir: 'next' } },
 };
 
 let state = null;
@@ -99,7 +101,7 @@ $('answers-names').onchange = (e) => {
 
 $('tools').addEventListener('click', (e) => {
   const button = e.target.closest('[data-tool]');
-  if (button) act(TOOLS[button.dataset.tool].path, {}, { button });
+  if (button) act(TOOLS[button.dataset.tool].path, TOOLS[button.dataset.tool].body ?? {}, { button });
 });
 
 // ---------- Labs ----------

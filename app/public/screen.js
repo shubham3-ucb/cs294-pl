@@ -4,6 +4,9 @@
 // and Step 4's integration paths (session.integration).
 import { renderGraph, velocity } from '/graph.js';
 import { emoji, renderMonsterCard } from '/monster.js';
+import { renderFigure, pickLines, LEGEND as FIG_LEGEND, COLOR as FIG_COLOR } from '/figure3.js';
+
+const EXAMPLE = '2'; // Figure 3's worked example on the projector
 
 // The teacher key comes from ?key= once. It then lives in this tab's sessionStorage (a reload still works) and
 // leaves the address bar, so it is not on screen or in a shared screenshot.
@@ -123,7 +126,7 @@ const pill = (text) => `<span class="pill">${esc(text)}</span>`;
 
 // The pill and title: "STEP 2 Try two ideas at once", or "THE PAPER" / "EXIT QUESTION" alone.
 function head(scene, state, { timer = false, title = '' } = {}) {
-  const named = { paper: 'The paper', exit: 'Exit question' }[scene.kind];
+  const named = { paths: 'The paper · §6', paper: 'The paper', exit: 'Exit question' }[scene.kind];
   const h1 = title || (named ? '' : esc(state.session.steps[scene.step].title));
   return `<header class="sl-head">${pill(named ?? `Step ${scene.step}`)}${h1 ? `<h1>${h1}</h1>` : ''}
     ${timer ? '<span class="sl-clock" data-clock></span>' : ''}</header>`;
@@ -267,7 +270,33 @@ const SLIDES = {
       <p class="sl-line">Back at ${esc(timeOfDay(startedAt + minutes * 60e3))}</p></div>`;
   },
 
-  // Good / Bad / Ugly, this class's code velocity next to what they lived, then the one message with its trade-off.
+  // Find the path back: the paper's Figure 3, at the teacher's tier, with the six planes stacked beside it as in the
+  // figure. At Tiers 4–5 commit 2 is the worked example: its path 2 → 3 → 4.
+  paths(scene, state) {
+    const p = state.session.paths;
+    const tier = p.tier ?? 0;
+    const t = p.tiers[tier];
+    const lines = tier >= 4 ? pickLines(EXAMPLE) : null;
+    const key = (name, color, dashed) => `<span><svg viewBox="0 0 30 10" aria-hidden="true"><line x1="1" y1="5" x2="29" y2="5" stroke="${color}"
+      stroke-width="2.5"${dashed ? ' stroke-dasharray="5 4"' : ''}/></svg>${esc(name)}</span>`;
+    return `${head(scene, state, { title: esc(p.title) })}
+      <div class="sl-f3">
+        <div class="sl-f3-stack">${p.tiers.map((x, i) => `<div class="sl-f3-plane${i === tier ? ' on' : ''}"><span class="sl-f3-sheet"><svg data-mini="${i}"></svg></span>
+          <span>Tier ${esc(x.n)}</span></div>`).join('')}</div>
+        <div class="sl-f3-main">
+          <p class="sl-label">Figure 3 · Tier ${esc(t.n)} · ${esc(t.name)}</p>
+          <p class="sl-tier-text">${md(t.text)}</p>
+          <svg class="sl-f3-svg" data-figure></svg>
+          <p class="sl-f3-legend"><span><svg viewBox="0 0 14 14" aria-hidden="true"><circle cx="7" cy="7" r="6" fill="#fff" stroke="#8A9095"/></svg>edit</span>
+            <span><svg viewBox="0 0 14 14" aria-hidden="true"><circle cx="7" cy="7" r="6" fill="${FIG_COLOR.merge}"/></svg>merge</span>
+            ${FIG_LEGEND[tier].map(([n, c, d]) => key(n, c, d)).join('')}</p>
+          ${lines ? `<p class="sl-evidence">${esc([lines.path, lines.joins].join(' '))}</p>` : ''}
+          ${tier === 5 ? `<p class="sl-pv-formula">${md(p.formula)}</p>` : ''}
+        </div>
+      </div>`;
+  },
+
+  // Good / Bad / Ugly, this class's code velocity, then the one message with its trade-off.
   // The paths are as they were at the end of Step 4; the line under them checks the Wall now.
   paper(scene, state) {
     const p = scene.paper;
@@ -276,13 +305,12 @@ const SLIDES = {
     const paths = state.session.integration?.paths ?? [];
     const onWall = new Set(state.wall?.graph.commits.filter((c) => c.reachable !== false).map((c) => c.id));
     const gone = paths.length > 0 && paths.every((x) => x.cards.every((id) => !onWall.has(id)));
-    return `<p class="sl-source">Tuesday's paper · ${esc(p.source)}</p>
+    return `<p class="sl-source">${esc(p.source)}</p>
       <h1 class="sl-title">${esc(p.title)}</h1>
       <div class="sl-cols">${col('good', 'Good', p.good)}${col('bad', 'Bad', p.bad)}${col('ugly', 'Ugly', p.ugly)}</div>
       <div class="sl-class">
         ${paths.length ? `<div><p class="sl-label">Code velocity in this class</p>${pathsHtml(paths, state)}
           ${gone ? '<p class="sl-gone">After the squash, the Wall has none of these cards.</p>' : ''}</div>` : ''}
-        <div><p class="sl-label">What you lived</p><ul class="sl-lived">${p.lived.map((l) => `<li>${esc(l.text)}</li>`).join('')}</ul></div>
       </div>
       <div class="sl-msg"><p class="sl-message">${esc(p.message)}</p><p class="sl-tradeoff">${esc(p.tradeoff)}</p></div>`;
   },
@@ -336,6 +364,12 @@ export function renderSlide(root, state) {
       const path = svg.dataset.path ? svg.dataset.path.split(' ') : [];
       renderGraph(svg, wall, { labels: true, compact: true, maxCols: 7, pillFont: 14, path });
     } else if (svg) renderGraph(svg, wall, { labels: true, maxCols: 5, pillFont: 16 });
+    const figure = root.querySelector('[data-figure]');
+    if (figure) {
+      const tier = state.session.paths.tier ?? 0;
+      renderFigure(figure, { tier, pick: tier >= 4 ? EXAMPLE : null });
+      for (const mini of root.querySelectorAll('[data-mini]')) renderFigure(mini, { tier: Number(mini.dataset.mini), mini: true });
+    }
   }
   tickSlide(root, state);
 }

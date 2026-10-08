@@ -1,6 +1,6 @@
 # Teacher brief · Git week in 10 minutes
 
-Two 80-minute classes, one app. Students need no reading beforehand: each class tells them what they need. You press **Next**; the class runs. Students use their laptops; the projector is the slide deck; your laptop shows a private console with what to **Say**, what to **Ask**, and the answer you hope to hear.
+Two classes, one app: Tuesday 82 minutes, Thursday 80. Students need no reading beforehand: each class tells them what they need. You press **Next**; the class runs. Students use their laptops; the projector is the slide deck; your laptop shows a private console with what to **Say**, what to **Ask**, and the answer you hope to hear.
 
 | | Tuesday · Outfit Lab | Thursday · The Humans |
 |---|---|---|
@@ -26,13 +26,12 @@ Next → read **Say** → students work (watch "done" on the console, or the clo
 | 0:06 | **1 Save** · `git commit` | Each saves one card | A commit = a snapshot + parent + name + time. Git trusts your laptop's name and clock |
 | 0:12 | **2 Two ideas** · `git switch -c` | Pairs build fancy and sporty on branches | A branch is a name pointing at a card. Nothing is copied |
 | 0:19 | **3 Combine** · `git merge` | **Predict**, merge fancy (fast-forward), delete it; predict, merge sporty (conflict on TOP, a person picks) | After a fast-forward and delete, no card says it was made on fancy |
-| 0:31 | Break | | |
-| 0:35 | **4 Share** · `push`, `pull`, `rebase` | Predict each send. First lab gets in; refused labs **choose** merge or rebase | Push only moves forward. Rebase replays a card: same change and author, new parent → new ID |
-| 0:49 | **5 Undo** · `revert`, `reset` | The Intern's 🥸 card arrives. Each lab **chooses** Undo (revert) or Move back (reset) | Revert adds a fix card: safe to share. Reset drops a shared card: the Wall refuses it |
-| 0:59 | **6 Clean up** · squash, `push --force`, `gc` | The boss squashes the Wall into one card | "Who added the 🥾?" — the Wall no longer knows |
-| 1:07 | **The paper** | Pairs: squash-merge, gains vs losses | Gain: one revertable card per feature. Lose: who wrote what, and when |
-| 1:12 | Exit | Password reached the Wall: does revert remove it? | No. Change the password; then rewrite, force push, gc, and everyone re-clones |
-| 1:15 | Wrap | My Git in 7 lines | — |
+| 0:31 | **4 Share** · `push`, `pull`, `rebase` | Predict each send. First lab gets in; refused labs **choose** merge or rebase | Push only moves forward. Rebase replays a card: same change and author, new parent → new ID |
+| 0:45 | **5 Undo** · `revert`, `reset` | The Intern's 🥸 card arrives. Each lab **chooses** Undo (revert) or Move back (reset) | Revert adds a fix card: safe to share. Reset drops a shared card: the Wall refuses it |
+| 0:55 | **6 Clean up** · squash, `push --force`, `gc` | The boss squashes the Wall into one card | "Who added the 🥾?" — the Wall no longer knows |
+| 1:03 | **Find the path back** | Step through the paper's Figure 3, tier by tier; click a commit | The paper rebuilds each change's path from arrows alone; a clock only for velocity. After a squash, nothing is left to follow |
+| 1:11 | **The paper** | Pairs: squash-merge, gains vs losses | Gain: one revertable card per feature. Lose: who wrote what, and when |
+| 1:16 | Exit | Password reached the Wall: does revert remove it? | No. Change the password; then rewrite, force push, gc, and everyone re-clones |
 
 **Git you must know cold (Tuesday)**
 - A **commit** stores a snapshot, its parent(s), author + time, committer + time. Its ID is a hash of all of it: change anything, new ID.

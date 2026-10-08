@@ -7,7 +7,7 @@ Teaching materials for Git week in UC Berkeley CS294 *Modern Programming Tools* 
 
 ### Tuesday · Outfit Lab
 
-80 minutes, 7 steps. Each step: the class hits a problem, fixes it with one Git tool, then sees how Git does it on one technical card per tool. The paper is Just et al., *Switching to Git: the Good, the Bad, and the Ugly*, ISSRE 2016. Its message, for analysts: **flat history is data loss**, against what developers gain from it (easy bisect and revert).
+82 minutes, 7 steps. Each step: the class hits a problem, fixes it with one Git tool, then sees how Git does it on one technical card per tool. The paper is Just et al., *Switching to Git: the Good, the Bad, and the Ugly*, ISSRE 2016. Its message, for analysts: **flat history is data loss**, against what developers gain from it (easy bisect and revert).
 
 | Step | What happens | Git tools | Paper |
 |---|---|---|---|
@@ -18,6 +18,7 @@ Teaching materials for Git week in UC Berkeley CS294 *Modern Programming Tools* 
 | 4 Share | The Wall is the class's shared copy. The first send wins; refused labs merge or rebase. Each change's path to main, with this class's times. | `git clone`, `git push`, `git pull --no-rebase`, `git pull --rebase` | §5.2 rebase · §6 integration paths, code velocity |
 | 5 Undo | The Intern's 🥸 card reaches every lab. A fix card (revert) sends like any card. Moving the branch back (reset), then sending, is refused. | `git revert`, `git reset --hard`, `git reflog` | §5.5 revert |
 | 6 Clean up | The boss squashes and force-pushes. "Who first added the 🥾 boots?" now fails on the Wall. | squash, `git push --force`, `git gc` | §5.4 squash · §8 loss that cannot be recovered |
+| Find the path back | The algorithm the paper introduces (§6.2), on its own Figure 3: six tiers, from the raw graph to where each commit first reaches branch A. Step through a tier one label at a time; click a commit for its integration path. | none (reads the graph) | §6.1 code velocity · §6.2 the tiers |
 
 ### Thursday · The Humans
 
