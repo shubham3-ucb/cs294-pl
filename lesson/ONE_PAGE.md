@@ -1,6 +1,6 @@
 # Tuesday · Outfit Lab · one page
 
-80 min · 3 labs · S presses only **Next** (→ / Space; ← = Back). A walks the labs. Each step is two scenes: a task, then a reveal with the question. Ask before the reveal. Read Say and Ask from the teacher page.
+82 min · 3 labs · S presses only **Next** (→ / Space; ← = Back). A walks the labs. Each step is two scenes: a task, then a reveal with the question. Ask before the reveal. Read Say and Ask from the teacher page.
 
 | Time | Scene | The one question | Hope to hear |
 |---|---|---|---|
@@ -10,14 +10,13 @@
 | 0:06:30 | Step 1 · Save card. Reveal: `git commit` + "Git stores the name and clock your laptop gives it. It checks neither." | Why do arrows point back, never forward? | The next card doesn't exist yet. Cards never change. |
 | 0:12 | Step 2 · fancy and sporty. Switch refuses unsaved parts. Reveal: `git branch`. | Where is the original outfit now? Did anything get copied? | Still on main's card. Nothing was copied. |
 | 0:19 | Step 3 · **Predict**, then merge fancy (fast-forward) and delete it; predict, then merge sporty (TOP conflict). Reveal: `git merge` + who predicted right. | Which cards were made on fancy? | No way to tell. Git does not record the branch a commit was made on. |
-| 0:31 | **Break, 4 min.** | — | — |
-| 0:35 | Step 4 · Predict each send. The first lab gets in; a refused lab **chooses** merge or rebase and says why. Reveal: `push / pull`, `rebase`, paths with this class's times, choices, accuracy. | The replayed card has the same change, author and author time. Why a new ID? | Its parent is new, so its snapshot is too; its committer time is new. The ID is a hash of all of it. |
-| 0:49 | Step 5 · The 🥸 card arrives. Each lab **chooses** Undo (revert) or Move back (reset); predict each send. Reveal: `revert / reset`. | Why is adding a fix card safe, but moving back is not? | A fix card only adds. Moving back drops a shared card. |
-| 0:59 | Step 6 · The 🥾 audit; the boss lab squashes and force-pushes. Reveal: the audit again, then Empty the Wall's bin. | Who added the boots? Where does that answer still exist? | Not on the Wall. Only in labs that kept the old cards. |
-| 1:07 | The paper: **for analysts, flat history is data loss.** Pairs, 2 min. | Your team squash-merges every feature branch and deletes it. What do you gain, and what can an auditor no longer answer? | Gain: one revertable card per feature, easy bisect. Lose: who wrote which part and when. |
-| 1:12 | Exit question, on your own. | A password reached the Wall. Two labs pulled. Does Undo this card (revert) remove it? If not, what would? | No. Change the password first. Then rewrite, force push and gc the Wall, and every lab re-clones. |
-| 1:15 | What you did today: My Git in 7 lines. | — | — |
-| 1:17 | **Buffer, 3 min.** | — | — |
+| 0:31 | Step 4 · Predict each send. The first lab gets in; a refused lab **chooses** merge or rebase and says why. Reveal: `push / pull`, `rebase`, paths with this class's times, choices, accuracy. | The replayed card has the same change, author and author time. Why a new ID? | Its parent is new, so its snapshot is too; its committer time is new. The ID is a hash of all of it. |
+| 0:45 | Step 5 · The 🥸 card arrives. Each lab **chooses** Undo (revert) or Move back (reset); predict each send. Reveal: `revert / reset`. | Why is adding a fix card safe, but moving back is not? | A fix card only adds. Moving back drops a shared card. |
+| 0:55 | Step 6 · The 🥾 audit; the boss lab squashes and force-pushes. Reveal: the audit again, then Empty the Wall's bin. | Who added the boots? Where does that answer still exist? | Not on the Wall. Only in labs that kept the old cards. |
+| 1:03 | Find the path back: the paper's algorithm on its own Figure 3, tier by tier (**Tier ›** on the console). Students step and click in the app. | Commit 2 reaches branch A at 4, through 3. Why not at 6, through 5? | 4 is the earliest integration; 2 → 3 → 4 is the shortest path. 2 → 5 → 6 is a delay. |
+| 1:11 | The paper: **for analysts, flat history is data loss.** Pairs, 2 min. | Your team squash-merges every feature branch and deletes it. What do you gain, and what can an auditor no longer answer? | Gain: one revertable card per feature, easy bisect. Lose: who wrote which part and when. |
+| 1:16 | Exit question, on your own. | A password reached the Wall. Two labs pulled. Does Undo this card (revert) remove it? If not, what would? | No. Change the password first. Then rewrite, force push and gc the Wall, and every lab re-clones. |
+| 1:19 | **Buffer, 3 min.** | — | — |
 
 **Never cut:** the Step 3 conflict · the refused sends in Steps 4 and 5 · both Step 6 scenes · the exit question.
 

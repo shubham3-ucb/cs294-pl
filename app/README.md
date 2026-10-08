@@ -1,7 +1,7 @@
 # Outfit Lab · teacher guide
 
 Each lab dresses one character together (HAT, GLASSES, TOP, SHOES). Every save, merge, send and undo runs real Git on the server. Before each merge and send, students predict what Git will do; the reveal shows how many predicted right.
-You press **Next**. The class walks one fixed script of 19 scenes, and the projector is the slide deck.
+You press **Next**. The class walks one fixed script of 18 scenes, and the projector is the slide deck.
 
 Lesson script: [tuesday.md](../lesson/tuesday.md) · one page: [ONE_PAGE.md](../lesson/ONE_PAGE.md) · what the app does: [SPEC.md](SPEC.md)
 
@@ -38,7 +38,7 @@ Open http://localhost:3000/. The terminal prints the teacher link (`/admin?key=K
 
 ## In class: press Next, and only Next
 
-Join → **0 Chaos** → **1 Save** (commit) → **2 Two ideas** (branch) → **3 Combine** (merge) → Break → **4 Share** (clone, push, pull: merge or rebase) → **5 Undo** (revert, reset, reflog) → **6 Clean up** (squash, force push, gc) → the paper → the exit question → the wrap. 77 minutes, plus 3 of buffer.
+Join → **0 Chaos** → **1 Save** (commit) → **2 Two ideas** (branch) → **3 Combine** (merge) → **4 Share** (clone, push, pull: merge or rebase) → **5 Undo** (revert, reset, reflog) → **6 Clean up** (squash, force push, gc) → Find the path back → the paper → the exit question. 79 minutes, plus 3 of buffer.
 
 Each step is a task scene, then **How Git does it**: one technical card per tool (**What it is · What it does · How Git does it**), the same in the app and on the projector. Students work through each task in the app: their mission, goals that tick live, and **Need a hint?**, which names the next click.
 
@@ -58,8 +58,9 @@ What happens in the steps:
 - **Step 3.** After the fast-forward of fancy, each lab deletes the fancy branch (`git branch -d`). The reveal asks which cards were made on fancy. No card records it.
 - **Step 4.** The first lab to send gets in. A refused lab chooses its way: Combine (merge) or Replay on top (rebase), and says why in one line. The console tile shows "Chose: …"; if nobody picked one way, the reveal says what it would have done. A replayed card keeps its author and author time. It gets a new parent, so a new snapshot, a new committer time and a new ID. The original shows dashed: "only in your safety diary (reflog)". The reveal marks one change's path to main, with this class's own times ("made 10:21 → on the Wall 10:24 · 3 min").
 - **Step 5.** Each lab chooses **Undo this card** (revert) or **Move my branch back** (reset). Moving back, then sending, is refused by the Wall (non-fast-forward). If no lab moved back, the reveal says what would have happened.
+- **Find the path back** shows the algorithm the paper introduces (§6.2) on its own example, Figure 3 (branch A, eight commits), drawn as the figure draws it, with the six tier planes stacked beside it. **‹ Tier / Tier ›** on the console move the projector through Tiers 0–5; at Tiers 4–5 it marks commit 2's path, 2 → 3 → 4. Students pick a tier, press **Step ›** to watch it label one edge at a time, and click any commit for its line, integration path and where it joins A. The labels come from running the algorithm (`public/integration.js`), and a test checks every one against the figure.
 - **The paper** shows Step 4's paths as they were. After the squash, the Wall has none of those cards.
-- **The wrap.** Each student sees **My Git in 7 lines**: one takeaway per step, 0–6, editable, with Copy. The projector shows the takeaway wall without names. **Export answers** (under Details) downloads every answer and takeaway as Markdown.
+- **The end.** The exit question is the last scene. **Export answers** (under Details) downloads every answer and takeaway as Markdown.
 
 **Labs.** About 4 per lab (two pairs of 2): 1–3 people make 1 lab plus a practice lab, 4–8 make 2, 9–12 make 3, 13 or more make 4 to 6. With 2 or more labs, no lab starts with 1 person. Labs stay even until Step 1, then lock. A late joiner goes to the smallest lab. A student with nobody else online in the lab sees "You're both pairs today". Under **Details** you can set the count before Step 1 (it warns about a lab of 1 or a lab over 6) and move a person.
 
@@ -111,7 +112,8 @@ server/git.js         the real Git behind every button
 server/bots.js        Rehearse with bots
 server/monster.js     outfit.txt, the one file in every card
 server/thursday*.js   Thursday: the session, every word of its 17 scenes, and the 8 posts (thursday_posts.json)
-public/               student app (index.html, app.js), console (admin.*), projector (screen.*), graph.js, monster.js;
+public/               student app (index.html, app.js), console (admin.*), projector (screen.*), graph.js, monster.js,
+                      integration.js (the paper's integration path detection), figure3.js (its Figure 3, interactive);
                       Thursday: thu.* (students), thu-admin.*, thu-screen.*, thu-common.js (the shared slide renderer)
 test/  e2e/           npm test · npm run e2e
 host.sh               class on your laptop, with a temporary public link

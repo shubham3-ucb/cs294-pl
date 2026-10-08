@@ -126,7 +126,7 @@ async function run() {
       await sleep(Math.max(0, 600 - (Date.now() - started))); // the console ignores a second press within 400 ms
       await page.click('#next');
     }
-    await page.screenshot({ path: path.join(SHOTS, 'rehearsal-2-wrap-console.png') });
+    await page.screenshot({ path: path.join(SHOTS, 'rehearsal-2-end-console.png') });
 
     // The bots did every mission themselves (no Rescue), labelled "(bot)" everywhere.
     const a = await adminState();
@@ -161,7 +161,6 @@ async function run() {
     assert.ok(a.feed.some((e) => isBot(e.who) && e.action === 'Replace the Wall with one card'), 'Step 6: a bot in the boss lab replaced the Wall');
     assert.match(a.session.audits.before.rows[0].text, /^Wall: \S+ \(bot\) \(Lab \d\), [0-9a-f]{7}$/, 'before: the Wall knows which bot added the boots');
     assert.equal(a.session.audits.after.rows[0].text, 'Wall: not found');
-    assert.equal(a.projector.takeaways.length, 12, 'the takeaway wall at the wrap');
     const md = await fetch(`${BASE}/api/admin/export?key=${KEY}`).then((r) => r.text());
     assert.equal(md.match(/^### .+ \(bot\) · Lab \d$/gm)?.length, BOTS, 'the export lists every bot');
     await page.click('#details > summary');

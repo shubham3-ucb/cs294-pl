@@ -101,7 +101,7 @@ app.get('/api/inspect', handle((q) => session.act('inspect', q)));
 // ---------- Admin API (header x-admin-key or ?key=) ----------
 
 app.get('/api/admin/state', adminOnly, handle(async (q, req) => ({ ...await session.adminState(joinUrl(req)), rehearsal: bots.status() })));
-for (const action of ['next', 'back', 'labs', 'move', 'rescue', 'ask', 'answers', 'timer', 'sabotage', 'audit', 'gc', 'reset']) {
+for (const action of ['next', 'back', 'labs', 'move', 'rescue', 'ask', 'answers', 'timer', 'sabotage', 'audit', 'gc', 'tier', 'reset']) {
   app.post(`/api/admin/${action}`, adminOnly, handle((b) => session.admin(action, b)));
 }
 // Rehearse with bots: {on, count, speed}.
