@@ -1,5 +1,6 @@
 // Student page (/thu): join, then whatever the current scene asks. Polls the server every 2 s.
-// An activity a student has not finished (survey, labels, codes) stays on screen until its reveal is over.
+// An activity a student has not finished (survey, a sort, the posts) stays on screen until the class has moved past
+// its reveal. A box for questions to the class sits at the bottom of every screen.
 import { api, poll, slideHtml, esc, md } from '/thu-common.js';
 
 const app = document.getElementById('app');
@@ -15,21 +16,21 @@ const active = () => st.pending ?? st.scene;
 const refresh = poll(() => `/api/thu/state?pid=${encodeURIComponent(pid)}`, (s) => {
   st = s;
   if (!s.joined) { if (drawn !== 'join') drawJoin(); return; }
-  const sig = `${s.boot}:${active().id}:${s.pending ? 'late' : ''}:${s.group?.name ?? ''}`;
+  const sig = `${s.boot}:${active().id}:${s.pending ? 'late' : ''}:${s.group?.name ?? ''}:${(s.group?.members ?? []).join(',')}`;
   if (sig !== drawn) { drawn = sig; draw(); } else update();
 }, (up) => { banner.hidden = up; }, 2000);
 
-const top = () => `<header class="s-top"><h1>The Humans</h1><span class="muted">Thursday · Git, Part 2</span>
+const top = () => `<header class="s-top"><h1>Reading a user study</h1><span class="muted">Thursday · Git, part 2</span>
   <span class="who">${esc(st.me.name)}${st.group ? ` · ${esc(st.group.name)}` : ''}</span></header>`;
 const late = () => (st.pending ? '<p class="s-late">The class has moved on. Finish this, then look up.</p>' : '');
-const intro = (s) => `${late()}<div><p class="s-part">${esc(s.part)}</p><h2 class="s-title">${md(s.title)}</h2></div>
+const intro = (s) => `${late()}<div><h2 class="s-title">${md(s.title)}</h2></div>
   ${s.about ? `<p class="s-about">${md(s.about)}</p>` : s.lines?.length ? `<div class="s-lines">${s.lines.map((l) => `<p>${md(l)}</p>`).join('')}</div>` : ''}`;
 const msg = (el, text, kind = '') => { if (el) { el.textContent = text; el.className = `s-msg ${kind}`; } };
 
 function drawJoin() {
   drawn = 'join';
   app.innerHTML = `<form class="s-join" id="join">
-    <p class="s-part">Thursday · Git, Part 2</p><h1>The Humans</h1>
+    <h1>Reading a user study</h1><p class="muted">Thursday · Git, part 2</p>
     <label for="name">Your first name</label><input id="name" maxlength="24" autocomplete="given-name" required>
     <button class="primary" type="submit">Join</button><p class="s-msg" id="m"></p></form>`;
   document.getElementById('join').onsubmit = async (e) => {
@@ -49,14 +50,39 @@ async function send(body) {
 
 function draw() {
   const s = active();
-  const views = { survey: drawSurvey, vote: drawVote, label: drawLabels, code: drawCodes, group: drawGroup, exit: drawExit };
+  const views = { survey: drawSurvey, tasks: drawTasks, label: drawLabels, sort: drawSort, write: drawWrite, exit: drawExit };
   (views[s.kind] ?? drawPassive)(s);
+  questionBox();
 }
 
 function update() {
   const s = active();
-  if (s.kind === 'group') updateGroup();
-  else if (!['survey', 'vote', 'label', 'code', 'exit'].includes(s.kind)) drawPassive(s);
+  if (s.kind === 'write') updateWrite();
+  else if (!['survey', 'tasks', 'label', 'sort', 'exit'].includes(s.kind)) { drawPassive(s); questionBox(); }
+}
+
+// ---------- A question for the class, any time ----------
+function questionBox() {
+  if (document.getElementById('qbox')) { drawMine(); return; }
+  const box = document.createElement('form');
+  box.id = 'qbox';
+  box.className = 's-qbox';
+  box.innerHTML = `<label for="q">A question for the class? The teacher picks some to discuss.</label>
+    <div class="s-qrow"><input id="q" maxlength="200" placeholder="Your question"><button class="primary" type="submit">Send</button></div>
+    <p class="s-msg" id="qm"></p><ul class="s-mine" id="qmine"></ul>`;
+  app.append(box);
+  box.onsubmit = async (e) => {
+    e.preventDefault();
+    const input = document.getElementById('q');
+    const r = await api('/api/thu/ask', { pid, text: input.value });
+    msg(document.getElementById('qm'), r.ok ? 'Sent.' : r.error, r.ok ? 'ok' : 'err');
+    if (r.ok) { st.me.questions = [...(st.me.questions ?? []), input.value.trim()]; input.value = ''; drawMine(); }
+  };
+  drawMine();
+}
+function drawMine() {
+  const ul = document.getElementById('qmine');
+  if (ul) ul.innerHTML = (st.me.questions ?? []).map((q) => `<li>${esc(q)}</li>`).join('');
 }
 
 // Slides, reveals, the break: the projector's slide, on the laptop too. At the verdicts, the reasons as well.
@@ -70,21 +96,27 @@ function drawPassive(s) {
     return;
   }
   const why = s.shows === 'claims' && st.claims
-    ? `<div class="s-why"><p class="s-sub">Each claim: what was measured, and what that can and cannot show</p>${st.claims.map((c) =>
+    ? `<div class="s-why"><p class="s-sub">Each claim: what was measured, and the biggest threat</p>${st.claims.map((c) =>
       `<p><strong>“${esc(c.quote)}”</strong><br>They measured: ${esc(c.measured)} ${esc(c.why)}</p>`).join('')}</div>` : '';
   const slide = slideHtml(s, st.results, { paper: st.paper, claims: st.claims });
   if (slide + why === passive && app.querySelector('.s-slide')) return;
+  // Keep a question being typed across redraws.
+  const typing = document.getElementById('q')?.value ?? '';
   passive = slide + why;
   app.innerHTML = `${top()}<div class="slide s-slide">${slide}</div>${why}`;
+  questionBox();
+  if (typing) document.getElementById('q').value = typing;
 }
 
 // ---------- The paper's survey ----------
+// The paper's survey.
 function drawSurvey(s) {
-  const a = st.me.survey ?? {};
+  const saved = st.me.survey;
+  const a = saved ?? {};
   const qs = s.survey;
-  app.innerHTML = `${top()}${intro(s)}<form id="f">${qs.map((q) => question(q, a)).join('')}
-    <button class="primary" type="submit">${st.me.survey ? 'Update my answers' : 'Send'}</button>
-    <p class="s-msg" id="m">${st.me.survey ? 'Saved. You can change it until the class moves on.' : ''}</p></form>`;
+  app.innerHTML = `${top()}${intro(s)}<form id="f">${qs.map((q, i) => question(q, a, i + 1)).join('')}
+    <button class="primary" type="submit">${saved ? 'Update my answers' : 'Send'}</button>
+    <p class="s-msg" id="m">${saved ? 'Saved. You can change it until the class moves on.' : ''}</p></form>`;
   const f = document.getElementById('f');
   f.onsubmit = async (e) => {
     e.preventDefault();
@@ -103,8 +135,7 @@ function drawSurvey(s) {
   };
 }
 
-function question(q, a) {
-  const n = SURVEY_NUMBER[q.id];
+function question(q, a, n) {
   const label = `<p>${n}. ${esc(q.q)}${q.optional ? ' <small>(optional)</small>' : ''}</p>`;
   if (q.type === 'one' || q.type === 'many') {
     const type = q.type === 'one' ? 'radio' : 'checkbox';
@@ -118,22 +149,7 @@ function question(q, a) {
   if (q.type === 'number') return `<div class="s-q">${label}<input name="${q.id}" type="number" min="${q.min}" max="${q.max}" step="0.5" inputmode="decimal" value="${esc(a[q.id] ?? '')}" style="max-width:140px"></div>`;
   return `<div class="s-q">${label}<textarea name="${q.id}" maxlength="300">${esc(a[q.id] ?? '')}</textarea></div>`;
 }
-// Numbered 1 to 6 here; on the authors' form these are Q2 to Q7 (Q1, a donation choice, is not asked).
-const SURVEY_NUMBER = { area: 1, degree: 2, years: 3, level: 4, learn: 5, tip: 6 };
-
-// ---------- A vote ----------
-function drawVote(s) {
-  app.innerHTML = `${top()}${intro(s)}<div class="s-vote">${s.options.map((o, i) =>
-    `<button data-i="${i}" class="${st.me.vote === i ? 'on' : ''}">${md(o)}</button>`).join('')}</div><p class="s-msg" id="m"></p>`;
-  app.querySelectorAll('.s-vote button').forEach((b) => {
-    b.onclick = async () => {
-      const r = await send({ value: Number(b.dataset.i) });
-      if (!r.ok) return msg(document.getElementById('m'), r.error, 'err');
-      app.querySelectorAll('.s-vote button').forEach((x) => x.classList.toggle('on', x === b));
-      msg(document.getElementById('m'), 'Voted. You can change it.', 'ok');
-    };
-  });
-}
+// The survey is numbered 1 to 6 here; on the authors' form these are Q2 to Q7 (Q1, a donation choice, is not asked).
 
 // One choice per item (a post, a comment): buttons that stay pressed, a running count, a sticky progress line.
 function choices(selector, total, mine, sendOne) {
@@ -177,36 +193,68 @@ function drawLabels(s) {
   choices('.s-post', s.posts.length, mine, (post, value) => send({ post, value }));
 }
 
-// ---------- Code the paper's Table 8 comments ----------
-function drawCodes(s) {
-  const mine = Object.fromEntries(Object.entries(st.me.codes).map(([k, v]) => [k, String(v)]));
-  app.innerHTML = `${top()}${intro(s)}<p class="s-progress" id="prog"></p>${s.comments.map((c) => `
-    <article class="s-post ${mine[c.id] !== undefined ? 'done' : ''}" data-id="${esc(c.id)}">
-      <p class="s-sub">Survey comment #${esc(c.id)}</p><p class="s-quote">“${esc(c.text)}”</p>
-      <p><strong>Which of the paper’s 6 categories fits this comment best?</strong></p>
-      <div class="s-cats">${s.categories.map((cat, i) => `<button data-v="${i}" class="${mine[c.id] === String(i) ? 'on' : ''}">${esc(cat)}</button>`).join('')}</div>
+// ---------- Seven Git tasks: pick a command, then say how sure you are ----------
+function drawTasks(s) {
+  const mine = JSON.parse(JSON.stringify(st.me.tasks ?? {}));
+  const full = (id) => mine[id]?.pick !== undefined && mine[id]?.sure !== undefined;
+  app.innerHTML = `${top()}${intro(s)}<p class="s-progress" id="prog"></p>${s.tasks.map((t, i) => `
+    <article class="s-post s-task ${full(t.id) ? 'done' : ''}" data-id="${esc(t.id)}">
+      <p class="s-sub">Task ${i + 1} of ${s.tasks.length}</p>
+      <p class="s-situation">${md(t.situation)}</p>
+      <p><strong>Which command would you run?</strong></p>
+      <div class="s-opts">${t.options.map((o, k) => `<button data-f="pick" data-v="${k}" class="${mine[t.id]?.pick === k ? 'on' : ''}">${md(o)}</button>`).join('')}</div>
+      <p><strong>How sure are you?</strong></p>
+      <div class="s-cats">${s.sure.map((x, k) => `<button data-f="sure" data-v="${k}" class="${mine[t.id]?.sure === k ? 'on' : ''}">${esc(x)}</button>`).join('')}</div>
       <p class="s-msg"></p>
     </article>`).join('')}`;
-  choices('.s-post', s.comments.length, mine, (item, value) => send({ item, value: Number(value) }));
+  const prog = () => {
+    const n = s.tasks.filter((t) => full(t.id)).length;
+    document.getElementById('prog').textContent = `${n} of ${s.tasks.length} done${n === s.tasks.length ? ' · thank you' : ''}`;
+  };
+  prog();
+  app.querySelectorAll('.s-task').forEach((el) => {
+    el.querySelectorAll('button[data-f]').forEach((b) => {
+      b.onclick = async () => {
+        const r = await send({ item: el.dataset.id, field: b.dataset.f, value: Number(b.dataset.v) });
+        if (!r.ok) return msg(el.querySelector('.s-msg'), r.error, 'err');
+        (mine[el.dataset.id] ??= {})[b.dataset.f] = Number(b.dataset.v);
+        el.querySelectorAll(`button[data-f="${b.dataset.f}"]`).forEach((x) => x.classList.toggle('on', x === b));
+        el.classList.toggle('done', full(el.dataset.id));
+        msg(el.querySelector('.s-msg'), '');
+        prog();
+      };
+    });
+  });
 }
 
-// ---------- Group work: one shared answer per group ----------
+// ---------- Sort items into categories ----------
+function drawSort(s) {
+  const mine = Object.fromEntries(Object.entries(st.me.sorts?.[s.id] ?? {}).map(([k, v]) => [k, String(v)]));
+  app.innerHTML = `${top()}${intro(s)}<p class="s-progress" id="prog"></p>${s.items.map((x) => `
+    <article class="s-post ${mine[x.id] !== undefined ? 'done' : ''}" data-id="${esc(x.id)}">
+      <p class="s-quote">${md(x.text)}</p>
+      <div class="s-cats">${s.categories.map((c, i) => `<button data-v="${i}" class="${mine[x.id] === String(i) ? 'on' : ''}">${esc(c)}</button>`).join('')}</div>
+      <p class="s-msg"></p>
+    </article>`).join('')}`;
+  choices('.s-post', s.items.length, mine, (item, value) => send({ item, value: Number(value) }));
+}
+
+// ---------- Writing: alone, or one shared answer per pair, team or group ----------
 const timers = {};
-function drawGroup(s) {
+function drawWrite(s) {
   const g = st.group;
-  if (!g) { app.innerHTML = `${top()}${intro(s)}<p class="s-wait">Your group is being formed…</p>`; return; }
-  const fields = s.fields === 'claim' ? s.claimFields : s.designFields;
-  const claim = s.fields === 'claim' && g.claim ? `<div class="s-claim"><p class="s-sub">The claim, in the paper’s words</p>
-    <p class="quote">“${esc(g.claim.quote)}”</p><p class="s-sub">The facts it rests on</p><ul class="s-facts">${(g.claim.facts ?? []).map((f) => `<li>${esc(f)}</li>`).join('')}</ul></div>` : '';
-  // A worked example of a good answer, about something else, so nobody is handed their own answer.
-  const ex = s.example ? `<div class="s-example"><p class="s-sub">${esc(s.example.title)}</p>${s.example.intro ? `<p>${esc(s.example.intro)}</p>` : ''}
-    ${s.example.rows.map(([k, v]) => `<p><b>${esc(k)}:</b> ${esc(v)}</p>`).join('')}</div>` : '';
-  app.innerHTML = `${top()}${intro(s)}<p class="muted">${esc(g.name)} is ${esc(g.members.join(', '))}. One answer per group, so pick one person to type.</p>
-    ${claim}${ex}${(fields ?? []).map((f) => `<div class="s-field"><label for="f-${f.id}">${esc(f.label)}</label>
-      <textarea id="f-${f.id}" data-f="${f.id}" maxlength="300">${esc(g.answers?.[f.id] ?? '')}</textarea>
+  if (s.who !== 'solo' && !g) { app.innerHTML = `${top()}${intro(s)}<p class="s-wait">Your ${s.who === 'pair' ? 'pair' : 'group'} is being formed…</p>`; return; }
+  const with_ = g ? `<p class="s-with"><b>${esc(s.whoLine)}</b> (${esc(g.name)}: ${esc(g.members.join(', '))}). Write one answer together; one person types.</p>`
+    : `<p class="s-with"><b>${esc(s.whoLine ?? '')}</b></p>`;
+  const claim = g?.claim ? `<div class="s-claim"><p class="s-sub">Your team’s claim, in the paper’s own words</p>
+    <p class="quote">“${esc(g.claim.quote)}”</p><p class="s-sub">The facts behind it</p><ul class="s-facts">${(g.claim.facts ?? []).map((f) => `<li>${esc(f)}</li>`).join('')}</ul></div>` : '';
+  const ex = s.example ? `<details class="s-example"><summary>${esc(s.example.title)}</summary>${s.example.intro ? `<p>${esc(s.example.intro)}</p>` : ''}
+    ${s.example.rows.map(([k, v]) => `<p><b>${esc(k)}:</b> ${esc(v)}</p>`).join('')}</details>` : '';
+  app.innerHTML = `${top()}${intro(s)}${with_}${claim}${ex}${s.fields.map((f) => `<div class="s-field"><label for="f-${f.id}">${esc(f.label)}</label>
+      <textarea id="f-${f.id}" data-f="${f.id}" maxlength="300">${esc(st.answers?.[f.id] ?? '')}</textarea>
       <span class="by" id="by-${f.id}"></span></div>`).join('')}`;
   app.querySelectorAll('textarea[data-f]').forEach((t) => {
-    // Only text this person changed is sent: clicking in and out never overwrites a groupmate.
+    // Only text this person changed is sent: clicking in and out never overwrites a partner.
     const save = async () => {
       clearTimeout(timers[t.dataset.f]);
       if (!t.dataset.dirty) return;
@@ -217,16 +265,16 @@ function drawGroup(s) {
     t.oninput = () => { t.dataset.dirty = '1'; clearTimeout(timers[t.dataset.f]); timers[t.dataset.f] = setTimeout(save, 700); };
     t.onblur = save;
   });
-  updateGroup();
+  updateWrite();
 }
 
-function updateGroup() {
-  const a = st.group?.answers;
+function updateWrite() {
+  const a = st.answers;
   if (!a) return;
   app.querySelectorAll('textarea[data-f]').forEach((t) => {
     if (document.activeElement !== t && !t.dataset.dirty && a[t.dataset.f] !== undefined && t.value !== a[t.dataset.f]) t.value = a[t.dataset.f];
     const by = document.getElementById(`by-${t.dataset.f}`);
-    if (by && document.activeElement !== t && a.by) by.textContent = `Last saved by ${a.by}`;
+    if (by && document.activeElement !== t && a.by && st.group) by.textContent = `Last saved by ${a.by}`;
   });
 }
 

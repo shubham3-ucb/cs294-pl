@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>The Humans · teacher</title>
+  <title>Reading a user study · teacher</title>
   <link rel="stylesheet" href="/thu.css">
   <script type="module" src="/thu-admin.js"></script>
 </head>
 <body>
   <div class="console">
     <header class="c-top">
-      <h1>The Humans <span class="muted">· Thursday</span></h1>
+      <h1>Reading a user study <span class="muted">· Thursday</span></h1>
       <span id="where" class="muted"></span>
       <span id="clock" class="c-clock"></span>
       <span class="grow"></span>
@@ -41,6 +41,15 @@
       <div id="progress-box" class="c-card" hidden>
         <p class="c-label" id="progress-label"></p>
         <div class="c-progress"><i id="progress-bar"></i></div>
+      </div>
+      <div id="answers-box" class="c-card" hidden>
+        <p class="c-label" id="answers-label">Answers</p>
+        <p class="muted" style="font-size:13px">Star the ones to put on the projector. With no stars, it shows all of them.</p>
+        <ul id="answers" class="c-list"></ul>
+      </div>
+      <div class="c-card">
+        <p class="c-label" id="questions-label">Questions from the class</p>
+        <ul id="questions" class="c-list"><li class="muted">None yet.</li></ul>
       </div>
       <div class="c-card">
         <p class="c-label">People</p>
