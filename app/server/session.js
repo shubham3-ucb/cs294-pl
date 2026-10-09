@@ -6,7 +6,7 @@ import path from 'node:path';
 import * as git from './git.js';
 import { emoji, palette, PARTS, START } from '../public/monster.js';
 import {
-  STEPS, SCENES, UNLOCK, CONCEPTS, FIXED_LINE, DONE_LINE, PAIR_NOTES, PAIR_PARTS, LAB_CHANGES, SABOTAGE, AUDIT, PAPER, WRAP_LINE,
+  STEPS, SCENES, UNLOCK, CONCEPTS, FIXED_LINE, DONE_LINE, PAIR_NOTES, PAIR_PARTS, LAB_CHANGES, SABOTAGE, AUDIT, PAPER, PATHS, WRAP_LINE,
   COPY_LINE, MERGE_LINE, TAKEAWAY_STEPS, ANSWER_MAX, TAKEAWAY_MAX, missionFor, SWITCH_UNSAVED,
   PREDICT, PREDICT_STEPS, predictCopy, validGuess, isRight, verdict, accuracyLine, ACCURACY_PART,
   WAYS, WHY_Q, WHY_MAX, NOT_CHOSEN, UNDO_WAYS, UNDO_NOT_CHOSEN, choiceLine,
@@ -198,6 +198,7 @@ async function fresh(fixed) {
     undos: {}, // Step 5: labId → {way: 'revert' | 'reset', by, t}, how the lab chose to undo the Intern's card
     moments: {}, // predictions, by moment id ("3:2:merge:sporty", "4:2:push:1"): {step, labId, kind, target, guesses, outcome}
     integration: null, // the Wall's integration paths at the end of Step 4, for the paper (the squash erases them)
+    pathsTier: 0, // "Find the path back": the tier on the projector
     sabotaged: false, // the Intern's card went to the Wall (admin button or entering Step 5)
     handedOut: false, // Step 5 was entered: every lab level with the Wall got the Intern's card
     labs: {},
@@ -673,8 +674,13 @@ async function publicSession(lab) {
     audits: S.step >= 6 ? S.audits : null,
     bin: S.step >= 6 ? S.bin : null,
     integration: await integrationFor(scene),
+    paths: scene.kind === 'paths' ? pathsView() : null,
   };
 }
+
+// "Find the path back": the paper's algorithm on its Figure 3. The projector shows the teacher's tier;
+// students step through the tiers on their own.
+const pathsView = () => ({ ...PATHS, tier: S.pathsTier ?? 0 });
 
 // ---------- Integration paths: Step 4's reveal and the paper ----------
 // Each lab's Step 4 change on the Wall's main: the cards from the change's card up to the card the lab's own send
@@ -1580,7 +1586,7 @@ async function goToScene(n, labId) {
     if (!(await wallIsClean())) await RESCUE[6](S.labs[S.stepLab[6]]);
     await audit();
   }
-  Object.assign(S, { scene: n, sceneStartedAt: now(), ask: false, show: { answers: false, names: false } });
+  Object.assign(S, { scene: n, sceneStartedAt: now(), ask: false, show: { answers: false, names: false }, pathsTier: 0 });
 }
 
 // ---------- Rescue: finish the current step for one lab, doing only what's missing ----------
@@ -1802,6 +1808,13 @@ const ADMIN = {
     if (on && !SCENES[S.scene].answerable) return fail('This scene has no answers.');
     S.show = { answers: !!on, names: !!on && !!names };
     return { ok: true, result: { show: S.show } };
+  },
+  // "Find the path back": the projector's tier, one step back or on.
+  tier({ dir }) {
+    if (SCENES[S.scene].kind !== 'paths') return fail('This scene has no tiers.');
+    const last = PATHS.tiers.length - 1;
+    S.pathsTier = Math.max(0, Math.min(last, (S.pathsTier ?? 0) + (dir === 'back' ? -1 : 1)));
+    return done(`Tier ${PATHS.tiers[S.pathsTier].n}: ${PATHS.tiers[S.pathsTier].name}.`, { tier: S.pathsTier });
   },
   // Restart the scene's timer (the break's countdown, too). During Step 0 it also sets the class clock.
   timer() {

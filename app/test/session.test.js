@@ -84,7 +84,7 @@ async function playClass(pids) {
     if (scene.answerable) for (const pid of pids) ok(await session.act('answer', { pid, scene: scene.id, text: `answer ${scene.id}` }));
     if (scene.takeawayStep !== null) for (const pid of pids) ok(await session.act('takeaway', { pid, step: scene.takeawayStep, text: `takeaway ${scene.takeawayStep}` }));
     if (scene.id === 'reveal-4') met.integration = (await session.state(pids[0])).session.integration;
-    if (scene.kind === 'wrap') return met;
+    if (scene.n === SCENES.length - 1) return met; // the exit question ends the class
     await next();
   }
 }
@@ -158,9 +158,9 @@ describe('the scene script', () => {
   test('one Next per scene, in the planned order and clock; a double press never skips', async () => {
     await reset();
     assert.deepEqual(SCENES.map((s) => s.id), ['join', 'task-0', 'reveal-0', 'task-1', 'reveal-1', 'task-2', 'reveal-2',
-      'task-3', 'reveal-3', 'break', 'task-4', 'reveal-4', 'task-5', 'reveal-5', 'task-6', 'reveal-6', 'paper', 'exit', 'wrap']);
+      'task-3', 'reveal-3', 'task-4', 'reveal-4', 'task-5', 'reveal-5', 'task-6', 'reveal-6', 'paths', 'paper', 'exit']);
     const last = SCENES.at(-1);
-    assert.equal(last.at + last.minutes, 77, '77 minutes of class + 3 of buffer = 80');
+    assert.equal(last.at + last.minutes, 79, '79 minutes of class + 3 of buffer = 82');
     const at = Object.fromEntries(SCENES.map((s) => [s.id, [s.at, s.minutes]]));
     assert.deepEqual([at['reveal-0'], at['task-1'], at['reveal-1']], [[4.5, 2], [6.5, 3], [9.5, 2.5]], 'Steps 0–1 are 3 minutes shorter');
     assert.deepEqual([at['task-3'][1], at['task-4'][1], at['task-5'][1]], [8, 9, 7], 'the 3 minutes go to predicting and choosing');
@@ -265,7 +265,7 @@ describe('a whole class, by hints alone', () => {
     assert.ok(refusals(met).every((e) => REFUSED.test(e)), `only refused sends: ${refusals(met)}`);
 
     const st = await session.state(pids[0]);
-    assert.equal(st.session.scene.kind, 'wrap');
+    assert.equal(st.session.scene.kind, 'exit');
     assert.deepEqual(st.me.gitIn7.map((l) => [l.step, l.text]), [0, 1, 2, 3, 4, 5, 6].map((n) => [n, `takeaway ${n}`]));
     assert.equal(st.me.answers.exit, 'answer exit');
 
@@ -281,18 +281,24 @@ describe('a whole class, by hints alone', () => {
     assert.equal(paths.filter((p) => p.copy).length, 1);
     for (const p of paths) assert.ok(p.made <= p.onWall, `${p.name}: made, then on the Wall`);
     // The paper shows the same paths after the squash has emptied the Wall.
-    await session.admin('back', {});
     await session.admin('back', {}); // the paper
     const paper = (await session.state(pids[0])).session;
     assert.equal(paper.scene.id, 'paper');
     assert.equal(paper.integration.live, false);
     assert.deepEqual(paper.integration.paths, paths);
     assert.ok((await adminState()).wall.graph.commits.length === 2, 'while the Wall itself has only Start and the clean card');
+    // Find the path back: the paper's Figure 3, six tiers; the teacher's Tier buttons move the projector.
+    await session.admin('back', {});
+    const back = (await session.state(pids[0])).session;
+    assert.equal(back.scene.id, 'paths');
+    assert.equal(back.paths.tiers.length, 6);
+    assert.equal(back.paths.tier, 0);
+    assert.equal((await session.admin('tier', { dir: 'back' })).result.tier, 0, 'never below Tier 0');
+    assert.equal((await session.admin('tier', { dir: 'next' })).result.tier, 1);
+    assert.equal((await adminState()).session.paths.tier, 1, 'the projector follows the teacher');
     await next();
     await next();
-    assert.equal(a.projector.takeaways.length, 12, 'a sample of the takeaways');
-    assert.ok(a.projector.takeaways.every((t) => !('name' in t)), 'names hidden');
-    assert.ok(a.session.scene.tools.includes('export'));
+    assert.equal((await adminState()).session.scene.id, 'exit', 'the exit question is the last scene');
 
     const md = await session.exportMarkdown();
     assert.match(md, /^# Outfit Lab · answers and takeaways/);
@@ -401,7 +407,7 @@ describe('Steps 4 and 5: the Wall', () => {
   test('Step 4 names whose outfit the Wall starts as; the way leaves the mission once the lab is done', async () => {
     await reset();
     const pids = await joinAll(['Ana', 'Ben', 'Cat', 'Dan']);
-    for (let i = 0; i < 10; i++) await next(); // Step 4's task
+    for (let i = 0; i < 9; i++) await next(); // Step 4's task
     const wallLab = (await adminState()).session.stepLab[4];
     for (const pid of pids) {
       const st = await session.state(pid);
@@ -421,7 +427,7 @@ describe('Steps 4 and 5: the Wall', () => {
     await reset();
     const pids = await joinAll(['Ana', 'Ben', 'Cat', 'Dan', 'Eve', 'Fay']);
     ok(await session.admin('labs', { count: 3 }));
-    for (let i = 0; i < 10; i++) await next(); // Step 4's task
+    for (let i = 0; i < 9; i++) await next(); // Step 4's task
     await playStep(pids);
     await next(); // reveal-4
     const pulls = Object.fromEntries((await adminState()).labs.map((l) => [l.id, l.concepts.pull ?? 0]));
@@ -520,7 +526,7 @@ describe('predict before you act', () => {
   test('Steps 4–5: Send waits for a prediction; refused labs choose a way and say why; the reveals show choices and the way nobody chose', async () => {
     await reset();
     const pids = await joinAll(['Ana', 'Ben', 'Cat', 'Dan']);
-    for (let i = 0; i < 10; i++) await next(); // Step 4's task
+    for (let i = 0; i < 9; i++) await next(); // Step 4's task
     const [one, two] = [inLab(pids, '1'), inLab(pids, '2')];
     ok(await session.act('draft', { pid: one[0], part: 'hat', value: 'crown' }));
     ok(await session.act('commit', { pid: one[0] }));
@@ -610,7 +616,7 @@ describe('hints: the idea first, then the click', () => {
       click: 'Click **change** on one part. Pick a new one. Then press **Save card**.',
     });
     assert.ok(Math.abs(st.me.hintAt - 45e3 - st.now) < 2000, 'the button comes 45 s after the step starts');
-    for (let i = 0; i < 7; i++) await next(); // Step 4's task: the practice lab sends first
+    for (let i = 0; i < 6; i++) await next(); // Step 4's task: the practice lab sends first
     ok(await session.act('draft', { pid: ana, part: 'hat', value: 'crown' }));
     ok(await session.act('commit', { pid: ana }));
     assert.equal((await session.act('push', { pid: ana, guess: 'accepted' })).error, REFUSED_CHOOSE);

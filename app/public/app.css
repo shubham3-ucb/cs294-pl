@@ -401,6 +401,35 @@ details[open] > summary::before { transform: rotate(90deg); }
 .velocity { display: grid; gap: 10px; background: var(--soft); border-radius: 16px; padding: 18px 22px; }
 .velocity h3 { font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
 .velocity ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: 16px; font-variant-numeric: tabular-nums; }
+/* Find the path back: the paper's Figure 3, interactive */
+.pv-problems { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+.pv-problems > div { background: var(--soft); border-radius: 14px; padding: 12px 14px; font-size: 15px; display: grid; gap: 4px; align-content: start; }
+.f3 { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 20px; align-items: start; }
+.f3-stack { display: grid; gap: 6px; }
+.f3-plane { font: inherit; color: var(--ink); background: none; border: 0; padding: 0; cursor: pointer; display: grid; gap: 2px; text-align: left; }
+.f3-sheet { position: relative; display: block; padding: 4px 14px; }
+.f3-sheet::before { content: ""; position: absolute; inset: 0; background: #EEF2F4; border: 1px solid #C9D3D8; border-radius: 4px;
+  transform: skewX(-28deg); transition: background 150ms var(--ease), border-color 150ms var(--ease); }
+.f3-sheet svg { position: relative; display: block; width: 100%; height: auto; }
+.f3-name { font-size: 12.5px; color: var(--muted); padding-left: 6px; }
+.f3-plane:hover .f3-sheet::before { border-color: var(--purple); }
+.f3-plane.on .f3-sheet::before { background: var(--lavender); border: 2px solid var(--purple); }
+.f3-plane.on .f3-name { color: var(--purple); font-weight: 700; }
+.f3-main { display: grid; gap: 12px; min-width: 0; }
+.f3-svg { width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 16px; background: #FAFBFC; }
+.f3-svg [data-node].pickable { cursor: pointer; }
+.f3-svg [data-node].pickable:hover circle, .f3-svg [data-node]:focus-visible circle { stroke: var(--purple); stroke-width: 3; }
+.f3-svg [data-node]:focus { outline: none; }
+.f3-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.f3-controls button { font: inherit; font-size: 15px; font-weight: 600; padding: 8px 14px; border-radius: 10px; border: 1px solid var(--line); background: #fff; color: var(--ink); cursor: pointer; }
+.f3-controls button.primary { background: var(--purple); border-color: var(--purple); color: #fff; }
+.f3-controls button:disabled { opacity: .4; cursor: default; }
+.f3-say { min-height: 1.5em; font-size: 16px; }
+.pv-tier { background: var(--lavender); border-radius: 16px; padding: 16px 20px; display: grid; gap: 6px; font-size: 17px; }
+.pv-tier .label { color: var(--purple); }
+.pv-picked { border: 2px solid var(--ink); border-radius: 16px; padding: 14px 18px; display: grid; gap: 4px; }
+.pv-gone { font-weight: 600; padding-left: 14px; border-left: 4px solid var(--red); }
+@media (max-width: 760px) { .f3 { grid-template-columns: 1fr; } .f3-stack { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 .exit-q { max-width: 820px; }
 .scene-line { font-size: 18px; color: var(--muted); }
 .wrap-line { font-size: 40px; max-width: 820px; }

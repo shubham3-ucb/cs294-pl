@@ -424,9 +424,6 @@ async function lesson() {
   await takeaways(3);
   await sleep(2500);
 
-  await next('Break', 'A 4-minute break. A lab that is behind can still finish Step 3.');
-  await sleep(2500);
-
   // Step 4: Lab 3 sends first. Ana is refused first (Combine), Ben second (Replay on top).
   await next('Step 4 · Share', "Next puts Lab 1's outfit on the Wall, the class's shared copy. Every lab is now a full copy of it.", 'git clone');
   await sleep(3500);
@@ -587,7 +584,11 @@ async function lesson() {
   await zoom();
   await takeaways(6);
 
-  // The paper, the exit question, the wrap
+  // Find the path back: the paper's algorithm, tier by tier
+  await next('Find the path back', "The paper's algorithm rebuilds each change's path to main from the arrows alone, tier by tier.", 'Just et al., ISSRE 2016 · §6.2');
+  await sleep(5000);
+
+  // The paper, the exit question
   await next('The paper', "Code velocity from this class's own times. After the squash, the Wall has none of these cards.", 'Just et al., ISSRE 2016');
   await zoom('p');
   await sleep(7000);
@@ -602,15 +603,7 @@ async function lesson() {
   await sleep(3000);
   await still();
 
-  await next('Wrap', "My Git in 7 lines: one takeaway per step, in each student's own words.");
-  await zoom('a');
-  await show('a', '.git7');
-  await clip(3.5);
-  await sleep(2500);
-  await still();
-  await top('a');
-  await zoom();
-  await say('Wrap', `${SCENES.length} scenes, 7 steps. The teacher pressed only Next, and every click ran real Git.`);
+  await say('The end', `${SCENES.length} scenes, 7 steps. The teacher pressed only Next, and every click ran real Git.`);
   await sleep(4500);
   await still();
 }

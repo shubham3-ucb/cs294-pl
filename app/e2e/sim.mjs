@@ -50,8 +50,8 @@ const API = {
 // No user-facing text may use the old theme's words.
 const OLD_WORDS = /\b(monsters?|faces?|body|bodies|legs|tentacles?|mustaches?)\b/i;
 // The 7 steps, in class order.
-const ORDER = ['join', 'task-0', 'reveal-0', 'task-1', 'reveal-1', 'task-2', 'reveal-2', 'task-3', 'reveal-3', 'break',
-  'task-4', 'reveal-4', 'task-5', 'reveal-5', 'task-6', 'reveal-6', 'paper', 'exit', 'wrap'];
+const ORDER = ['join', 'task-0', 'reveal-0', 'task-1', 'reveal-1', 'task-2', 'reveal-2', 'task-3', 'reveal-3',
+  'task-4', 'reveal-4', 'task-5', 'reveal-5', 'task-6', 'reveal-6', 'paths', 'paper', 'exit'];
 const TITLES = ['Everyone edits the same outfit', 'Save every version', 'Give each idea its own branch', 'Combine two branches',
   'Share your work through the Wall', 'Undo a change everyone already has', 'Rewrite the shared history', 'What you did today'];
 
@@ -502,10 +502,8 @@ async function arrive(n) {
     assert.equal(PAPER.message, 'For analysts, flat history is data loss.');
     for (const p of students()) await sees(p, '#scene-body .paper-message', PAPER.message);
     await sees(S[LEADS[0]], '#scene-body .paper-tradeoff', PAPER.tradeoff);
-    for (const line of PAPER.lived) await sees(S[LEADS[0]], '#scene-body .lived', line.text);
     assert.equal(await textOf(screen, '.sl-message'), PAPER.message);
     assert.equal(await textOf(screen, '.sl-tradeoff'), PAPER.tradeoff);
-    for (const line of PAPER.lived) await sees(screen, '.sl-lived', line.text);
     for (const col of [...PAPER.good, ...PAPER.bad, ...PAPER.ugly]) await sees(screen, '.sl-cols', col);
   }
   if (s.kind === 'exit') {
@@ -1031,16 +1029,8 @@ async function classRun() {
   await answer('reveal-3');
   await takeaways(3);
   await shoot();
-  checkClean('Reveal 3');
-
-  // ---------- The break ----------
-  await next();
-  await Promise.all(students().map((p) => sees(p, '#mission .break-line', 'Break · back at')));
-  await sees(screen, '.sl-break', 'Back at');
-  await sees(admin, '#tools', 'Restart the break timer');
   await sees(admin, '#coming-note', "Sends Lab 1's outfit to the Wall.");
-  await shoot();
-  checkClean('Break');
+  checkClean('Reveal 3');
 
   // ---------- Step 4: the Wall; predict, send; refused; the lab chooses Combine (merge) or Replay on top (rebase); send ----------
   const lab1Main = tipIn('1');
@@ -1054,7 +1044,6 @@ async function classRun() {
       (await newestIn(p, '#graph')) === lab1Main && (await newestIn(p, '#wall-graph')) === lab1Main);
     assert.equal(await noteIn(p, '#graph', 'wall/main'), lab1Main, `${who}: the blue wall/main note`);
     assert.match(await textOf(p, '#graph .g-note[data-key="main"]'), /YOU/, `${who}: the pin is on main`);
-    assert.equal(await count(p, '#mission .break-line'), 0, `${who}: Next ended the break`);
   }));
   for (const name of LEADS) {
     await sees(S[name], '#mission .instruction', "The Wall is the class's shared copy of the history (a remote, like GitHub). Your lab holds a full copy of it, made with git clone.");
@@ -1384,6 +1373,19 @@ async function classRun() {
   checkClean('Reveal 6');
   log(`step 6: boss-only button, Wall = Start ← Clean, audit "${beforeWall.text}" → "${afterWall.text}", ${gc}`);
 
+  // ---------- Find the path back: the paper's tiers, on the Wall from before the clean-up ----------
+  await next();
+  await sees(screen, '.sl-f3-main .sl-label', 'Tier 0 · Global multi graph');
+  await sees(S[LEADS[0]], '#scene-body .f3-stack', 'Tier 5 · Convergence graph (A)');
+  for (const name of ['Global branch/merge graph', 'Branch graph (A)', 'Navigation graph (A)', 'Integration graph (A)', 'Convergence graph (A)']) {
+    await click(admin, '#tools [data-tool="tierNext"]');
+    await sees(screen, '.sl-f3-main .sl-label', name);
+  }
+  await sees(screen, '.sl-evidence', 'integration path 2 → 3 → 4');
+  await answer('paths');
+  await shoot();
+  checkClean('Find the path back');
+
   // ---------- The paper, the exit question ----------
   await next();
   const paper = (await adminState()).session.integration;
@@ -1403,55 +1405,13 @@ async function classRun() {
   await shoot();
   checkClean('Exit question');
 
-  // ---------- Wrap: My Git in 7 lines, the takeaway wall, counts, Export ----------
-  await next();
-  const ana = S[NAMES[0]];
-  const anaLines = [0, 1, 2, 3, 4, 5, 6].map((step) => TAKEAWAYS[step][0]);
-  await until(`${NAMES[0]} sees her 7 takeaways`, async () => JSON.stringify(await ana.$$eval('.git7 [data-field]', (els) => els.map((e) => e.value)))
-    === JSON.stringify(anaLines));
-  // Takeaways stay editable: change one line; a reload keeps it.
-  const edited = 'Merge = compare both sides with the card they share.';
-  const line3 = ana.locator('.git7 [data-field="t:3"]');
-  await line3.fill(edited);
-  const [saved] = await Promise.all([ana.waitForResponse((r) => new URL(r.url()).pathname === '/api/takeaway'), line3.press('Enter')]);
-  ok(await saved.json(), 'edit a takeaway');
-  await ana.reload();
-  await until('the edited line survives a reload', async () => (await ana.inputValue('.git7 [data-field="t:3"]')) === edited);
-  await click(ana, '.git7 [data-copy]');
-  await sees(ana, '#toasts', 'Copied. Paste it into your notes.');
-  const copied = await ana.evaluate(() => navigator.clipboard.readText());
-  assert.ok(copied.startsWith(`My Git in 7 lines\n0. ${anaLines[0]}\n`) && copied.includes(`3. ${edited}`) && copied.split('\n').length === 8,
-    `the copy holds the 7 lines:\n${copied}`);
-  await sees(ana, '#scene-body .wrap-line', WRAP_LINE);
-  await sees(screen, '.sl-wrap-line', 'A commit never changes.');
-  const wall = await textOf(screen, '.sl-takeaways');
-  assert.ok((await count(screen, '.sl-takeaways p')) > 0, 'the projector shows a takeaway wall');
-  for (const name of NAMES) assert.doesNotMatch(wall, new RegExp(`\\b${name}\\b`), 'the takeaway wall hides names');
-  // What each lab did, in each student's wrap and on the console tiles.
-  const did = {
-    1: { on: ['Save a card', 'Fast-forward a branch', 'Solve a conflict', 'Undo with a fix card', 'Have a send refused', 'Replace the Wall'], off: ['Move a branch back', 'Replay on top'] },
-    2: { on: ['Save a card', 'Solve a conflict', 'Have a send refused', 'Get & combine', 'Move a branch back', 'Read the diary', 'Undo with a fix card'], off: ['Replace the Wall', 'Replay on top'] },
-    3: { on: ['Save a card', 'Solve a conflict', 'Have a send refused', 'Replay on top', 'Undo with a fix card'], off: ['Move a branch back', 'Replace the Wall'] },
-  };
-  for (const [id, { on, off }] of Object.entries(did)) {
-    const p = S[LAB[id][0]];
-    await sees(p, '#scene-foot', `What Lab ${id} did`);
-    const lit = await p.$$eval('#scene-foot .concepts li.on', (els) => els.map((e) => e.firstChild.textContent.trim()));
-    for (const words of on) assert.ok(lit.includes(words), `Lab ${id}: "${words}" is lit (lit: ${lit.join(', ')})`);
-    for (const words of off) assert.ok(!lit.includes(words), `Lab ${id}: "${words}" is not lit`);
-  }
-  await sees(admin, '#labs .tile:nth-child(2) .counts', 'refused send');
-  await sees(admin, '#labs .tile:nth-child(3) .counts', '1 replay');
-  // Export: every answer and takeaway, per question and per person.
-  const [download] = await Promise.all([admin.waitForEvent('download'), click(admin, '#tools a[download]')]);
-  const md = fs.readFileSync(await download.path(), 'utf8');
+  // ---------- The class ends at the exit question. Export: every answer and takeaway, per question and per person ----------
+  const md = await fetch(`${BASE}/api/admin/export?key=${KEY}`).then((r) => r.text());
   assert.match(md, /^# Outfit Lab · answers and takeaways/);
-  assert.ok(md.includes(`### ${NAMES[0]} · Lab ${labOf(NAMES[0])}`) && md.includes(`3. ${edited}`), 'Export has the edited takeaway');
+  assert.ok(md.includes(`### ${NAMES[0]} · Lab ${labOf(NAMES[0])}`), 'Export lists each person');
   for (const text of [...ANSWERS['reveal-1'], ...ANSWERS.exit, TAKEAWAYS[0][1], TAKEAWAYS[6][2]]) assert.ok(md.includes(text), `Export has "${text}"`);
   fs.writeFileSync(`${SHOTS}/${tag()}-export.md`, md);
-  await shoot();
-  checkClean('Wrap');
-  log('wrap: My Git in 7 lines (edited, copied), the takeaway wall, counts per lab, Export');
+  log('end: the exit question is the last scene; Export');
 
   // ---------- Keys, then Reset sends everyone back to Join ----------
   // The key left the address bar; a reload still works (sessionStorage). Without any key, the page says how to get in.
@@ -1499,7 +1459,7 @@ async function practiceRun() {
     ok(await press(p, 'commit'), `${WHO.get(p)}: save`);
   }
   await goalsDone(noor);
-  while (SCENES[scene].id !== 'break') await next();
+  while (SCENES[scene].id !== 'reveal-3') await next();
   await sees(admin, '#coming-note', 'The practice lab sends its card to the Wall first.');
   await next();
   const wall = await until("the practice lab's card is on the Wall", async () =>

@@ -28,6 +28,8 @@ export const ANSWERS = {
   'reveal-4': ['Its parent is new, so the hash is new.', 'The ID hashes the parent ID too.', 'A new parent means a new card.', 'Same change, different card: the parent changed.'],
   'reveal-5': ["A fix card only adds, so nobody's copy breaks.", 'Moving back drops a card others already have.', 'The Wall still had the card, so it came back.', 'Revert adds; reset only moves my branch.'],
   'reveal-6': ['Only in the labs that kept the old cards.', 'Not on the Wall anymore.', 'The other labs still know.', 'Gone from the Wall after gc.'],
+  paths: ['4 is the earliest commit on A that reaches 2.', 'The shortest way to the earliest integration is 2 → 3 → 4.',
+    '6 comes later on A than 4, so 2 → 5 → 6 is only a delay.', '2 is visible to A first at 4, through 3.'],
   paper: ['Gain: one card per feature to revert. Lose: who wrote which part.', 'A short main and easy bisect; the auditor loses authors and times.',
     'One clean card per feature. Who did what is gone once the branch is deleted.', 'Gain: a readable main. Lose: how the feature was built, and by whom.'],
   exit: ['No. Revert adds a card; the old card still holds it. Change the password.', 'No, every copy still has it. Change it, then rewrite, force push, gc, and re-clone.',
