@@ -74,7 +74,7 @@ const LEARN_SHORT = ['In class', 'Online courses', 'Peers or seniors', 'Document
 // ---------- Pieces ----------
 
 const lines = (ls = []) => (ls.length ? `<div class="t-lines">${ls.map((l) => `<p>${md(l)}</p>`).join('')}</div>` : '');
-const head = (s) => `<p class="t-part">${esc(s.part)}</p><h1 class="t-title">${md(s.title)}</h1>`;
+const head = (s) => `<h1 class="t-title">${md(s.title)}</h1>`;
 const ask = (s) => (s.ask ? `<p class="t-ask">${md(s.ask)}</p>` : '');
 
 function table(rows, cls = '') {
@@ -86,11 +86,6 @@ function table(rows, cls = '') {
 }
 
 const count = (p) => (p ? `<p class="t-count">${p.done} <small>of ${p.of} ${p.unit === 'groups' ? 'groups done' : 'done'}</small></p>` : '');
-
-function voteBars(r, correct) {
-  return `<ul class="t-bars">${r.options.map((o, i) => `<li class="${i === correct ? 'right' : ''}">
-    <span>${md(o)}</span><span class="bar"><i style="width:${pct(r.counts[i], r.n)}%"></i></span><b>${r.counts[i]}</b></li>`).join('')}</ul>`;
-}
 
 // Class vs paper, as shares of people.
 function pairBars(labels, mine, n, theirs, N) {
@@ -123,40 +118,54 @@ function labelsResult(r) {
     <p class="t-key">${key}</p>`;
 }
 
-// Coding Table 8: for each comment, the paper's category, and how many of you chose it; how much you agreed.
-function codesResult(r) {
-  const p = (x) => (x === null ? '—' : `${Math.round(100 * x)}%`);
-  const rows = r.items.map((i) => `<li><span class="tt">#${esc(i.id)} “${esc(i.text)}”</span><span class="cat">${esc(r.categories[i.category])}</span>
-    <span class="t-with"><span class="t-split"><span style="width:${i.withPaper === null ? 0 : Math.round(100 * i.withPaper)}%;background:var(--purple)"></span></span><span class="t-split-num">${p(i.withPaper)}</span></span>
-    <span class="t-split-num">${p(i.agreement)}</span></li>`).join('');
-  const sum = r.withPaper === null ? '' : `<p class="t-key"><span>Over all 7 comments: you picked the paper’s category ${p(r.withPaper)} of the time, and agreed with each other ${p(r.agreement)} of the time.</span></p>`;
-  return `<ul class="t-posts codes"><li class="h"><span>Comment</span><span>The paper’s category</span><span>Like the paper</span><span>Like each other</span></li>${rows}</ul>${sum}`;
+// The seven tasks: per task, the right command and how many picked it; then, by how sure people were, how often
+// they were right.
+function tasksResult(r) {
+  const rows = r.rows.map((t) => `<li><span class="tt">${md(t.short)}</span>
+    <span class="t-split"><span style="width:${pct(t.right, t.n)}%;background:var(--green)"></span></span>
+    <span class="t-split-num">${t.n ? `${t.right} of ${t.n}` : '—'}</span><span class="key">${md(t.answer)}</span></li>`).join('');
+  const sure = r.sure.map((x, i) => `<span><b>${esc(x)}:</b> ${r.sureN[i] ? `${pct(r.sureRight[i], r.sureN[i])}% right` : '—'}</span>`).join('');
+  return `<ul class="t-posts tasks"><li class="h"><span>Task</span><span>Picked the right command</span><span></span><span>The right command</span></li>${rows}</ul>
+    <p class="t-key">${sure}</p>`;
 }
 
-// While groups work: who is in which group (and their claim). At the design reveal: each group's answers.
-function groupCards(r, { reveal }) {
-  const n = r.groups.length;
-  const cols = n > 4 ? 3 : Math.max(1, n); // up to four groups in one row; more in rows of three
-  return `<div class="t-groups ${reveal ? 'designs' : ''} ${n > 4 ? 'many' : ''}" style="--cols:${cols}">${r.groups.map((g) => {
-    const filled = r.fields.every((f) => g.answers?.[f.id]);
-    const theirs = r.fields.map((f) => `<div><span class="lab">${esc(f.short ?? f.label)}</span><p class="ans">${g.answers?.[f.id] ? md(g.answers[f.id]) : '<span class="empty">—</span>'}</p></div>`).join('');
-    const body = reveal ? theirs : `<p class="muted">${esc(g.members.join(', '))}</p>`;
-    return `<article class="t-group ${filled ? 'done' : ''}"><h2>${esc(g.name)}${reveal ? ` <small>${esc(g.members.join(', '))}</small>` : ''}</h2>
-      ${g.claim ? `<p class="quote">“${esc(g.claim.quote)}”</p>` : ''}${body}</article>`;
-  }).join('')}</div>`;
+// A sort: for each item, how the class split across the categories, and the key.
+const SORT_COLORS = ['var(--purple)', '#F59E0B', '#0EA5E9', '#C9C9D1'];
+function sortResult(r) {
+  const rows = r.rows.map((x) => {
+    const n = x.counts.reduce((a, b) => a + b, 0);
+    const split = n ? x.counts.map((c, i) => `<span style="width:${pct(c, n)}%;background:${SORT_COLORS[i]}"></span>`).join('') : '';
+    return `<li><span class="tt">${md(x.text)}</span><span class="t-split">${split}</span>
+      <span class="key">${esc(r.categories[x.key])}</span><span class="t-split-num">${n ? `${x.counts[x.key]} of ${n}` : '—'}</span></li>`;
+  }).join('');
+  const key = r.categories.map((c, i) => `<span><i style="background:${SORT_COLORS[i]}"></i>${esc(c)}</span>`).join('');
+  return `<ul class="t-posts sorts"><li class="h"><span></span><span>Your answers</span><span>The answer</span><span>Right</span></li>${rows}</ul>
+    <p class="t-key">${key}</p>`;
 }
 
-// The verdicts: one card per claim in play, in one row: each group's sentence, then the model answer.
-// With no groups (a rehearsal, or nobody joined): every claim with what was measured and the model answer.
+// What people or groups wrote: the starred ones if the teacher starred any, else everything (no names).
+function entryCards(r, { live = false } = {}) {
+  const list = r.starred.length ? r.starred : r.all;
+  if (!list.length) return `<p class="t-empty">${live ? 'Answers appear here as they come in.' : 'No answers yet.'}</p>`;
+  const one = r.fields.length === 1;
+  const shown = list.slice(0, 9);
+  const cols = shown.length > 4 ? 3 : Math.min(2, shown.length);
+  return `<div class="t-entries ${one ? 'one' : ''} ${r.starred.length ? 'starred' : ''}" style="--cols:${cols}">${shown.map((e) => `<article class="t-entry">
+    ${e.group ? `<h2>${esc(e.group)}</h2>` : ''}
+    ${one ? `<p class="ans">${md(e.answers?.[r.fields[0].id] ?? '')}</p>`
+      : r.fields.map((f) => `<div><span class="lab">${esc(f.short)}</span><p class="ans">${e.answers?.[f.id] ? md(e.answers[f.id]) : '<span class="empty">—</span>'}</p></div>`).join('')}
+    </article>`).join('')}</div>${list.length > shown.length ? `<p class="t-foot">and ${list.length - shown.length} more</p>` : ''}`;
+}
+
+// The verdicts: per team, its claim, its verdict and the model answer.
 function verdicts(r, claims) {
-  const inPlay = new Map();
-  for (const g of r.groups) if (g.claim) (inPlay.get(g.claim.id) ?? inPlay.set(g.claim.id, { claim: g.claim, groups: [] }).get(g.claim.id)).groups.push(g);
-  const cards = inPlay.size ? [...inPlay.values()] : (claims ?? []).map((claim) => ({ claim, groups: [] }));
-  return `<div class="t-groups verdicts" style="--cols:${Math.max(2, cards.length)}">${cards.map(({ claim, groups }) => `<article class="t-group">
+  const teams = r.teams.filter((t) => t.claim);
+  const cards = teams.length ? teams : (claims ?? []).map((claim) => ({ claim, group: null, answers: null }));
+  const cols = cards.length > 3 ? 3 : Math.max(1, cards.length);
+  return `<div class="t-groups verdicts" style="--cols:${cols}">${cards.map(({ claim, group, answers }) => `<article class="t-group">
     <p class="quote">“${esc(claim.quote)}”</p>
-    ${groups.length ? groups.map((g) => `<p><span class="lab">${esc(g.name)} wrote</span>${g.answers?.supports ? md(g.answers.supports) : '<span class="empty">—</span>'}</p>`).join('')
-      : `<p><span class="lab">They measured</span>${esc(claim.measured)}</p>`}
-    <div class="model"><span class="lab">The data supports</span>${esc(claim.supports)}</div></article>`).join('')}</div>`;
+    ${group ? `<p><span class="lab">${esc(group)}’s answer</span>${answers?.verdict ? md(answers.verdict) : '<span class="empty">—</span>'}</p>` : ''}
+    <div class="model"><span class="lab">What the data supports</span>${esc(claim.supports)}</div></article>`).join('')}</div>`;
 }
 
 // ---------- The slide ----------
@@ -165,46 +174,40 @@ export function slideHtml(s, r, ctx = {}) {
   const k = `ts k-${s.kind}`;
   if (s.kind === 'join') {
     const url = ctx.joinUrl;
-    return `<div class="${k}"><p class="t-part">Thursday · Git, Part 2</p><h1 class="t-title">${md(s.title)}</h1>
+    return `<div class="${k}"><h1 class="t-title">${md(s.title)}</h1>
       <div class="t-join"><div class="t-lines">
         <p class="t-cite">${esc(ctx.paper?.title ?? '')}<br>${esc(ctx.paper ? `${ctx.paper.authors} · ${ctx.paper.venue}` : '')}</p>
         ${lines(s.lines)}${url ? `<p class="t-url">${esc(shortUrl(url))}</p>` : ''}
         ${ctx.joined !== undefined ? `<p class="t-count">${ctx.joined} <small>joined</small></p>` : ''}</div>
         ${url ? `<img alt="QR code for the join link" src="${qrSrc(url)}">` : ''}</div></div>`;
   }
-  if (s.kind === 'break' || s.kind === 'end') {
-    const wall = s.kind === 'end' && r?.lines?.length
-      ? `<p class="t-wall-sub">What you wrote: when you build a tool for people, …</p><ul class="t-wall">${r.lines.slice(-12).map((l) => `<li>${md(l)}</li>`).join('')}</ul>` : '';
-    return `<div class="${k}"><p class="t-part">${esc(s.part)}</p><h1 class="t-title">${md(s.title)}</h1>${lines(s.lines)}${wall}</div>`;
-  }
-  if (s.kind === 'slide' && s.columns) {
-    return `<div class="${k}">${head(s)}<div class="t-cols">${s.columns.map((c, i) => `<section class="t-col ${i ? 'no' : 'yes'}">
-      <h2>${esc(c.title)}</h2><ul>${c.items.map((x) => `<li>${md(x)}</li>`).join('')}</ul></section>`).join('')}</div></div>`;
+  if (s.kind === 'end') {
+    const wall = r?.lines?.length
+      ? `<p class="t-wall-sub">What you wrote. When you build a tool for people, …</p><ul class="t-wall">${r.lines.slice(-12).map((l) => `<li>${md(l)}</li>`).join('')}</ul>` : '';
+    return `<div class="${k}"><h1 class="t-title">${md(s.title)}</h1>${lines(s.lines)}${wall}</div>`;
   }
   if (s.kind === 'slide') {
     return `<div class="${k}">${head(s)}${lines(s.lines)}${s.table ? table(s.table) : ''}
       ${s.foot ? `<p class="t-foot">${md(s.foot)}</p>` : ''}${ask(s)}</div>`;
   }
-  if (s.kind === 'vote') {
-    return `<div class="${k}">${head(s)}${lines(s.lines)}<ul class="t-options">${s.options.map((o) => `<li>${md(o)}</li>`).join('')}</ul>${count(ctx.progress)}</div>`;
+  if (s.kind === 'write') {
+    const who = s.whoLine ?? '';
+    return `<div class="${k}">${head(s)}${who ? `<p class="t-who">${esc(who)}</p>` : ''}${lines(s.lines)}${count(ctx.progress)}</div>`;
   }
-  if (s.kind === 'survey' || s.kind === 'label' || s.kind === 'code' || s.kind === 'exit') {
+  if (['tasks', 'survey', 'label', 'sort', 'exit'].includes(s.kind)) {
     return `<div class="${k}">${head(s)}${lines(s.lines)}${count(ctx.progress)}</div>`;
   }
-  if (s.kind === 'group') {
-    return `<div class="${k}">${head(s)}${lines(s.lines)}${r ? groupCards(r, { reveal: false }) : ''}${count(ctx.progress)}</div>`;
+  if (s.kind === 'discuss') {
+    return `<div class="${k}">${head(s)}${r ? entryCards(r) : ''}${ask(s)}</div>`;
   }
   if (s.kind === 'reveal') {
     let body = '';
-    if (r?.type === 'vote') body = voteBars(r, s.correct);
-    else if (r?.type === 'survey') body = surveyResult(r);
+    if (r?.type === 'survey') body = surveyResult(r);
+    else if (r?.type === 'tasks') body = tasksResult(r);
     else if (r?.type === 'labels') body = labelsResult(r);
-    else if (r?.type === 'codes') body = codesResult(r);
+    else if (r?.type === 'sort') body = sortResult(r);
     else if (r?.type === 'claims') body = verdicts(r, ctx.claims);
-    else if (r?.type === 'design') body = r.groups.length ? groupCards(r, { reveal: true }) : '';
-    const before = r?.type === 'vote' ? '' : lines(s.lines);
-    const after = r?.type === 'vote' ? lines(s.lines) : '';
-    return `<div class="${k}">${head(s)}${before}${body}${after}${ask(s)}</div>`;
+    return `<div class="${k}">${head(s)}${lines(s.lines)}${body}${ask(s)}</div>`;
   }
   return `<div class="${k}">${head(s)}${lines(s.lines)}</div>`;
 }

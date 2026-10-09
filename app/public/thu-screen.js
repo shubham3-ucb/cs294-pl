@@ -7,7 +7,7 @@ let shown = '', index = 0;
 
 poll('/api/thu/admin/state', (s) => {
   index = s.index;
-  const html = slideHtml(s.scene, s.results, {
+  const html = slideHtml(s.scene, s.projector ?? s.results, {
     joinUrl: s.joinUrl, paper: s.paper, claims: s.claims, progress: s.progress, joined: s.people.length,
   });
   if (html !== shown) { slide.innerHTML = html; shown = html; }

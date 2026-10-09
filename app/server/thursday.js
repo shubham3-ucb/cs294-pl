@@ -1,24 +1,22 @@
-// Thursday session: people, the scene, survey answers, votes, post labels, comment codes, groups and their
-// answers, exit lines. One JSON file (DATA_DIR/thursday.json); no Git here. Clients poll /api/thu/state; `v`
-// changes on every write.
+// Thursday session: people, the scene, the Git tasks, survey answers, sorts, post labels, groupings (pairs,
+// teams) and what each one wrote, the class's questions, the teacher's stars, exit lines. One JSON file
+// (DATA_DIR/thursday.json); no Git here. Clients poll /api/thu/state; `v` changes on every write.
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import {
-  SCENES, SURVEY, POSTS, LABELS, COMMENTS, CATEGORIES, CLAIMS, CLAIM_FIELDS, DESIGN_FIELDS, CLAIM_EXAMPLE, DESIGN_EXAMPLE, PAPER,
-  PAPER_SURVEY, BUFFER_MINUTES,
+  SCENES, SURVEY, TASKS, SURE, POSTS, LABELS, CLAIMS, FIELDS, EXAMPLES, ITEMS, SIZES, WHO_LINE, PAPER, PAPER_SURVEY, BUFFER_MINUTES,
 } from './thursday_scenes.js';
 
 const DATA_DIR = path.resolve(process.env.DATA_DIR || './data');
 const FILE = path.join(DATA_DIR, 'thursday.json');
-const FORMAT = 2;
+const FORMAT = 3;
 const NAME_MAX = 24;
 const TEXT_MAX = 300;
+const QUESTION_MAX = 200;
 const JOIN_MAX = 80;
 const HERE_MS = 90_000; // polled within 90 s = here (hidden tabs poll slowly)
 const RECENT_MS = 10 * 60_000; // seen within 10 min = in the room, for forming groups
-const GROUP_SIZE = 4;
-const GROUP_MAX = 6; // a late joiner opens a new group when every group has 6
 
 let S;
 let saveTimer = null;
@@ -26,7 +24,7 @@ const seen = new Map(); // pid -> last poll (not saved)
 
 const fresh = () => ({
   format: FORMAT, boot: crypto.randomBytes(4).toString('hex'), v: 0, scene: 0, sceneAt: Date.now(),
-  people: {}, survey: {}, votes: {}, labels: {}, codes: {}, groups: null, groupAnswers: {}, exit: {},
+  people: {}, tasks: {}, survey: {}, labels: {}, sorts: {}, groupings: {}, writes: {}, questions: [], stars: {}, exit: {},
 });
 
 export function boot() {
@@ -65,40 +63,52 @@ const indexOf = (id) => SCENES.findIndex((s) => s.id === id);
 const within = (ms) => Object.keys(S.people).filter((pid) => Date.now() - (seen.get(pid) ?? 0) < ms);
 const here = () => within(HERE_MS);
 const isHere = (pid) => Date.now() - (seen.get(pid) ?? 0) < HERE_MS;
+const nameOf = (pid) => S.people[pid]?.name ?? '?';
 
-// Survey, labels and codes stay open until their reveal is over, so a slow student can finish.
-const OPEN_UNTIL = { survey: 'survey-reveal', label: 'label-reveal', code: 'code-reveal' };
-const isOpen = (s) => s === scene() || (OPEN_UNTIL[s.kind] && S.scene > indexOf(s.id) && S.scene <= indexOf(OPEN_UNTIL[s.kind]));
+// An activity stays open until the scene after it is over, so a slow student can finish (the survey until its
+// reveal is over, since the data slide sits between them).
+const OPEN_UNTIL = { survey: 'survey-reveal' };
+function isOpen(s) {
+  const i = indexOf(s.id);
+  if (S.scene === i) return true;
+  const until = OPEN_UNTIL[s.kind] ? indexOf(OPEN_UNTIL[s.kind]) : i + 1;
+  return ['tasks', 'survey', 'sort', 'label', 'write'].includes(s.kind) && S.scene > i && S.scene <= until;
+}
 
-// ---------- Groups: formed when the class first reaches a group scene; the teacher can re-form them ----------
+// ---------- Groupings: pairs, teams and larger groups, each formed the first time a scene needs it ----------
 
-function formGroups() {
+const groupName = { pair: 'Pair', team: 'Team' };
+
+function formGrouping(who) {
   const recent = within(RECENT_MS);
   const pids = recent.length ? recent : Object.keys(S.people);
   for (let i = pids.length - 1; i > 0; i--) {
     const j = crypto.randomInt(i + 1);
     [pids[i], pids[j]] = [pids[j], pids[i]];
   }
-  for (const p of Object.values(S.people)) p.group = null;
-  const k = Math.max(1, Math.round(pids.length / GROUP_SIZE));
-  S.groups = Array.from({ length: k }, (_, i) => ({ id: `g${i + 1}`, name: `Group ${i + 1}`, claim: i % CLAIMS.length, members: [] }));
-  pids.forEach((pid, i) => S.groups[i % k].members.push(pid));
-  for (const g of S.groups) for (const pid of g.members) S.people[pid].group = g.id;
+  // As many groups as fit the size; an odd one out joins a group rather than working alone.
+  const k = Math.max(1, Math.floor(pids.length / SIZES[who]));
+  const groups = Array.from({ length: k }, (_, i) => ({ id: `${who}${i + 1}`, name: `${groupName[who]} ${i + 1}`, members: [], assign: i }));
+  pids.forEach((pid, i) => groups[i % k].members.push(pid));
+  S.groupings[who] = groups;
 }
 
-function joinGroup(pid) {
-  let target = S.groups.reduce((a, b) => (b.members.length < a.members.length ? b : a));
-  if (target.members.length >= GROUP_MAX) {
-    const i = S.groups.length;
-    target = { id: `g${i + 1}`, name: `Group ${i + 1}`, claim: i % CLAIMS.length, members: [] };
-    S.groups.push(target);
+// A late joiner (or someone away when a grouping formed) joins the smallest group; above the size plus half, a new one.
+function joinGrouping(who, pid) {
+  const groups = S.groupings[who];
+  let target = groups.reduce((a, b) => (b.members.length < a.members.length ? b : a));
+  if (target.members.length >= SIZES[who] + Math.ceil(SIZES[who] / 2)) {
+    const i = groups.length;
+    target = { id: `${who}${i + 1}`, name: `${groupName[who]} ${i + 1}`, members: [], assign: i };
+    groups.push(target);
   }
   target.members.push(pid);
-  S.people[pid].group = target.id;
 }
 
-const groupOf = (pid) => S.groups?.find((g) => g.id === S.people[pid]?.group) ?? null;
-const fieldsFor = (s) => (s.fields === 'claim' ? CLAIM_FIELDS : DESIGN_FIELDS);
+const groupOf = (who, pid) => S.groupings[who]?.find((g) => g.members.includes(pid)) ?? null;
+// Who owns an answer in a write scene: the person, or their group.
+const ownerOf = (s, pid) => (s.who === 'solo' ? pid : groupOf(s.who, pid)?.id ?? null);
+const claimOf = (g) => CLAIMS[g.assign % CLAIMS.length];
 
 // ---------- Students ----------
 
@@ -126,36 +136,55 @@ export function join({ name, pid }) {
     n = `${n} ${k}`;
   }
   const id = crypto.randomBytes(6).toString('hex');
-  S.people[id] = { name: n, joined: Date.now(), group: null };
+  S.people[id] = { name: n, joined: Date.now() };
   seen.set(id, Date.now());
-  if (S.groups) joinGroup(id);
+  for (const who of Object.keys(S.groupings)) joinGrouping(who, id);
   changed();
   return ok({ pid: id, name: n });
 }
 
-// What a student still has to finish from an earlier scene that is still open (survey, labels, codes).
+const sortItems = (s) => ITEMS[s.items];
+const done = (s, pid) => {
+  if (s.kind === 'tasks') return TASKS.every((t) => S.tasks[pid]?.[t.id]?.pick !== undefined && S.tasks[pid]?.[t.id]?.sure !== undefined);
+  if (s.kind === 'survey') return !!S.survey[pid];
+  if (s.kind === 'sort') return Object.keys(S.sorts[s.id]?.[pid] ?? {}).length === sortItems(s).items.length;
+  if (s.kind === 'label') return Object.keys(S.labels[pid] ?? {}).length === POSTS.length;
+  if (s.kind === 'exit') return !!S.exit[pid];
+  return true;
+};
+
+// An earlier activity this student has not finished, while it is still open.
 function pending(pid) {
-  for (const [kind, until] of Object.entries(OPEN_UNTIL)) {
-    const s = SCENES.find((x) => x.kind === kind);
-    if (S.scene <= indexOf(s.id) || S.scene > indexOf(until)) continue;
-    const done = kind === 'survey' ? !!S.survey[pid]
-      : kind === 'label' ? Object.keys(S.labels[pid] ?? {}).length === POSTS.length
-        : Object.keys(S.codes[pid] ?? {}).length === COMMENTS.length;
-    if (!done) return publicScene(s);
+  for (let i = S.scene - 1; i >= 0; i--) {
+    const s = SCENES[i];
+    if (['tasks', 'survey', 'sort', 'label'].includes(s.kind) && isOpen(s) && !done(s, pid)) return publicScene(s);
   }
   return null;
+}
+
+// The group this person is in for a scene, with what it wrote so far.
+function myGroup(s, pid) {
+  if (!s || s.kind !== 'write' || s.who === 'solo') return null;
+  const g = groupOf(s.who, pid);
+  if (!g) return null;
+  return {
+    name: g.name, members: g.members.map(nameOf),
+    claim: s.assign === 'claim' ? (({ id, quote, facts }) => ({ id, quote, facts }))(claimOf(g)) : null, // no model answer
+  };
 }
 
 export function state(pid) {
   const me = S.people[pid];
   if (!me) return ok({ boot: S.boot, v: S.v, joined: false, scene: publicScene(scene()), index: S.scene, total: SCENES.length, paper: PAPER });
   seen.set(pid, Date.now());
-  if (S.groups && !groupOf(pid)) { // away when the groups formed: join the smallest now
-    joinGroup(pid);
-    changed();
+  let moved = false;
+  for (const who of Object.keys(S.groupings)) {
+    if (!groupOf(who, pid)) { joinGrouping(who, pid); moved = true; }
   }
+  if (moved) changed();
   const s = scene();
-  const g = groupOf(pid);
+  const work = pending(pid) ? null : s;
+  const owner = work?.kind === 'write' ? ownerOf(work, pid) : null;
   return ok({
     boot: S.boot, v: S.v, joined: true, index: S.scene, total: SCENES.length, scene: publicScene(s), paper: PAPER,
     pending: pending(pid),
@@ -163,18 +192,15 @@ export function state(pid) {
     me: {
       name: me.name,
       survey: S.survey[pid] ?? null,
-      vote: s.kind === 'vote' ? S.votes[s.id]?.[pid] ?? null : null,
+      tasks: S.tasks[pid] ?? {},
       labels: S.labels[pid] ?? {},
-      codes: S.codes[pid] ?? {},
+      sorts: Object.fromEntries(Object.entries(S.sorts).map(([id, all]) => [id, all[pid] ?? {}])),
       exit: S.exit[pid] ?? '',
+      questions: S.questions.filter((q) => q.pid === pid).map((q) => q.text),
     },
-    group: g && {
-      name: g.name,
-      members: g.members.map((m) => S.people[m]?.name).filter(Boolean),
-      claim: (({ id, quote, facts }) => ({ id, quote, facts }))(CLAIMS[g.claim]), // no model answer, no citation
-      answers: s.kind === 'group' ? S.groupAnswers[s.id]?.[g.id] ?? null : null,
-    },
-    results: s.kind === 'reveal' || s.kind === 'end' ? results(s.shows) : null,
+    group: work ? myGroup(work, pid) : null,
+    answers: owner ? S.writes[work.id]?.[owner] ?? null : null,
+    results: ['reveal', 'discuss', 'end'].includes(s.kind) ? results(s, { forProjector: true }) : null,
   });
 }
 
@@ -182,17 +208,23 @@ export function state(pid) {
 function publicScene(s) {
   const { say, hope, ...rest } = s;
   if (s.kind === 'survey') rest.survey = SURVEY;
+  if (s.kind === 'tasks') {
+    rest.tasks = TASKS.map(({ key, ...t }) => t);
+    rest.sure = SURE;
+  }
   if (s.kind === 'label') {
     rest.posts = POSTS.map(({ askerNamesIt, ...p }) => p);
     rest.labels = LABELS;
   }
-  if (s.kind === 'code') {
-    rest.comments = COMMENTS.map(({ category, ...c }) => c);
-    rest.categories = CATEGORIES;
+  if (s.kind === 'sort') {
+    const { items, categories } = sortItems(s);
+    rest.items = items.map(({ key, ...x }) => x);
+    rest.categories = categories;
   }
-  if (s.kind === 'group') {
-    rest[s.fields === 'claim' ? 'claimFields' : 'designFields'] = fieldsFor(s);
-    rest.example = s.fields === 'claim' ? CLAIM_EXAMPLE : DESIGN_EXAMPLE;
+  if (s.kind === 'write') {
+    rest.fields = FIELDS[s.fields];
+    rest.example = s.example ? EXAMPLES[s.example] : null;
+    rest.whoLine = WHO_LINE[s.who];
   }
   return rest;
 }
@@ -201,9 +233,9 @@ function publicScene(s) {
 const OTHER = 'Other (please specify)';
 const otherOf = (q, picked, input) => (picked.some((i) => q.options[i] === OTHER) ? clean(input[`${q.id}Other`], TEXT_MAX) : '');
 
-function validSurvey(input) {
+function validSurvey(input, questions = SURVEY) {
   const out = {};
-  for (const q of SURVEY) {
+  for (const q of questions) {
     const val = input?.[q.id];
     if (q.type === 'one') {
       const i = Number(val);
@@ -227,6 +259,16 @@ function validSurvey(input) {
   return ok({ survey: out });
 }
 
+// A question for the class, at any time after joining.
+export function ask({ pid, text }) {
+  if (!S.people[pid]) return fail('Please join again.');
+  const t = clean(text, QUESTION_MAX);
+  if (!t) return fail('Type your question.');
+  S.questions.push({ id: crypto.randomBytes(4).toString('hex'), pid, text: t, t: Date.now() });
+  changed();
+  return ok();
+}
+
 // One endpoint for every student input; the scene decides what is accepted.
 export function answer({ pid, scene: sceneId, value, post, item, field, text }) {
   if (!S.people[pid]) return fail('Please join again.');
@@ -241,27 +283,30 @@ export function answer({ pid, scene: sceneId, value, post, item, field, text }) 
     const r = validSurvey(input);
     if (!r.ok) return r;
     S.survey[pid] = r.survey;
-  } else if (s.kind === 'vote') {
+  } else if (s.kind === 'tasks') {
+    const t = TASKS.find((x) => x.id === String(item));
     const i = Number(value);
-    if (!Number.isInteger(i) || i < 0 || i >= s.options.length) return fail('Pick one.');
-    (S.votes[s.id] ??= {})[pid] = i;
+    const max = field === 'sure' ? SURE.length : t?.options.length;
+    if (!t || !['pick', 'sure'].includes(field) || !Number.isInteger(i) || i < 0 || i >= max) return fail('Pick one.');
+    ((S.tasks[pid] ??= {})[t.id] ??= {})[field] = i;
+  } else if (s.kind === 'sort') {
+    const { items, categories } = sortItems(s);
+    const x = items.find((i) => i.id === String(item));
+    const c = Number(value);
+    if (!x || !Number.isInteger(c) || c < 0 || c >= categories.length) return fail('Pick one.');
+    ((S.sorts[s.id] ??= {})[pid] ??= {})[x.id] = c;
   } else if (s.kind === 'label') {
     const p = POSTS.find((x) => x.id === String(post));
     if (!p || !LABELS.some((l) => l.id === value)) return fail('Pick one label.');
     (S.labels[pid] ??= {})[p.id] = value;
-  } else if (s.kind === 'code') {
-    const c = COMMENTS.find((x) => x.id === String(item));
-    const i = Number(value);
-    if (!c || !Number.isInteger(i) || i < 0 || i >= CATEGORIES.length) return fail('Pick one category.');
-    (S.codes[pid] ??= {})[c.id] = i;
-  } else if (s.kind === 'group') {
-    const g = groupOf(pid);
-    if (!g) return fail('Wait a moment: your group is being formed.');
-    const f = fieldsFor(s).find((x) => x.id === field);
+  } else if (s.kind === 'write') {
+    const owner = ownerOf(s, pid);
+    if (!owner) return fail('Wait a moment: your group is being formed.');
+    const f = FIELDS[s.fields].find((x) => x.id === field);
     if (!f) return fail('No such field.');
-    const entry = ((S.groupAnswers[s.id] ??= {})[g.id] ??= {});
+    const entry = ((S.writes[s.id] ??= {})[owner] ??= {});
     entry[f.id] = clean(text, TEXT_MAX);
-    entry.by = S.people[pid].name;
+    entry.by = nameOf(pid);
     entry.t = Date.now();
   } else if (s.kind === 'exit') {
     const t = clean(text, TEXT_MAX);
@@ -274,7 +319,7 @@ export function answer({ pid, scene: sceneId, value, post, item, field, text }) 
   return ok();
 }
 
-// ---------- Results (reveals, projector, console) ----------
+// ---------- Results (reveals, discussion, projector, console) ----------
 
 const median = (xs) => {
   if (!xs.length) return null;
@@ -282,20 +327,59 @@ const median = (xs) => {
   const m = Math.floor(a.length / 2);
   return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2;
 };
-// Agreement on one item: the share of labels that match the most common label.
+// Agreement on one item: the share of answers that match the most common answer.
 const majorityShare = (counts) => {
   const n = counts.reduce((a, b) => a + b, 0);
   return n ? Math.max(...counts) / n : null;
 };
 const mean = (xs) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null);
 
-export function results(what) {
+// The entries of a write scene (or the class's questions): one per person or group, with stars.
+// The projector shows no names; the console does.
+function entries(fromId, { forProjector }) {
+  if (fromId === 'questions') {
+    const list = S.questions.map((q) => ({ key: `q:${q.id}`, who: nameOf(q.pid), answers: { text: q.text }, t: q.t }));
+    return { fields: [{ id: 'text', short: 'Question' }], list };
+  }
+  const s = sceneById(fromId);
+  const fields = FIELDS[s.fields];
+  const byOwner = S.writes[fromId] ?? {};
+  const owners = s.who === 'solo' ? Object.keys(byOwner) : (S.groupings[s.who] ?? []).map((g) => g.id);
+  const list = owners.map((owner) => {
+    const g = s.who === 'solo' ? null : S.groupings[s.who].find((x) => x.id === owner);
+    return {
+      key: `${fromId}:${owner}`,
+      who: g ? `${g.name} · ${g.members.map(nameOf).join(', ')}` : nameOf(owner),
+      group: g?.name ?? null,
+      answers: byOwner[owner] ?? null,
+      claim: s.assign === 'claim' && g ? claimOf(g) : null,
+      t: byOwner[owner]?.t ?? 0,
+    };
+  });
+  return { fields, list, who: s.who };
+}
+
+export function results(s, { forProjector = false } = {}) {
+  const what = s.kind === 'discuss' ? `write:${s.from}` : s.shows;
   if (!what) return null;
-  const vote = sceneById(what);
-  if (vote?.kind === 'vote') {
-    const counts = vote.options.map(() => 0);
-    for (const i of Object.values(S.votes[what] ?? {})) counts[i] += 1;
-    return { type: 'vote', options: vote.options, counts, n: counts.reduce((a, b) => a + b, 0) };
+  if (what.startsWith('write:')) {
+    const from = what.slice(6);
+    const { fields, list, who } = entries(from, { forProjector });
+    const filled = list.filter((e) => e.answers && fields.some((f) => e.answers[f.id]));
+    const starred = filled.filter((e) => S.stars[e.key]);
+    const strip = (e) => (forProjector ? { key: e.key, group: e.group, answers: e.answers, claim: e.claim, starred: !!S.stars[e.key] } : { ...e, starred: !!S.stars[e.key] });
+    return { type: 'entries', from, who, fields, all: filled.map(strip), starred: starred.map(strip), total: list.length };
+  }
+  if (what === 'tasks') {
+    const all = Object.values(S.tasks);
+    const rows = TASKS.map((t) => {
+      const picks = all.map((a) => a[t.id]).filter((a) => a?.pick !== undefined);
+      const right = (xs) => xs.filter((a) => a.pick === t.key).length;
+      const bySure = SURE.map((_, k) => { const xs = picks.filter((a) => a.sure === k); return { n: xs.length, right: right(xs) }; });
+      return { id: t.id, short: t.short, answer: t.options[t.key], n: picks.length, right: right(picks), bySure };
+    });
+    const sum = (k) => SURE.map((_, i) => rows.reduce((n, r) => n + r.bySure[i][k], 0));
+    return { type: 'tasks', rows, sure: SURE, n: all.length, sureN: sum('n'), sureRight: sum('right') };
   }
   if (what === 'survey') {
     const all = Object.values(S.survey);
@@ -305,6 +389,20 @@ export function results(what) {
       level: count('level'), learn: count('learn', true), academia: count('area')[0],
       medianYears: median(all.map((a) => a.years)), ticks: all.reduce((n, a) => n + a.learn.length, 0),
       levels: SURVEY.find((q) => q.id === 'level').options, approaches: SURVEY.find((q) => q.id === 'learn').options,
+    };
+  }
+  if (what.startsWith('sort:')) {
+    const src = sceneById(what.slice(5));
+    const { items, categories } = sortItems(src);
+    const all = Object.values(S.sorts[src.id] ?? {});
+    const rows = items.map((x) => {
+      const counts = categories.map((_, c) => all.filter((a) => a[x.id] === c).length);
+      return { id: x.id, text: x.text, key: x.key, counts, agreement: majorityShare(counts) };
+    });
+    return {
+      type: 'sort', categories, rows,
+      n: all.filter((a) => Object.keys(a).length === items.length).length,
+      right: mean(rows.map((r) => { const n = r.counts.reduce((a, b) => a + b, 0); return n ? r.counts[r.key] / n : null; }).filter((x) => x !== null)),
     };
   }
   if (what === 'labels') {
@@ -319,91 +417,80 @@ export function results(what) {
       agreement: mean(posts.map((p) => p.agreement).filter((x) => x !== null)),
     };
   }
-  if (what === 'codes') {
-    const all = Object.values(S.codes);
-    const items = COMMENTS.map((c) => {
-      const counts = CATEGORIES.map((_, i) => all.filter((x) => x[c.id] === i).length);
-      const n = counts.reduce((a, b) => a + b, 0);
-      return { id: c.id, text: c.text, category: c.category, counts, n, withPaper: n ? counts[c.category] / n : null, agreement: majorityShare(counts) };
-    });
-    const labels = items.reduce((n, i) => n + i.n, 0);
-    return {
-      type: 'codes', categories: CATEGORIES, items,
-      n: all.filter((x) => Object.keys(x).length === COMMENTS.length).length,
-      withPaper: labels ? items.reduce((n, i) => n + i.counts[i.category], 0) / labels : null,
-      agreement: mean(items.map((i) => i.agreement).filter((x) => x !== null)),
-    };
-  }
-  if (what === 'claims' || what === 'design') {
-    const s = sceneById(what);
-    return {
-      type: what,
-      fields: fieldsFor(s),
-      groups: (S.groups ?? []).map((g) => ({
-        name: g.name, members: g.members.map((m) => S.people[m]?.name).filter(Boolean),
-        claim: what === 'claims' ? CLAIMS[g.claim] : null, answers: S.groupAnswers[what]?.[g.id] ?? null,
-      })),
-    };
+  if (what === 'claims') {
+    const { list, fields } = entries('claims', { forProjector });
+    return { type: 'claims', fields, teams: list.map((e) => ({ group: e.group, claim: e.claim, answers: e.answers })) };
   }
   if (what === 'exit') return { type: 'exit', lines: Object.values(S.exit) };
   return null;
 }
 
-// How many of the people here have answered the current scene.
+// How many of the people here (or of the groups) have answered the current scene.
 function progress(s) {
-  const done = (pid) => {
-    if (s.kind === 'survey') return !!S.survey[pid];
-    if (s.kind === 'vote') return S.votes[s.id]?.[pid] !== undefined;
-    if (s.kind === 'label') return Object.keys(S.labels[pid] ?? {}).length === POSTS.length;
-    if (s.kind === 'code') return Object.keys(S.codes[pid] ?? {}).length === COMMENTS.length;
-    if (s.kind === 'exit') return !!S.exit[pid];
-    return false;
-  };
-  if (s.kind === 'group') {
-    const groups = S.groups ?? [];
-    const fields = fieldsFor(s);
-    const full = groups.filter((g) => fields.every((f) => S.groupAnswers[s.id]?.[g.id]?.[f.id])).length;
+  if (s.kind === 'write') {
+    const fields = FIELDS[s.fields];
+    if (s.who === 'solo') {
+      const people = here();
+      return { done: people.filter((pid) => fields.every((f) => S.writes[s.id]?.[pid]?.[f.id])).length, of: people.length, unit: 'people' };
+    }
+    const groups = S.groupings[s.who] ?? [];
+    const full = groups.filter((g) => fields.every((f) => S.writes[s.id]?.[g.id]?.[f.id])).length;
     return { done: full, of: groups.length, unit: 'groups' };
   }
-  if (!['survey', 'vote', 'label', 'code', 'exit'].includes(s.kind)) return null;
+  if (!['tasks', 'survey', 'sort', 'label', 'exit'].includes(s.kind)) return null;
   const people = here();
-  return { done: people.filter(done).length, of: people.length, unit: 'people' };
+  return { done: people.filter((pid) => done(s, pid)).length, of: people.length, unit: 'people' };
 }
 
 // ---------- Teacher ----------
 
 export function adminState(joinUrl) {
   const s = scene();
+  const live = s.kind === 'write' ? results({ kind: 'discuss', from: s.id }) : null; // what is coming in
   return ok({
     boot: S.boot, v: S.v, index: S.scene, total: SCENES.length, scene: s, joinUrl, paper: PAPER, claims: CLAIMS,
     elapsed: Date.now() - (S.sceneAt ?? Date.now()), buffer: BUFFER_MINUTES,
-    next: SCENES[S.scene + 1] ? { title: SCENES[S.scene + 1].title, part: SCENES[S.scene + 1].part } : null,
-    people: Object.entries(S.people).map(([pid, p]) => ({ name: p.name, here: isHere(pid), group: groupOf(pid)?.name ?? null })),
+    next: SCENES[S.scene + 1] ? { title: SCENES[S.scene + 1].title } : null,
+    people: Object.entries(S.people).map(([pid, p]) => ({ name: p.name, here: isHere(pid) })),
     hereCount: here().length,
-    groups: (S.groups ?? []).map((g) => ({ name: g.name, members: g.members.map((m) => S.people[m]?.name), claim: CLAIMS[g.claim].id })),
+    groupings: Object.fromEntries(Object.entries(S.groupings).map(([who, gs]) => [who, gs.map((g) => ({ name: g.name, members: g.members.map(nameOf) }))])),
+    who: s.kind === 'write' && SIZES[s.who] ? s.who : null,
     progress: progress(s),
-    results: results(s.kind === 'reveal' || s.kind === 'end' ? s.shows : s.kind === 'group' ? s.id : null),
+    results: ['reveal', 'discuss', 'end'].includes(s.kind) ? results(s) : live,
+    // The projector's view of this scene: no names.
+    projector: ['reveal', 'discuss', 'end'].includes(s.kind) ? results(s, { forProjector: true }) : null,
+    questions: S.questions.map((q) => ({ key: `q:${q.id}`, who: nameOf(q.pid), text: q.text, t: q.t, starred: !!S.stars[`q:${q.id}`] })),
   });
 }
 
-export function admin(action, { from } = {}) {
+export function admin(action, { from, key, who } = {}) {
   if (action === 'reset') {
     S = fresh();
     seen.clear();
     flush();
     return ok({ message: 'New session. Everyone joins again.' });
   }
-  if (action === 'regroup') {
-    if (!Object.keys(S.people).length) return fail('Nobody has joined.');
-    formGroups();
-    S.groupAnswers = {};
+  if (action === 'star') {
+    if (!key || typeof key !== 'string') return fail('Nothing to star.');
+    if (S.stars[key]) delete S.stars[key];
+    else S.stars[key] = true;
     changed();
-    return ok({ message: `${S.groups.length} new groups from the people in the room.` });
+    return ok({ starred: !!S.stars[key] });
+  }
+  if (action === 'regroup') {
+    const size = who ?? scene().who;
+    if (!SIZES[size]) return fail('This scene has no groups.');
+    if (!Object.keys(S.people).length) return fail('Nobody has joined.');
+    formGrouping(size);
+    for (const s of SCENES.filter((x) => x.kind === 'write' && x.who === size)) delete S.writes[s.id];
+    changed();
+    return ok({ message: `${S.groupings[size].length} new ${groupName[size].toLowerCase()}s from the people in the room.` });
   }
   if (from !== undefined && from !== null && from !== '' && Number(from) !== S.scene) return ok({ unchanged: true });
   if (action === 'next' && S.scene < SCENES.length - 1) {
     S.scene += 1;
-    if (scene().kind === 'group' && !S.groups && Object.keys(S.people).length) formGroups();
+    const s = scene();
+    if (s.kind === 'write' && SIZES[s.who] && !S.groupings[s.who] && Object.keys(S.people).length) formGrouping(s.who);
   } else if (action === 'back' && S.scene > 0) {
     S.scene -= 1;
   } else {
@@ -415,45 +502,40 @@ export function admin(action, { from } = {}) {
 }
 
 export function exportMarkdown() {
-  const who = (pid) => S.people[pid]?.name ?? '?';
   const pct = (x) => (x === null ? '—' : `${Math.round(100 * x)}%`);
   const stamp = new Date().toISOString().slice(0, 16).replace('T', ' ');
-  const out = [`# Thursday · The Humans · answers`, '', `Exported ${stamp} UTC · ${Object.keys(S.people).length} people`, ''];
-  const sv = results('survey');
+  const out = ['# Thursday · Reading a user study · answers', '', `Exported ${stamp} UTC · ${Object.keys(S.people).length} people`, ''];
+  for (const s of SCENES) {
+    if (s.kind === 'write') {
+      const r = results({ kind: 'discuss', from: s.id });
+      out.push(`## ${s.title}`, '');
+      for (const e of r.all) {
+        out.push(`- **${e.who}**${e.starred ? ' ★' : ''}${e.claim ? ` (claim: “${e.claim.quote}”)` : ''}`);
+        for (const f of r.fields) out.push(`  - ${f.short}: ${e.answers?.[f.id] || '—'}`);
+      }
+      out.push('');
+    } else if (s.kind === 'sort') {
+      const r = results({ shows: `sort:${s.id}` });
+      out.push(`## ${s.title}`, '', `Answers matching the key: ${pct(r.right)}`, '');
+      for (const row of r.rows) out.push(`- ${row.text}: ${r.categories.map((c, i) => `${c} ${row.counts[i]}`).join(', ')} (key: ${r.categories[row.key]})`);
+      out.push('');
+    }
+  }
+  const tk = results({ shows: 'tasks' });
+  out.push('## Seven Git tasks', '', `${tk.n} people.`, '');
+  for (const r of tk.rows) out.push(`- ${r.short}: ${r.right} of ${r.n} right (answer: ${r.answer})`);
+  out.push('', `Right, by how sure people were: ${tk.sure.map((x, i) => `${x} ${tk.sureRight[i]}/${tk.sureN[i]}`).join(', ')}`, '');
+  const sv = results({ shows: 'survey' });
   out.push('## Survey (the paper’s questions)', '', `${sv.n} answered. Median years using Git: ${sv.medianYears ?? '—'} (paper: 8).`, '');
   sv.levels.forEach((l, i) => out.push(`- ${l}: ${sv.level[i]} (paper: ${PAPER_SURVEY.level[i]} of 92)`));
-  out.push('');
   sv.approaches.forEach((l, i) => out.push(`- ${l}: ${sv.learn[i]} (paper: ${PAPER_SURVEY.learn[i]} of 92)`));
-  out.push('', 'Why (level), other, and suggestions:');
-  for (const [pid, a] of Object.entries(S.survey)) {
-    if (a.why) out.push(`- ${who(pid)} (why): ${a.why}`);
-    if (a.degreeOther) out.push(`- ${who(pid)} (degree, other): ${a.degreeOther}`);
-    if (a.learnOther) out.push(`- ${who(pid)} (learned, other): ${a.learnOther}`);
-    if (a.tip) out.push(`- ${who(pid)} (tip): ${a.tip}`);
-  }
-  for (const { id, title } of SCENES.filter((s) => s.kind === 'vote')) {
-    const r = results(id);
-    out.push('', `## Vote: ${title}`, '', ...r.options.map((o, i) => `- ${o}: ${r.counts[i]}`));
-  }
-  const lb = results('labels');
+  const lb = results({ shows: 'labels' });
   out.push('', '## Posts: what is each post about?', '', `Agreement (share matching the most common label, averaged): ${pct(lb.agreement)}`, '');
   for (const p of lb.posts) {
     out.push(`- ${p.title} (\`${p.command}\`, asker names it: ${p.askerNamesIt ? 'yes' : 'no'}): ${LABELS.map((l, i) => `${l.label} ${p.counts[i]}`).join(', ')}`);
   }
-  const cd = results('codes');
-  out.push('', '## Coding the paper’s Table 8 comments', '', `Agreed with the paper: ${pct(cd.withPaper)} · with each other: ${pct(cd.agreement)}`, '');
-  for (const i of cd.items) out.push(`- #${i.id} (paper: ${CATEGORIES[i.category]}): with the paper ${pct(i.withPaper)}, with each other ${pct(i.agreement)}`);
-  for (const id of ['claims', 'design']) {
-    const r = results(id);
-    out.push('', `## ${sceneById(id).title}`, '');
-    for (const g of r.groups) {
-      out.push(`### ${g.name} (${g.members.join(', ')})`, '');
-      if (g.claim) out.push(`Claim: “${g.claim.quote}”`, '');
-      for (const f of r.fields) out.push(`- ${f.label}: ${g.answers?.[f.id] || '—'}`);
-      out.push('');
-    }
-  }
-  out.push('## Exit: one new idea for building tools for people', '', ...Object.entries(S.exit).map(([pid, t]) => `- ${who(pid)}: ${t}`), '');
+  out.push('', '## Questions from the class', '', ...S.questions.map((q) => `- ${nameOf(q.pid)}${S.stars[`q:${q.id}`] ? ' ★' : ''}: ${q.text}`));
+  out.push('', '## Exit: when you build a tool for people, …', '', ...Object.entries(S.exit).map(([pid, t]) => `- ${nameOf(pid)}: ${t}`), '');
   return out.join('\n');
 }
 
@@ -461,12 +543,15 @@ export function exportMarkdown() {
 export function removePeople(pids) {
   for (const pid of pids) {
     delete S.people[pid];
-    for (const table of [S.survey, S.labels, S.codes, S.exit, ...Object.values(S.votes)]) delete table[pid];
+    for (const table of [S.tasks, S.survey, S.labels, S.exit, ...Object.values(S.sorts), ...Object.values(S.writes)]) delete table[pid];
+    S.questions = S.questions.filter((q) => q.pid !== pid);
     seen.delete(pid);
   }
-  if (S.groups) {
-    for (const g of S.groups) g.members = g.members.filter((m) => S.people[m]);
-    S.groups = S.groups.some((g) => g.members.length) ? S.groups.filter((g) => g.members.length) : null;
+  for (const [who, groups] of Object.entries(S.groupings)) {
+    for (const g of groups) g.members = g.members.filter((m) => S.people[m]);
+    const left = groups.filter((g) => g.members.length);
+    if (left.length) S.groupings[who] = left;
+    else delete S.groupings[who];
   }
   changed();
 }
