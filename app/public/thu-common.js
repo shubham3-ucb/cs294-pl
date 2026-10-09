@@ -1,3 +1,4 @@
+import { ed } from '/editable.js';
 // Thursday: what the projector, the console preview and the students' screens share.
 // slideHtml(scene, results, ctx) draws one slide from the scene text (server/thursday_scenes.js) and the class's results.
 
@@ -42,7 +43,7 @@ export function poll(path, onState, onConnection = () => {}, ms = 1500) {
 }
 
 export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
-export const md = (s) => esc(s).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/`(.+?)`/g, '<code>$1</code>');
+export const md = (s) => esc(s).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/`(.+?)`/g, '<code>$1</code>').replace(/\n/g, '<br>');
 export const qrSrc = (url) => `/api/qr.svg?text=${encodeURIComponent(url)}`;
 export const shortUrl = (url) => String(url).replace(/^https?:\/\//, '').replace(/\/$/, '');
 const pct = (n, of) => (of ? Math.round((100 * n) / of) : 0);
@@ -69,18 +70,22 @@ export async function move(dir, from) {
 }
 
 export const PROJECTOR_WINDOW = 'thursday-projector';
-const LEARN_SHORT = ['In class', 'Online courses', 'Peers or seniors', 'Documentation', 'Internet', 'Other'];
 
 // ---------- Pieces ----------
+// Every text carries its address (ed), so edit mode can change it in place: see public/editable.js.
+export { ed };
+const at = (s, ...keys) => ['thu/SCENES', s.id, ...keys].join('/');
+const lines = (ls = [], s = null) => (ls.length ? `<div class="t-lines">${ls.map((l, i) => `<p${s ? ed(at(s, 'lines', i), l) : ''}>${md(l)}</p>`).join('')}</div>` : '');
+const head = (s) => `<h1 class="t-title"${ed(at(s, 'title'), s.title)}>${md(s.title)}</h1>`;
+const ask = (s) => (s.ask ? `<p class="t-ask"><b>Discuss:</b> <span${ed(at(s, 'ask'), s.ask)}>${md(s.ask)}</span></p>` : '');
 
-const lines = (ls = []) => (ls.length ? `<div class="t-lines">${ls.map((l) => `<p>${md(l)}</p>`).join('')}</div>` : '');
-const head = (s) => `<h1 class="t-title">${md(s.title)}</h1>`;
-const ask = (s) => (s.ask ? `<p class="t-ask">${md(s.ask)}</p>` : '');
-
-function table(rows, cls = '') {
+// A table cell's address: the scene's own table, or (the research questions) RQS, which the table is read from.
+const cellAt = (s, i, j) => (s.id === 'rqs' ? `thu/RQS/rq${i + 1}/${j ? 'text' : 'label'}` : at(s, 'table', i, j));
+function table(rows, cls = '', s = null) {
   const [first, ...rest] = rows;
   const header = first[0] === '' ? `<tr>${first.map((c) => `<th>${md(c)}</th>`).join('')}</tr>` : '';
-  const body = (header ? rest : rows).map((r) => `<tr>${r.map((c) => `<td>${md(c)}</td>`).join('')}</tr>`).join('');
+  const off = header ? 1 : 0;
+  const body = (header ? rest : rows).map((r, i) => `<tr>${r.map((c, j) => `<td${s ? ed(cellAt(s, i + off, j), c) : ''}>${md(c)}</td>`).join('')}</tr>`).join('');
   const big = rows.length <= 3 ? 'big' : '';
   return `<table class="t-table ${header ? 'ranks' : ''} ${big} ${cls}">${header}${body}</table>`;
 }
@@ -96,8 +101,7 @@ function pairBars(labels, mine, n, theirs, N) {
 
 function surveyResult(r) {
   const p = r.paper;
-  return `<div class="t-two">
-    <section class="t-panel"><h2>How you learned Git</h2>${pairBars(LEARN_SHORT, r.learn, r.n, p.learn, p.n)}</section>
+  return `<div>
     <section class="t-panel"><h2>Your self-rated Git level</h2>${pairBars(r.levels, r.level, r.n, p.level, p.n)}</section>
   </div>
   <p class="t-key"><span><i style="background:var(--purple)"></i>You: ${r.n} answered${r.medianYears !== null ? `, median ${r.medianYears} years of Git` : ''}</span>
@@ -121,9 +125,9 @@ function labelsResult(r) {
 // The seven tasks: per task, the right command and how many picked it; then, by how sure people were, how often
 // they were right.
 function tasksResult(r) {
-  const rows = r.rows.map((t) => `<li><span class="tt">${md(t.short)}</span>
+  const rows = r.rows.map((t) => `<li><span class="tt"${ed(`thu/TASKS/${t.id}/short`, t.short)}>${md(t.short)}</span>
     <span class="t-split"><span style="width:${pct(t.right, t.n)}%;background:var(--green)"></span></span>
-    <span class="t-split-num">${t.n ? `${t.right} of ${t.n}` : '—'}</span><span class="key">${md(t.answer)}</span></li>`).join('');
+    <span class="t-split-num">${t.n ? `${t.right} of ${t.n}` : '—'}</span><span class="key"${ed(`thu/TASKS/${t.id}/options/${t.key}`, t.answer)}>${md(t.answer)}</span></li>`).join('');
   const sure = r.sure.map((x, i) => `<span><b>${esc(x)}:</b> ${r.sureN[i] ? `${pct(r.sureRight[i], r.sureN[i])}% right` : '—'}</span>`).join('');
   return `<ul class="t-posts tasks"><li class="h"><span>Task</span><span>Picked the right command</span><span></span><span>The right command</span></li>${rows}</ul>
     <p class="t-key">${sure}</p>`;
@@ -135,7 +139,7 @@ function sortResult(r) {
   const rows = r.rows.map((x) => {
     const n = x.counts.reduce((a, b) => a + b, 0);
     const split = n ? x.counts.map((c, i) => `<span style="width:${pct(c, n)}%;background:${SORT_COLORS[i]}"></span>`).join('') : '';
-    return `<li><span class="tt">${md(x.text)}</span><span class="t-split">${split}</span>
+    return `<li><span class="tt">${x.label ? `${esc(x.label)}: ` : ''}<span${ed(x.path, x.text)}>${md(x.text)}</span></span><span class="t-split">${split}</span>
       <span class="key">${esc(r.categories[x.key])}</span><span class="t-split-num">${n ? `${x.counts[x.key]} of ${n}` : '—'}</span></li>`;
   }).join('');
   const key = r.categories.map((c, i) => `<span><i style="background:${SORT_COLORS[i]}"></i>${esc(c)}</span>`).join('');
@@ -163,9 +167,9 @@ function verdicts(r, claims) {
   const cards = teams.length ? teams : (claims ?? []).map((claim) => ({ claim, group: null, answers: null }));
   const cols = cards.length > 3 ? 3 : Math.max(1, cards.length);
   return `<div class="t-groups verdicts" style="--cols:${cols}">${cards.map(({ claim, group, answers }) => `<article class="t-group">
-    <p class="quote">“${esc(claim.quote)}”</p>
+    <p class="quote">“<span${ed(`thu/CLAIMS/${claim.id}/quote`, claim.quote)}>${esc(claim.quote)}</span>”</p>
     ${group ? `<p><span class="lab">${esc(group)}’s answer</span>${answers?.verdict ? md(answers.verdict) : '<span class="empty">—</span>'}</p>` : ''}
-    <div class="model"><span class="lab">What the data supports</span>${esc(claim.supports)}</div></article>`).join('')}</div>`;
+    <div class="model"><span class="lab">What the data supports</span><span${ed(`thu/CLAIMS/${claim.id}/supports`, claim.supports)}>${esc(claim.supports)}</span></div></article>`).join('')}</div>`;
 }
 
 // ---------- The slide ----------
@@ -177,28 +181,28 @@ export function slideHtml(s, r, ctx = {}) {
     return `<div class="${k}"><h1 class="t-title">${md(s.title)}</h1>
       <div class="t-join"><div class="t-lines">
         <p class="t-cite">${esc(ctx.paper?.title ?? '')}<br>${esc(ctx.paper ? `${ctx.paper.authors} · ${ctx.paper.venue}` : '')}</p>
-        ${lines(s.lines)}${url ? `<p class="t-url">${esc(shortUrl(url))}</p>` : ''}
+        ${lines(s.lines, s)}${url ? `<p class="t-url">${esc(shortUrl(url))}</p>` : ''}
         ${ctx.joined !== undefined ? `<p class="t-count">${ctx.joined} <small>joined</small></p>` : ''}</div>
         ${url ? `<img alt="QR code for the join link" src="${qrSrc(url)}">` : ''}</div></div>`;
   }
   if (s.kind === 'end') {
     const wall = r?.lines?.length
       ? `<p class="t-wall-sub">What you wrote. When you build a tool for people, …</p><ul class="t-wall">${r.lines.slice(-12).map((l) => `<li>${md(l)}</li>`).join('')}</ul>` : '';
-    return `<div class="${k}"><h1 class="t-title">${md(s.title)}</h1>${lines(s.lines)}${wall}</div>`;
+    return `<div class="${k}"><h1 class="t-title">${md(s.title)}</h1>${lines(s.lines, s)}${wall}</div>`;
   }
   if (s.kind === 'slide') {
-    return `<div class="${k}">${head(s)}${lines(s.lines)}${s.table ? table(s.table) : ''}
+    return `<div class="${k}">${head(s)}${lines(s.lines, s)}${s.table ? table(s.table, '', s) : ''}
       ${s.foot ? `<p class="t-foot">${md(s.foot)}</p>` : ''}${ask(s)}</div>`;
   }
   if (s.kind === 'write') {
     const who = s.whoLine ?? '';
-    return `<div class="${k}">${head(s)}${who ? `<p class="t-who">${esc(who)}</p>` : ''}${lines(s.lines)}${count(ctx.progress)}</div>`;
+    return `<div class="${k}">${head(s)}${who ? `<p class="t-who">${esc(who)}</p>` : ''}${lines(s.lines, s)}${count(ctx.progress)}</div>`;
   }
   if (['tasks', 'survey', 'label', 'sort', 'exit'].includes(s.kind)) {
-    return `<div class="${k}">${head(s)}${lines(s.lines)}${count(ctx.progress)}</div>`;
+    return `<div class="${k}">${head(s)}${lines(s.lines, s)}${count(ctx.progress)}</div>`;
   }
   if (s.kind === 'discuss') {
-    return `<div class="${k}">${head(s)}${r ? entryCards(r) : ''}${ask(s)}</div>`;
+    return `<div class="${k}">${head(s)}${lines(s.lines, s)}${r ? entryCards(r) : ''}${ask(s)}</div>`;
   }
   if (s.kind === 'reveal') {
     let body = '';
@@ -207,7 +211,7 @@ export function slideHtml(s, r, ctx = {}) {
     else if (r?.type === 'labels') body = labelsResult(r);
     else if (r?.type === 'sort') body = sortResult(r);
     else if (r?.type === 'claims') body = verdicts(r, ctx.claims);
-    return `<div class="${k}">${head(s)}${lines(s.lines)}${body}${ask(s)}</div>`;
+    return `<div class="${k}">${head(s)}${lines(s.lines, s)}${body}${ask(s)}</div>`;
   }
-  return `<div class="${k}">${head(s)}${lines(s.lines)}</div>`;
+  return `<div class="${k}">${head(s)}${lines(s.lines, s)}</div>`;
 }

@@ -184,7 +184,7 @@ describe('the scene script', () => {
         assert.deepEqual(Object.keys(s.reveal).sort(), ['behind', 'cards', 'note', 'sentence'], s.id);
         assert.ok(s.ask.q && s.ask.a, s.id);
         assert.ok(s.step === 0 ? s.reveal.sentence && s.reveal.behind : s.reveal.cards.length, s.id);
-        for (const c of s.reveal.cards) assert.deepEqual(Object.keys(c), ['command', 'is', 'does', 'how'], s.id);
+        for (const c of s.reveal.cards) assert.deepEqual(Object.keys(c), ['command', 'is', 'does', 'how', 'id'], s.id); // id: the card's name, for edits
         assert.match(s.board, new RegExp(`^${s.step}\\. `), s.id);
         assert.equal(s.takeawayStep, s.step);
       }

@@ -1,7 +1,11 @@
 // Student page (/thu): join, then whatever the current scene asks. Polls the server every 2 s.
 // An activity a student has not finished (survey, a sort, the posts) stays on screen until the class has moved past
 // its reveal. A box for questions to the class sits at the bottom of every screen.
-import { api, poll, slideHtml, esc, md } from '/thu-common.js';
+import { api, poll, slideHtml, esc, md, key } from '/thu-common.js';
+import { ed, busy, editFromUrl } from '/editable.js';
+
+// /thu?key=…&edit: edit the wording in place (teacher key). The same text then shows on the console and projector.
+editFromUrl(key);
 
 const app = document.getElementById('app');
 const banner = Object.assign(document.createElement('p'), { className: 's-offline', hidden: true, textContent: 'Reconnecting…' });
@@ -13,7 +17,11 @@ let st = null, drawn = '', passive = '';
 // The scene this student works on: an unfinished earlier activity, else the class's scene.
 const active = () => st.pending ?? st.scene;
 
+// After an edit, redraw this page at once with the new wording.
+addEventListener('text-edited', () => { drawn = ''; passive = ''; refresh(); });
+
 const refresh = poll(() => `/api/thu/state?pid=${encodeURIComponent(pid)}`, (s) => {
+  if (busy()) return; // someone is editing a text: redraw after
   st = s;
   if (!s.joined) { if (drawn !== 'join') drawJoin(); return; }
   const sig = `${s.boot}:${active().id}:${s.pending ? 'late' : ''}:${s.group?.name ?? ''}:${(s.group?.members ?? []).join(',')}`;
@@ -23,8 +31,9 @@ const refresh = poll(() => `/api/thu/state?pid=${encodeURIComponent(pid)}`, (s) 
 const top = () => `<header class="s-top"><h1>Reading a user study</h1><span class="muted">Thursday · Git, part 2</span>
   <span class="who">${esc(st.me.name)}${st.group ? ` · ${esc(st.group.name)}` : ''}</span></header>`;
 const late = () => (st.pending ? '<p class="s-late">The class has moved on. Finish this, then look up.</p>' : '');
-const intro = (s) => `${late()}<div><h2 class="s-title">${md(s.title)}</h2></div>
-  ${s.about ? `<p class="s-about">${md(s.about)}</p>` : s.lines?.length ? `<div class="s-lines">${s.lines.map((l) => `<p>${md(l)}</p>`).join('')}</div>` : ''}`;
+const at = (s, ...keys) => ['thu/SCENES', s.id, ...keys].join('/');
+const intro = (s) => `${late()}<div><h2 class="s-title"${ed(at(s, 'title'), s.title)}>${md(s.title)}</h2></div>
+  ${s.about ? `<p class="s-about"${ed(at(s, 'about'), s.about)}>${md(s.about)}</p>` : s.lines?.length ? `<div class="s-lines">${s.lines.map((l, i) => `<p${ed(at(s, 'lines', i), l)}>${md(l)}</p>`).join('')}</div>` : ''}`;
 const msg = (el, text, kind = '') => { if (el) { el.textContent = text; el.className = `s-msg ${kind}`; } };
 
 function drawJoin() {
@@ -136,11 +145,11 @@ function drawSurvey(s) {
 }
 
 function question(q, a, n) {
-  const label = `<p>${n}. ${esc(q.q)}${q.optional ? ' <small>(optional)</small>' : ''}</p>`;
+  const label = `<p>${n}. <span${ed(`thu/SURVEY/${q.id}/q`, q.q)}>${esc(q.q)}</span>${q.optional ? ' <small>(optional)</small>' : ''}</p>`;
   if (q.type === 'one' || q.type === 'many') {
     const type = q.type === 'one' ? 'radio' : 'checkbox';
     const on = (i) => (q.type === 'one' ? a[q.id] === i : (a[q.id] ?? []).includes(i));
-    const opts = q.options.map((o, i) => `<label><input type="${type}" name="${q.id}" value="${i}" ${on(i) ? 'checked' : ''}><span>${esc(o)}</span></label>`).join('');
+    const opts = q.options.map((o, i) => `<label><input type="${type}" name="${q.id}" value="${i}" ${on(i) ? 'checked' : ''}><span${ed(`thu/SURVEY/${q.id}/options/${i}`, o)}>${esc(o)}</span></label>`).join('');
     const other = q.options.includes('Other (please specify)')
       ? `<input name="${q.id}Other" maxlength="300" placeholder="Other (please specify)" value="${esc(a[`${q.id}Other`] ?? '')}">` : '';
     const extra = (q.why ? `<input name="why" maxlength="300" placeholder="${esc(q.why)}" value="${esc(a.why ?? '')}">` : '') + other;
@@ -178,7 +187,7 @@ const blocks = (bs) => bs.map((b) => (b.code ? `<pre>${esc(b.text)}</pre>` : `<p
 
 function drawLabels(s) {
   const mine = { ...st.me.labels };
-  const key = `<div class="s-key"><p class="s-sub">The three labels</p>${s.labels.map((l) => `<p><b>${esc(l.label)}</b>: ${esc(l.hint)}</p>`).join('')}</div>`;
+  const key = `<div class="s-key"><p class="s-sub">The three labels</p>${s.labels.map((l) => `<p><b${ed(`thu/LABELS/${l.id}/label`, l.label)}>${esc(l.label)}</b>: <span${ed(`thu/LABELS/${l.id}/hint`, l.hint)}>${esc(l.hint)}</span></p>`).join('')}</div>`;
   app.innerHTML = `${top()}${intro(s)}${key}<p class="s-progress" id="prog"></p>${s.posts.map((p, i) => `
     <article class="s-post ${mine[p.id] ? 'done' : ''}" data-id="${esc(p.id)}">
       <div class="s-post-head"><h2>${i + 1}. ${esc(p.title)}</h2><code class="s-cmd">${esc(p.command)}</code></div>
@@ -200,11 +209,11 @@ function drawTasks(s) {
   app.innerHTML = `${top()}${intro(s)}<p class="s-progress" id="prog"></p>${s.tasks.map((t, i) => `
     <article class="s-post s-task ${full(t.id) ? 'done' : ''}" data-id="${esc(t.id)}">
       <p class="s-sub">Task ${i + 1} of ${s.tasks.length}</p>
-      <p class="s-situation">${md(t.situation)}</p>
+      <p class="s-situation"${ed(`thu/TASKS/${t.id}/situation`, t.situation)}>${md(t.situation)}</p>
       <p><strong>Which command would you run?</strong></p>
-      <div class="s-opts">${t.options.map((o, k) => `<button data-f="pick" data-v="${k}" class="${mine[t.id]?.pick === k ? 'on' : ''}">${md(o)}</button>`).join('')}</div>
+      <div class="s-opts">${t.options.map((o, k) => `<button data-f="pick" data-v="${k}" class="${mine[t.id]?.pick === k ? 'on' : ''}"><span${ed(`thu/TASKS/${t.id}/options/${k}`, o)}>${md(o)}</span></button>`).join('')}</div>
       <p><strong>How sure are you?</strong></p>
-      <div class="s-cats">${s.sure.map((x, k) => `<button data-f="sure" data-v="${k}" class="${mine[t.id]?.sure === k ? 'on' : ''}">${esc(x)}</button>`).join('')}</div>
+      <div class="s-cats">${s.sure.map((x, k) => `<button data-f="sure" data-v="${k}" class="${mine[t.id]?.sure === k ? 'on' : ''}"><span${ed(`thu/SURE/${k}`, x)}>${esc(x)}</span></button>`).join('')}</div>
       <p class="s-msg"></p>
     </article>`).join('')}`;
   const prog = () => {
@@ -232,8 +241,8 @@ function drawSort(s) {
   const mine = Object.fromEntries(Object.entries(st.me.sorts?.[s.id] ?? {}).map(([k, v]) => [k, String(v)]));
   app.innerHTML = `${top()}${intro(s)}<p class="s-progress" id="prog"></p>${s.items.map((x) => `
     <article class="s-post ${mine[x.id] !== undefined ? 'done' : ''}" data-id="${esc(x.id)}">
-      <p class="s-quote">${md(x.text)}</p>
-      <div class="s-cats">${s.categories.map((c, i) => `<button data-v="${i}" class="${mine[x.id] === String(i) ? 'on' : ''}">${esc(c)}</button>`).join('')}</div>
+      <p class="s-quote">${x.label ? `${esc(x.label)}: ` : ''}<span${ed(x.path, x.text)}>${md(x.text)}</span></p>
+      <div class="s-cats">${s.categories.map((c, i) => `<button data-v="${i}" class="${mine[x.id] === String(i) ? 'on' : ''}"><span${ed(`thu/${s.catRoot}/${i}`, c)}>${esc(c)}</span></button>`).join('')}</div>
       <p class="s-msg"></p>
     </article>`).join('')}`;
   choices('.s-post', s.items.length, mine, (item, value) => send({ item, value: Number(value) }));
@@ -244,13 +253,15 @@ const timers = {};
 function drawWrite(s) {
   const g = st.group;
   if (s.who !== 'solo' && !g) { app.innerHTML = `${top()}${intro(s)}<p class="s-wait">Your ${s.who === 'pair' ? 'pair' : 'group'} is being formed…</p>`; return; }
-  const with_ = g ? `<p class="s-with"><b>${esc(s.whoLine)}</b> (${esc(g.name)}: ${esc(g.members.join(', '))}). Write one answer together; one person types.</p>`
-    : `<p class="s-with"><b>${esc(s.whoLine ?? '')}</b></p>`;
+  const who = `<b${ed(`thu/WHO_LINE/${s.who}`, s.whoLine)}>${esc(s.whoLine ?? '')}</b>`;
+  const with_ = g ? `<p class="s-with">${who} (${esc(g.name)}: ${esc(g.members.join(', '))}). Write one answer together; one person types.</p>`
+    : `<p class="s-with">${who}</p>`;
   const claim = g?.claim ? `<div class="s-claim"><p class="s-sub">Your team’s claim, in the paper’s own words</p>
-    <p class="quote">“${esc(g.claim.quote)}”</p><p class="s-sub">The facts behind it</p><ul class="s-facts">${(g.claim.facts ?? []).map((f) => `<li>${esc(f)}</li>`).join('')}</ul></div>` : '';
-  const ex = s.example ? `<details class="s-example"><summary>${esc(s.example.title)}</summary>${s.example.intro ? `<p>${esc(s.example.intro)}</p>` : ''}
-    ${s.example.rows.map(([k, v]) => `<p><b>${esc(k)}:</b> ${esc(v)}</p>`).join('')}</details>` : '';
-  app.innerHTML = `${top()}${intro(s)}${with_}${claim}${ex}${s.fields.map((f) => `<div class="s-field"><label for="f-${f.id}">${esc(f.label)}</label>
+    <p class="quote">“<span${ed(`thu/CLAIMS/${g.claim.id}/quote`, g.claim.quote)}>${esc(g.claim.quote)}</span>”</p><p class="s-sub">The facts behind it</p><ul class="s-facts">${(g.claim.facts ?? []).map((f, i) => `<li${ed(`thu/CLAIMS/${g.claim.id}/facts/${i}`, f)}>${esc(f)}</li>`).join('')}</ul></div>` : '';
+  const exAt = (...keys) => ['thu/EXAMPLES', s.exampleKey, ...keys].join('/');
+  const ex = s.example ? `<details class="s-example"><summary><span${ed(exAt('title'), s.example.title)}>${esc(s.example.title)}</span></summary>${s.example.intro ? `<p${ed(exAt('intro'), s.example.intro)}>${esc(s.example.intro)}</p>` : ''}
+    ${s.example.rows.map(([k, v], i) => `<p><b>${esc(k)}:</b> <span${ed(exAt('rows', i, 1), v)}>${esc(v)}</span></p>`).join('')}</details>` : '';
+  app.innerHTML = `${top()}${intro(s)}${with_}${claim}${ex}${s.fields.map((f) => `<div class="s-field"><label for="f-${f.id}"${ed(`thu/FIELDS/${s.fieldsKey}/${f.id}/label`, f.label)}>${esc(f.label)}</label>
       <textarea id="f-${f.id}" data-f="${f.id}" maxlength="300">${esc(st.answers?.[f.id] ?? '')}</textarea>
       <span class="by" id="by-${f.id}"></span></div>`).join('')}`;
   app.querySelectorAll('textarea[data-f]').forEach((t) => {

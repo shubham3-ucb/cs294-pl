@@ -144,6 +144,8 @@ export function join({ name, pid }) {
 }
 
 const sortItems = (s) => ITEMS[s.items];
+// The research-question slide's table comes from RQS: its cells are edited there.
+const RQS_PATHS = () => ITEMS.rqs.items.map((q) => [null, `thu/RQS/${q.id}/text`]);
 const done = (s, pid) => {
   if (s.kind === 'tasks') return TASKS.every((t) => S.tasks[pid]?.[t.id]?.pick !== undefined && S.tasks[pid]?.[t.id]?.sure !== undefined);
   if (s.kind === 'survey') return !!S.survey[pid];
@@ -217,13 +219,17 @@ function publicScene(s) {
     rest.labels = LABELS;
   }
   if (s.kind === 'sort') {
-    const { items, categories } = sortItems(s);
-    rest.items = items.map(({ key, ...x }) => x);
+    const { items, categories, root, catRoot } = sortItems(s);
+    rest.items = items.map(({ key, ...x }) => ({ ...x, path: `thu/${root}/${x.id}/text` }));
     rest.categories = categories;
+    rest.catRoot = catRoot;
   }
+  if (s.id === 'rqs') rest.tablePaths = RQS_PATHS();
   if (s.kind === 'write') {
     rest.fields = FIELDS[s.fields];
+    rest.fieldsKey = s.fields; // for the edit addresses: thu/FIELDS/<fieldsKey>/… and thu/EXAMPLES/<exampleKey>/…
     rest.example = s.example ? EXAMPLES[s.example] : null;
+    rest.exampleKey = s.example ?? null;
     rest.whoLine = WHO_LINE[s.who];
   }
   return rest;
@@ -376,7 +382,7 @@ export function results(s, { forProjector = false } = {}) {
       const picks = all.map((a) => a[t.id]).filter((a) => a?.pick !== undefined);
       const right = (xs) => xs.filter((a) => a.pick === t.key).length;
       const bySure = SURE.map((_, k) => { const xs = picks.filter((a) => a.sure === k); return { n: xs.length, right: right(xs) }; });
-      return { id: t.id, short: t.short, answer: t.options[t.key], n: picks.length, right: right(picks), bySure };
+      return { id: t.id, short: t.short, key: t.key, answer: t.options[t.key], n: picks.length, right: right(picks), bySure };
     });
     const sum = (k) => SURE.map((_, i) => rows.reduce((n, r) => n + r.bySure[i][k], 0));
     return { type: 'tasks', rows, sure: SURE, n: all.length, sureN: sum('n'), sureRight: sum('right') };
@@ -397,7 +403,7 @@ export function results(s, { forProjector = false } = {}) {
     const all = Object.values(S.sorts[src.id] ?? {});
     const rows = items.map((x) => {
       const counts = categories.map((_, c) => all.filter((a) => a[x.id] === c).length);
-      return { id: x.id, text: x.text, key: x.key, counts, agreement: majorityShare(counts) };
+      return { id: x.id, label: x.label ?? null, text: x.text, path: `thu/${sortItems(src).root}/${x.id}/text`, key: x.key, counts, agreement: majorityShare(counts) };
     });
     return {
       type: 'sort', categories, rows,
@@ -517,7 +523,7 @@ export function exportMarkdown() {
     } else if (s.kind === 'sort') {
       const r = results({ shows: `sort:${s.id}` });
       out.push(`## ${s.title}`, '', `Answers matching the key: ${pct(r.right)}`, '');
-      for (const row of r.rows) out.push(`- ${row.text}: ${r.categories.map((c, i) => `${c} ${row.counts[i]}`).join(', ')} (key: ${r.categories[row.key]})`);
+      for (const row of r.rows) out.push(`- ${row.label ? `${row.label}: ` : ''}${row.text}: ${r.categories.map((c, i) => `${c} ${row.counts[i]}`).join(', ')} (key: ${r.categories[row.key]})`);
       out.push('');
     }
   }
@@ -557,3 +563,5 @@ export function removePeople(pids) {
 }
 
 export const version = () => ({ v: S.v, boot: S.boot });
+// Text was edited: every page refetches.
+export const touch = () => changed();

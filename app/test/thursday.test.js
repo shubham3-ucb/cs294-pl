@@ -34,7 +34,7 @@ const SURVEY_OK = { area: 0, degree: 1, years: 6, level: 2, why: 'daily use', le
 const survey = (pid, a = SURVEY_OK) => thu.answer({ pid, scene: 'survey', value: JSON.stringify(a) });
 
 describe('the script', () => {
-  test('77 minutes + 3 of buffer in the 80-minute slot, no break, every scene well formed, the survey word for word', () => {
+  test('76 minutes + 4 of buffer in the 80-minute slot, no break, every scene well formed, the survey word for word', () => {
     for (const s of SCENES) assert.ok(!('part' in s), `${s.id}: no section label`);
     assert.equal(TOTAL_MINUTES + BUFFER_MINUTES, 80);
     assert.equal(new Set(SCENES.map((s) => s.id)).size, SCENES.length);
@@ -135,8 +135,7 @@ describe('a class', () => {
     assert.ok(thu.adminState('').results.posts.every((p) => p.agreement === 0.5), 'two people, two different labels');
     goTo('exit');
     ok(thu.answer({ pid: a, scene: 'exit', text: 'Watch, do not ask.' }));
-    goTo('end');
-    assert.deepEqual(thu.state(a).results.lines, ['Watch, do not ask.']);
+    assert.deepEqual(thu.results({ kind: 'end', shows: 'exit' }).lines, ['Watch, do not ask.']);
   });
 
   test('students never see notes or answer keys early', () => {

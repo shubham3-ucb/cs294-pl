@@ -14,7 +14,7 @@ export const PAPER = {
 };
 
 export const MESSAGE = 'Find the research question. Check whether the data can answer it. Then decide if you believe the answer.';
-export const BUFFER_MINUTES = 3;
+export const BUFFER_MINUTES = 4;
 
 // The paper's survey, word for word from the authors' published form (Q1, the donation choice, is left out).
 export const SURVEY = [
@@ -189,7 +189,7 @@ export const FIELDS = {
   plan: [{ id: 'plan', short: 'Plan', label: 'What data would you collect, and from whom?' }],
   rq: [
     { id: 'rq', short: 'Research question', label: 'Your research question:' },
-    { id: 'use', short: 'What a tool builder would do', label: 'Once they knew the answer, what would a tool builder do differently?' },
+    { id: 'use', short: 'What a tool builder would do', label: 'Once they knew the fix, what would a tool builder do differently?' },
   ],
   claim: [
     { id: 'measured', short: 'What they measured', label: '1. What exactly did the authors measure?' },
@@ -201,9 +201,9 @@ export const FIELDS = {
 // Worked examples about something else, so nobody is handed their own answer.
 export const EXAMPLES = {
   rq: {
-    title: 'See an example (for a different tool)',
+    title: 'See an example',
     rows: [
-      ['Research question', 'When a spreadsheet formula shows an error, where do people look first?'],
+      ['Example', 'When a spreadsheet formula shows an error, where do people look first?'],
       ['What a tool builder would do', 'Put the explanation where people already look, next to the cell, instead of in a help menu.'],
     ],
   },
@@ -233,8 +233,8 @@ export const SCENES = [
   },
   {
     id: 'tasks', kind: 'tasks', title: 'Try seven Git tasks', minutes: 6,
-    about: 'Each task describes a situation. Pick the command that does what the task asks, then say how sure you are. Don’t look anything up: we want to see what you know right now.',
-    lines: ['On your laptop: seven short Git tasks.', 'For each one, pick the command you would run and say how sure you are. Don’t look anything up.'],
+    about: 'Each task describes a situation. Pick the command that does what the task asks, then say how sure you are.',
+    lines: ['On your laptop: seven short Git tasks.', 'For each one, pick the command you would run and say how sure you are.'],
     say: 'Alone, no searching. It is fine to guess: say so with “Guessing”. These are the commands the paper found people ask about most.',
   },
   {
@@ -246,45 +246,44 @@ export const SCENES = [
   },
   {
     id: 'you-first', kind: 'write', who: 'solo', fields: 'plan', title: 'How would you study this?', minutes: 2,
-    about: 'The paper asks whether developers really know how to use Git commands. You just took a small test of that. If you had to answer the question for thousands of developers, what data would you collect, and from whom? Write one or two sentences.',
+    about: 'The paper asks whether developers really know how to use Git commands. If you had to answer the question for thousands of developers,',
     lines: ['How would you find out whether developers know how to use Git?', 'On your laptop: write what data you would collect, and from whom.'],
     say: 'Two minutes, alone. Any answer is fine; we come back to these.',
   },
   {
     id: 'you-first-discuss', kind: 'discuss', from: 'you-first', title: 'Your ideas', minutes: 3,
-    lines: ['A few of your answers (no names).'],
-    ask: 'For each idea: does it watch people use Git, use records people leave behind (like posts or logs), or ask people questions?',
+    lines: [],
     hope: 'Watching people is the strongest evidence, records are next, and asking people is the weakest. Most real studies mix them.',
-    say: 'Star two or three different kinds of answer on the console, for example one that watches people and one that asks them.',
+    say: 'Ask: for each idea, does it watch people use Git, use records people leave behind (like posts or logs), or ask people questions? Star two or three different kinds of answer on the console, for example one that watches people and one that asks them.',
   },
   {
     id: 'rqs', kind: 'slide', title: 'What the authors asked', minutes: 2,
-    lines: ['Before judging a study, find its research questions. These are the paper’s five.'],
-    table: RQS.map((q) => [q.label, q.text]),
+    lines: [],
+    get table() { return RQS.map((q) => [q.label, q.text]); }, // read fresh, so an edit to a question shows here too
     say: 'Read them aloud. Point out that the title asks something different: whether developers know how to use Git.',
   },
   {
     id: 'rq-sort', kind: 'sort', items: 'rqs', title: 'What kind of question is each one?', minutes: 3,
-    about: 'Research questions come in three kinds. A **need-finding** question asks what problems people have. A **formative** question asks which solution to a known problem looks promising. An **evaluative** question asks whether a solution we built actually works. For each of the paper’s five questions, pick its kind.',
+    about: 'A **need-finding** question asks what problems people have.\nA **formative** question asks which solution to a known problem looks promising.\nAn **evaluative** question asks whether a solution we built actually works.',
     lines: ['On your laptop: for each research question, pick need-finding, formative or evaluative.'],
     say: 'Alone, quickly.',
   },
   {
     id: 'rq-reveal', kind: 'reveal', shows: 'sort:rq-sort', title: 'All five are need-finding', minutes: 3,
-    lines: ['All five ask what problems people have. None of them tests a solution.', 'None of them asks the title’s question either: whether developers know how to use Git.'],
+    lines: ['All five ask what problems people have. None of them tests a solution.'],
     ask: 'What research question would answer the title? What data would you need for it?',
     hope: 'Something like: can developers do common Git tasks correctly? To answer it you have to test or watch people, like our seven tasks did.',
     say: 'Need-finding studies are useful: they point at problems worth solving. What matters is whether this one’s answers help someone build a better tool.',
   },
   {
-    id: 'rq-pair', kind: 'write', who: 'pair', fields: 'rq', example: 'rq', title: 'Write a better research question', minutes: 4,
-    about: 'Work with your partner. Write one research question you wish the authors had asked: one whose answer would change how someone builds a Git tool. Then write what a tool builder would do differently once they knew the answer.',
-    lines: ['With your partner: write one research question whose answer would change how someone builds a Git tool.'],
+    id: 'rq-pair', kind: 'write', who: 'pair', fields: 'rq', example: 'rq', title: 'What research questions would you ask?', minutes: 4,
+    about: 'Work with a partner. Write one research question you wish the authors had asked. Then write what a tool builder would do differently once they knew the fix.',
+    lines: ['With your partner: write one research question you wish the authors had asked.'],
     say: 'Pairs form when you press Next; each student sees their partner’s name. One person types.',
   },
   {
     id: 'rq-discuss', kind: 'discuss', from: 'rq-pair', title: 'Your research questions', minutes: 3,
-    lines: ['A few of your questions (no names).'],
+    lines: [],
     ask: 'Which kind is each question: need-finding, formative or evaluative? Could the paper’s Stack Overflow data answer it?',
     hope: 'Most questions a tool builder cares about need people to be watched or tested. Stack Overflow posts answer only a few of them.',
     say: 'Star the questions worth discussing, and ask the pair behind one of them to explain it.',
@@ -373,12 +372,11 @@ export const SCENES = [
     lines: ['On your laptop, finish this sentence in one line:', 'When you build a tool for people, …'],
     say: 'The lecture’s goal: everyone leaves with one new idea about designing tools for people.',
   },
-  {
-    id: 'end', kind: 'end', title: 'Thank you', minutes: 1, shows: 'exit',
-    lines: [MESSAGE],
-    say: 'Export the answers from Details, then Reset.',
-  },
 ];
 
-export const ITEMS = { rqs: { items: RQS.map((q) => ({ ...q, text: `${q.label}: ${q.text}` })), categories: RQ_KINDS }, measures: { items: MEASURES, categories: RUNGS } };
+// Items to sort, each with its text's address for editing. The research questions show their label (RQ1…).
+export const ITEMS = {
+  rqs: { items: RQS, categories: RQ_KINDS, root: 'RQS', catRoot: 'RQ_KINDS' },
+  measures: { items: MEASURES, categories: RUNGS, root: 'MEASURES', catRoot: 'RUNGS' },
+};
 export const TOTAL_MINUTES = SCENES.reduce((n, s) => n + s.minutes, 0);

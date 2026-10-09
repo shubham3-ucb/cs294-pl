@@ -1,7 +1,18 @@
 // Teacher console (/thu/admin): private. Next and Back run the class; the projector shows the preview.
 import { api, key, poll, slideHtml, presenterKeys, move, md, esc, PROJECTOR_WINDOW } from '/thu-common.js';
+import { ed, busy, startEditing, editingOn, editFromUrl } from '/editable.js';
 
 const $ = (id) => document.getElementById(id);
+
+editFromUrl(key);
+addEventListener('text-edited', () => { shown = ''; });
+// Edit text: the console's own texts (the slide preview, Say, Ask, Hope) become editable, and the student page
+// opens in edit mode too, so every student-facing text can be changed where it appears.
+$('edit-toggle').onclick = () => {
+  if (!editingOn()) startEditing(key);
+  window.open(`/thu?key=${encodeURIComponent(key)}&edit`, 'thursday-edit-students');
+};
+
 if (!key) document.body.innerHTML = '<p style="padding:24px;font:18px Inter,sans-serif">Open the teacher link: it ends in ?key=…</p>';
 let index = 0, shown = '', projector = null, sceneStart = 0, planned = 0, rehearsal = null;
 const mmss = (ms) => { const t = Math.max(0, Math.round(ms / 1000)); return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`; };
@@ -40,6 +51,7 @@ document.addEventListener('click', async (e) => {
 });
 
 poll('/api/thu/admin/state', (s) => {
+  if (busy()) return; // a text is being edited: redraw after
   index = s.index;
   const sc = s.scene;
   // The preview is the projector's slide: no names.
@@ -55,10 +67,11 @@ poll('/api/thu/admin/state', (s) => {
   const whys = s.results?.type === 'claims'
     ? [...new Map(s.results.teams.filter((t) => t.claim).map((t) => [t.claim.id, t.claim])).values()]
       .map((c) => `<br><br><strong>“${esc(c.quote)}”</strong><br>${esc(c.why)}`).join('') : '';
-  $('say').innerHTML = md(sc.say ?? '') + whys;
+  const at = (f) => `thu/SCENES/${sc.id}/${f}`;
+  $('say').innerHTML = `<span${ed(at('say'), sc.say)}>${md(sc.say ?? '')}</span>${whys}`;
   $('ask-box').hidden = !sc.ask;
-  $('ask').innerHTML = md(sc.ask ?? '');
-  $('hope').innerHTML = md(sc.hope ?? '');
+  $('ask').innerHTML = `<span${ed(at('ask'), sc.ask)}>${md(sc.ask ?? '')}</span>`;
+  $('hope').innerHTML = `<span${ed(at('hope'), sc.hope)}>${md(sc.hope ?? '')}</span>`;
   $('back').disabled = s.index === 0;
   $('next').disabled = !s.next;
   $('here').textContent = `${s.hereCount} here · ${s.people.length} joined`;

@@ -5,6 +5,16 @@
 import { PARTS, emoji, nameOf, palette, renderMonsterCard } from '/monster.js';
 import { renderGraph, plainMessage, clockOf, velocity, pathBadges } from '/graph.js';
 import { renderFigure, events as figEvents, pickLines, LEGEND as FIG_LEGEND, COLOR as FIG_COLOR } from '/figure3.js';
+import { ed, busy as editingText, editFromUrl, editingOn } from '/editable.js';
+
+// /?key=…&edit: edit the wording in place (teacher key). The same text then shows on the console and projector.
+editFromUrl((() => {
+  const k = new URL(location.href).searchParams.get('key');
+  if (k) sessionStorage.setItem('tue-key', k);
+  return k || sessionStorage.getItem('tue-key') || '';
+})());
+// An edit address, with the raw wording the server sent beside the text (src: {field: {p, r}}).
+const src = (o, f) => o?.src?.[f] ?? null;
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
@@ -290,6 +300,7 @@ function closeDialogs() {
 // ---------- Render ----------
 
 function render() {
+  if (editingText()) return; // a text is being edited: redraw after
   const joined = Boolean(state.me && state.lab);
   $('join').hidden = joined;
   $('main').hidden = !joined;
@@ -327,7 +338,7 @@ function render() {
   renderQA();
   showHint();
   shown = { step, scene: scene.id, lab: state.me.labId };
-  if (!tour && !V.card && !localStorage.getItem(KEY.tour)) startTour();
+  if (!tour && !V.card && !localStorage.getItem(KEY.tour) && !editingOn()) startTour(); // no tour over edit mode
   coach();
 }
 
@@ -378,6 +389,8 @@ function revealHTML() {
   const [step, title] = V.scene.title.split(' · ');
   return `<p class="eyebrow">${esc(step)}</p><h1>${esc(title ?? step)}</h1>`;
 }
+// One technical card's text, editable in place (server/steps.js CARDS).
+const cardText = (c, key, html) => `<span${ed(`tue/CARDS/${c.id}/${key}`, c[key])}>${html}</span>`;
 
 // The reveal on the stage, as on the projector: each tool's technical card (the command, then what it is,
 // what it does, how Git does it). Step 0 has no tool: one sentence and Behind the door.
@@ -388,12 +401,12 @@ function renderReveal() {
   $('reveal').hidden = !r;
   patch($('reveal'), r ? `
     ${r.cards.map((c) => `<article class="tech">
-        <h2 class="tech-cmd"><code>${esc(c.command)}</code></h2>
-        <dl class="tech-rows">${TECH.map(([key, label]) => `<dt class="${key}">${label}</dt><dd class="${key}">${rich(c[key])}</dd>`).join('')}</dl>
+        <h2 class="tech-cmd"><code>${cardText(c, 'command', esc(c.command))}</code></h2>
+        <dl class="tech-rows">${TECH.map(([key, label]) => `<dt class="${key}">${label}</dt><dd class="${key}">${cardText(c, key, rich(c[key]))}</dd>`).join('')}</dl>
       </article>`).join('')}
-    ${r.sentence ? `<p class="reveal-sentence">${rich(r.sentence)}</p>` : ''}
-    ${r.behind ? `<p class="reveal-behind"><b>What Git did</b>${rich(r.behind)}</p>` : ''}
-    ${r.note ? `<p class="tech-note">${rich(r.note)}</p>` : ''}
+    ${r.sentence ? `<p class="reveal-sentence"${ed(src(V.scene, 'sentence'))}>${rich(r.sentence)}</p>` : ''}
+    ${r.behind ? `<p class="reveal-behind"><b>What Git did</b><span${ed(src(V.scene, 'behind'))}>${rich(r.behind)}</span></p>` : ''}
+    ${r.note ? `<p class="tech-note"${ed(src(V.scene, 'note'))}>${rich(r.note)}</p>` : ''}
     ${(V.scene.facts ?? []).map((f) => `<p class="reveal-fact">${esc(f)}</p>`).join('')}` : '');
 }
 
@@ -410,12 +423,12 @@ function taskHTML() {
   const next = goals.findIndex((g) => !g.done);
   const ask = state.session.ask && !V.scene.answerable ? `<p class="ask on">Discuss: <i>${esc(state.session.ask)}</i></p>` : '';
   return `<p class="eyebrow">Step ${n}</p>
-    <h1>${esc(s.title)}</h1>
+    <h1${ed(src(s, 'title'))}>${esc(s.title)}</h1>
     ${s.fixedLine ? `<p class="fixed-line">${esc(s.fixedLine)}</p>` : ''}
     ${s.story ? `<div class="instruction story">
-      <p><span class="story-label">What is happening</span><span>${rich(s.story.now)}</span></p>
-      <p class="${state.me.mission ? 'mission-box' : ''}"><span class="story-label">Your job</span>${steps(state.me.mission || s.story.job)}${pairLine()}</p>
-      <p><span class="story-label">In Git</span><span>${rich(s.story.git)}</span></p></div>` : `<p class="instruction">${rich(s.instruction)}</p>${missionBox()}`}
+      <p><span class="story-label">Scenario</span><span${ed(src(s, 'now'))}>${rich(s.story.now)}</span></p>
+      <p class="${state.me.mission ? 'mission-box' : ''}"><span class="story-label">What you need to do</span>${state.me.mission ? steps(state.me.mission) : `<span${ed(src(s, 'job'))}>${steps(s.story.job)}</span>`}${pairLine()}</p>
+      ${s.story.git ? `<p><span${ed(src(s, 'git'))}>${rich(s.story.git)}</span></p>` : ''}</div>` : `<p class="instruction"${ed(src(s, 'instruction'))}>${rich(s.instruction)}</p>${missionBox()}`}
     ${s.fresh ? `<p class="fresh-line">${esc(s.fresh)}</p>` : ''}
     ${verdictHTML()}
     ${predictHTML()}
@@ -487,7 +500,7 @@ function hintHTML() {
 
 function doneHTML() {
   const { doneLine, bonus } = V.s;
-  return `<div class="done-box"><p class="done-line">${esc(doneLine)}</p>${bonus ? `<p class="bonus"><b>Bonus</b> · ${rich(bonus)}</p>` : ''}</div>`;
+  return `<div class="done-box"><p class="done-line">${esc(doneLine)}</p>${bonus ? `<p class="bonus">${rich(bonus)}</p>` : ''}</div>`;
 }
 
 // The hint's buttons get a soft ring, and a note it names is picked in its dropdown.
@@ -538,7 +551,7 @@ function renderBehind() {
   const code = (cmds) => cmds.map((c) => `<code>${esc(c)}</code>`).join(' ');
   const cmds = op?.porcelain ? op.porcelain.split('\n') : [];
   patch($('behind-body'), `
-    <p>${rich(behind.text)}</p>
+    <p${ed(src(V.s, 'behind'))}>${rich(behind.text)}</p>
     ${op ? `<div class="last-op">
         <p class="last"><span class="muted">Last:</span> <b>${esc(op.who)}</b> · ${esc(op.action)}${op.outcome ? ` → ${esc(op.outcome)}` : ''}</p>
         ${cmds.length ? `<p class="cmds">${code(cmds)}</p>` : ''}
@@ -599,7 +612,7 @@ function qaHTML() {
 const fieldHTML = (key, { label, q = null, max, rows = 0, placeholder }) => `
   <label class="qa-block">
     <span class="qa-label">${esc(label)}</span>
-    ${q ? `<span class="qa-q">${esc(q)}</span>` : ''}
+    ${q ? `<span class="qa-q"${ed(src(V.scene, 'question'))}>${esc(q)}</span>` : ''}
     ${rows ? `<textarea data-field="${key}" maxlength="${max}" rows="${rows}" placeholder="${esc(placeholder)}"></textarea>`
     : `<input data-field="${key}" maxlength="${max}" placeholder="${esc(placeholder)}" autocomplete="off">`}
     <span class="qa-foot"><span class="qa-status" data-status="${key}"></span><span class="qa-count" data-count="${key}"></span></span>
@@ -692,15 +705,15 @@ function pathBackHTML() {
   const key = (name, color, dashed) => `<span><svg width="30" height="10" aria-hidden="true"><line x1="1" y1="5" x2="29" y2="5" stroke="${color}"
     stroke-width="2.5"${dashed ? ' stroke-dasharray="5 4"' : ''}/></svg>${esc(name)}</span>`;
   return `<p class="eyebrow">${esc(p.source)}</p><h1>${esc(p.title)}</h1>
-    <p class="instruction">${rich(p.intro)}</p>
-    <div class="pv-problems">${p.problems.map((x) => `<div><p><b>${esc(x.tool)}</b>${x.step !== null ? ` <span class="muted">· Step ${x.step}</span>` : ''}</p>
-      <p>${rich(x.text)}</p></div>`).join('')}</div>
+    <p class="instruction"${ed('tue/PATHS/intro', p.intro)}>${rich(p.intro)}</p>
+    <div class="pv-problems">${p.problems.map((x, i) => `<div><p><b${ed(`tue/PATHS/problems/${i}/tool`, x.tool)}>${esc(x.tool)}</b>${x.step !== null ? ` <span class="muted">· Step ${x.step}</span>` : ''}</p>
+      <p${ed(`tue/PATHS/problems/${i}/text`, x.text)}>${rich(x.text)}</p></div>`).join('')}</div>
     <div class="f3">
       <div class="f3-stack" role="group" aria-label="The six tiers of Figure 3">${p.tiers.map((x, i) => `<button type="button" data-tier="${i}"
         class="f3-plane${i === tier ? ' on' : ''}" aria-pressed="${i === tier}"><span class="f3-sheet"><svg data-mini="${i}"></svg></span>
         <span class="f3-name">Tier ${esc(x.n)} · ${esc(x.name)}</span></button>`).join('')}</div>
       <div class="f3-main">
-        <div class="pv-tier"><p class="label">Tier ${esc(t.n)} · ${esc(t.name)}</p><p>${rich(t.text)}</p></div>
+        <div class="pv-tier"><p class="label">Tier ${esc(t.n)} · <span${ed(`tue/PATHS/tiers/${tier}/name`, t.name)}>${esc(t.name)}</span></p><p${ed(`tue/PATHS/tiers/${tier}/text`, t.text)}>${rich(t.text)}</p></div>
         <svg id="f3-svg" class="f3-svg" role="img" aria-label="Figure 3, tier ${esc(t.n)}"></svg>
         <p class="legend"><span><svg width="14" height="14" aria-hidden="true"><circle cx="7" cy="7" r="6" fill="#fff" stroke="#8A9095"/></svg>edit</span>
           <span><svg width="14" height="14" aria-hidden="true"><circle cx="7" cy="7" r="6" fill="${FIG_COLOR.merge}"/></svg>merge</span>
@@ -717,7 +730,7 @@ function pathBackHTML() {
     </div>
     ${lines ? `<div class="pv-picked"><p class="label">Commit ${esc(looking.pick)}</p>${[lines.what, lines.line, lines.path, lines.joins]
       .filter(Boolean).map((l) => `<p>${esc(l)}</p>`).join('')}</div>` : ''}
-    <p class="small">${rich(p.formula)}</p><p class="pv-gone">${rich(p.gone)}</p>`;
+    <p class="small"${ed('tue/PATHS/formula', p.formula)}>${rich(p.formula)}</p><p class="pv-gone"${ed('tue/PATHS/gone', p.gone)}>${rich(p.gone)}</p>`;
 }
 
 function drawFigure() {
@@ -740,13 +753,14 @@ function moveFigure(what) {
 }
 
 function paperHTML(p) {
-  const column = (title, cls, items) => `<section class="${cls}"><h3>${title}</h3><ul>${items.map((i) => `<li>${esc(i)}</li>`).join('')}</ul></section>`;
+  const pa = (...keys) => ['tue/PAPER', ...keys].join('/');
+  const column = (title, cls, items) => `<section class="${cls}"><h3>${title}</h3><ul>${items.map((i, k) => `<li${ed(pa(cls, k), i)}>${esc(i)}</li>`).join('')}</ul></section>`;
   return `<p class="eyebrow">The paper</p>
-    <h1>${esc(p.title)}</h1>
-    <p class="paper-source">${esc(p.source)}</p>
+    <h1${ed(pa('title'), p.title)}>${esc(p.title)}</h1>
+    <p class="paper-source"${ed(pa('source'), p.source)}>${esc(p.source)}</p>
     <div class="gbu">${column('The Good', 'good', p.good)}${column('The Bad', 'bad', p.bad)}${column('The Ugly', 'ugly', p.ugly)}</div>
-    <p class="paper-message">${esc(p.message)}</p>
-    <p class="paper-tradeoff">${esc(p.tradeoff)}</p>
+    <p class="paper-message"${ed(pa('message'), p.message)}>${esc(p.message)}</p>
+    <p class="paper-tradeoff"${ed(pa('tradeoff'), p.tradeoff)}>${esc(p.tradeoff)}</p>
     ${velocityHTML()}`;
 }
 
@@ -764,9 +778,9 @@ function velocityHTML() {
   </div>`;
 }
 
-const exitHTML = (scene) => `<p class="eyebrow">Exit question</p>
-  <h1 class="exit-q">${esc(scene.question)}</h1>
-  <p class="scene-line">${esc(scene.line)}</p>`;
+const exitHTML = (scene) => `<p class="eyebrow">${esc(scene.title)}</p>
+  <h1 class="exit-q"${ed(src(scene, 'question'))}>${esc(scene.question)}</h1>
+  <p class="scene-line"${ed(src(scene, 'line'))}>${esc(scene.line)}</p>`;
 
 const wrapHTML = (scene) => `<p class="eyebrow">${esc(scene.title)}</p>
   <h1 class="wrap-line">${esc(scene.wrap.line)}</h1>`;

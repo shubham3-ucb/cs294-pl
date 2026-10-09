@@ -35,7 +35,7 @@ import { emoji, nameOf, PARTS } from '../public/monster.js';
 
 export const FIXED_LINE = 'One person presses the buttons and the others watch. Swap roles each step.';
 export const DONE_LINE = 'Done ✓. Wait for the rest of the class.';
-export const TAGLINE = 'Dress one character together. Every save, merge, send and undo runs real Git.';
+export const TAGLINE = 'Dress one character together.';
 
 export const PAIR_NOTES = { A: 'fancy', B: 'sporty' };
 
@@ -117,6 +117,8 @@ export const CARDS = {
     how: 'Squash writes one new commit whose tree is the final state. The originals, with their authors and times, become unreachable. `--force` skips the fast-forward check and moves the remote branch. `git gc` later deletes unreachable objects.',
   },
 };
+// Each card knows its own name, so an edit on a slide can say which card it changes (server/text.js).
+for (const [id, card] of Object.entries(CARDS)) card.id = id;
 
 // "HAT → 🎩"
 export const change = (part, value) => `${part.toUpperCase()} → ${emoji(part, value)}`;
@@ -276,10 +278,10 @@ export const STEPS = [
     // What students read first: what is happening, what to do, and the Git behind it.
     story: {
       now: 'Your whole lab is editing one outfit at the same time, and nothing is being saved.',
-      job: 'For a minute and a half, change any part as often as you like.',
-      git: 'There is no Git in this step. That is the point.',
+      job: 'Change any part as often as you like.',
+      git: '',
     },
-    instruction: 'Your lab shares one outfit. For the next minute and a half, change any part you like, as often as you like.',
+    instruction: 'Your lab shares one outfit. Change any part you like, as often as you like.',
     screen: 'Your lab shares one outfit. Change any part you like, as often as you like.',
     unlocks: ['chaos'],
     tips: [],
@@ -296,7 +298,7 @@ export const STEPS = [
       job: 'Take turns. Change one part, then press **Save card**. Each of you saves once.',
       git: 'A card is a commit. **Save card** runs `git commit`.',
     },
-    instruction: 'The outfit from Step 0 is gone. From now on, every save makes a card, which Git calls a commit. Take turns: change one part, then press **Save card**. Each of you saves once.',
+    instruction: 'The outfit from Step 0 is gone.',
     screen: 'Take turns: change one part, then press Save card. Each of you saves once.',
     unlocks: ['draft', 'commit', 'inspect'],
     tips: [
@@ -327,7 +329,7 @@ export const STEPS = [
     title: 'Give each idea its own branch',
     // What students read first: what is happening, what to do, and the Git behind it.
     story: {
-      now: 'Your lab wants to try two looks, fancy and sporty, without the two getting in each other\'s way. Right now there is one branch: main.',
+      now: 'Your lab wants to try two looks, fancy and sporty, without the two getting in each other\'s way. Right now there is one branch: main. You can add more branches as well.',
       job: 'Each pair makes its own branch, changes the outfit on that branch, and saves. Pair A makes fancy; Pair B makes sporty.',
       git: 'A branch is a name that points at one card. Making one copies nothing. **New branch** runs `git switch -c`, and it always starts from main.',
     },
@@ -370,7 +372,7 @@ export const STEPS = [
     // What students read first: what is happening, what to do, and the Git behind it.
     story: {
       now: 'The client wants one outfit with both ideas in it. Right now they live on two branches.',
-      job: 'On **main**: merge **fancy**, delete the fancy branch, then merge **sporty**. Before each merge, say what you think Git will do.',
+      job: 'On **main**: merge **fancy**, delete the fancy branch, then merge **sporty**. Before each merge, guess what you think Git will do.',
       git: '**Merge** runs `git merge`. If both branches changed the same part, Git stops and asks you to pick.',
     },
     instruction: 'The client wants one outfit with both ideas in it. On **main**, merge **fancy**, delete its branch, then merge **sporty**. Before each merge, predict what Git will do.',
@@ -646,7 +648,7 @@ export const PAPER = {
 export const PATHS = {
   title: 'Find the path back',
   source: 'Just et al., ISSRE 2016 · §6, The Ugly',
-  intro: "Code velocity needs each change's integration path: the arrows from the commit where it was made to the commit where it first reached main. Git keeps no such record. The paper's answer reads only the arrows, layer by layer. Here it is on the paper's own Figure 3.",
+  intro: "Code velocity needs each change's integration path: the arrows from the commit where it was made to the commit where it first reached main. Git keeps no such record. The paper's answer reads only the arrows, layer by layer.",
   // What the class met, each a reason the path is hard to find.
   problems: [
     { step: 3, tool: 'Fast-forward', text: 'No commit says which branch it was made on.' },
@@ -664,7 +666,7 @@ export const PATHS = {
     { n: '4', name: 'Integration graph (A)', text: 'For each commit, the shortest way to the first commit on A that reaches it. Those arrows are integration; every other arrow is a delay, a longer way to the same place.' },
     { n: '5', name: 'Convergence graph (A)', text: "Cut A's line at every merge, from the root forward. Each commit points (visibility) to where it first becomes visible to A: its earliest integration." },
   ],
-  formula: 'Code velocity = the time from a change being made to it joining main, along its fastest integration path (§6.1). Only this last step reads a clock.',
+  formula: 'Code velocity = the time from a change being made to it joining main, along its fastest integration path. Only this last step reads a clock.',
   gone: 'After a squash, none of these arrows exist. No tier can bring them back: some loss cannot be recovered.',
 };
 
@@ -691,8 +693,8 @@ const SCRIPT = [
     ask: { q: 'What did your outfit look like a minute ago? Who changed the shoes?', a: 'Nobody can say. Nothing was saved.' },
   }),
   reveal(0, 2, {
-    title: 'Step 0 · What went wrong',
-    reveal: { sentence: 'Nothing was saved, so nobody can say who changed what, or what the outfit looked like a minute ago.', behind: 'There was no Git in this step. From the next step on, every save is recorded, with the name of the person who made it.' },
+    title: 'Step 0 · What went wrong?',
+    reveal: { sentence: 'Nothing was saved, so nobody can say who changed what, or what the outfit looked like a minute ago.', behind: 'There was no version control in this step. From the next step on, every save is recorded, with the name of the person who made it.' },
     say: 'Today you will see how Git saves, branches, combines and shares work. Before Git acts, you will predict what it does, and later you will choose your own way to undo.',
     do: 'Take one or two answers, then Next.',
     ask: { q: 'What rule would fix this?', a: 'Save every version, with a name on it.' },
@@ -798,7 +800,7 @@ const SCRIPT = [
     },
   },
   {
-    id: 'exit', kind: 'exit', step: 6, minutes: 3, title: 'Exit question', tools: [],
+    id: 'exit', kind: 'exit', step: 6, minutes: 3, title: 'Question', tools: [],
     line: 'Answer on your own, in two sentences.',
     say: 'Answer on your own, in two sentences.',
     do: 'After a minute, show the answers. Read two aloud. Then give the answer.',

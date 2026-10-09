@@ -8,6 +8,7 @@ import * as session from './session.js';
 import * as bots from './bots.js';
 import * as thu from './thursday.js';
 import * as thuBots from './thursday_bots.js';
+import * as text from './text.js';
 
 const PORT = Number(process.env.PORT) || 3000;
 const PUBLIC = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'public');
@@ -118,6 +119,15 @@ app.get('/api/qr.svg', async (req, res) => {
   res.send(await QRCode.toString(text, { type: 'svg', margin: 1, errorCorrectionLevel: 'M' }));
 });
 
+// ---------- Editable text (teacher key): your own wording for any slide, in server/text_edits.json ----------
+
+app.get('/api/text', adminOnly, handle(() => text.list()));
+app.post('/api/text', adminOnly, handle((b) => {
+  const r = text.edit(b);
+  if (r.ok) { session.touch(); thu.touch(); } // every page refetches and shows the new wording
+  return r;
+}));
+
 // ---------- Thursday (/thu): polled, no stream; same teacher key ----------
 
 app.post('/api/thu/join', handle((b) => thu.join(b)));
@@ -149,6 +159,7 @@ app.use((err, req, res, next) => res.status(err.status || 400).json({ ok: false,
 
 // ---------- Start and stop ----------
 
+text.load();
 await session.boot();
 thu.boot();
 const server = app.listen(PORT, process.env.HOST, () => {

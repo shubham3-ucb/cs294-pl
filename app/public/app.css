@@ -712,3 +712,12 @@ button.id-chip:hover { background: var(--lavender); color: var(--purple); }
 /* A toast never covers a dialog: a new one sits at the dialog's foot, an older one waits until it closes. */
 .dialog .toasts { position: static; width: auto; justify-items: stretch; margin-top: 20px; }
 .dialog .toasts:empty, body:has(dialog[open]) > .toasts { display: none; }
+
+/* Edit mode (public/editable.js): every editable text is outlined; the one being edited shows its raw wording. */
+body.editing [data-edit] { outline: 1.5px dashed #F59E0B; outline-offset: 2px; border-radius: 3px; cursor: text; }
+body.editing [data-edit]:hover { background: #FEF3C7; }
+body.editing [data-edit]:focus { outline: 2px solid #D97706; background: #FFFBEB; white-space: pre-wrap; font-family: ui-monospace, "JetBrains Mono", monospace; font-size: .92em; }
+.edit-bar { position: sticky; top: 0; z-index: 50; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; padding: 8px 16px; background: #FEF3C7; color: #78350F; font: 14px/1.4 Inter, system-ui, sans-serif; border-bottom: 1px solid #F59E0B; }
+.edit-bar .edit-msg { margin-left: auto; font-weight: 600; }
+.edit-bar .edit-msg.bad { color: #B91C1C; }
+.edit-bar button { font: inherit; padding: 4px 12px; border-radius: 8px; border: 1px solid #D97706; background: #fff; cursor: pointer; }

@@ -5,11 +5,20 @@ import { emoji, renderMonsterCard } from '/monster.js';
 import {
   api, live, esc, md, clock, key, needKey, move, presenterKeys, renderSlide, tickSlide, qrSrc, shortUrl, channel, PROJECTOR_WINDOW,
 } from '/screen.js';
+import { ed, busy, startEditing, editingOn, editFromUrl } from '/editable.js';
 
 if (needKey()) await new Promise(() => {}); // no key: the page says how to get in, and nothing else runs
 
 const $ = (id) => document.getElementById(id);
 const DISGUISE = emoji('glasses', 'disguise');
+
+// Edit text: the console's own texts (the preview slide, Say, Do, Ask, the answer, the board line) become editable,
+// and the student page opens in edit mode too, so every student-facing text can be changed where it appears.
+editFromUrl(key);
+$('edit-toggle').onclick = () => {
+  if (!editingOn()) startEditing(key);
+  window.open(`/?key=${encodeURIComponent(key)}&edit`, 'tuesday-edit-students');
+};
 const BOOTS = emoji('shoes', 'boots');
 const HANDS_ON = [1, 2, 3, 4, 5]; // steps where every lab should be clicking (Step 6: only the boss lab)
 const STUCK_MS = 120e3;
@@ -153,6 +162,7 @@ $('bot-speed').onchange = () => state.rehearsal && rehearse(true);
 // ---------- Render ----------
 
 function render(next) {
+  if (busy()) return; // a text is being edited: redraw after
   const moved = !state || state.session.boot !== next.session.boot || state.session.scene.n !== next.session.scene.n;
   state = next;
   if (moved) report('');
@@ -169,15 +179,16 @@ function render(next) {
 
   // A row hides when it has nothing to say.
   const row = (id, html) => { $(id).innerHTML = html; $(id).closest('.row').hidden = !html; };
-  row('say', md(s.say ?? ''));
-  row('do', md(s.do ?? ''));
-  row('board', md(s.board ?? ''));
+  const t = (f, html) => (html ? `<span${ed(s.teacherSrc?.[f])}>${html}</span>` : '');
+  row('say', t('say', md(s.say ?? '')));
+  row('do', t('do', md(s.do ?? '')));
+  row('board', t('board', md(s.board ?? '')));
   row('predictions', predictionsHTML());
   renderPaths();
   $('ask-q').closest('.row').hidden = !s.ask;
   if (s.ask) {
-    $('ask-q').textContent = s.ask.q;
-    $('ask-a').textContent = s.ask.a;
+    $('ask-q').innerHTML = `<span${ed(s.teacherSrc?.ask)}>${esc(s.ask.q)}</span>`;
+    $('ask-a').innerHTML = `<span${ed(s.teacherSrc?.answer)}>${esc(s.ask.a)}</span>`;
     $('ask-show').textContent = session.ask ? 'Hide from projector' : 'Show on projector';
     $('ask-show').classList.toggle('on', Boolean(session.ask));
   }

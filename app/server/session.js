@@ -584,9 +584,13 @@ const bossLab = () => S.stepLab[6] ?? defaultBoss();
 const fillBoss = (text) => text?.replaceAll('{boss}', labName(bossLab())) ?? null;
 
 // One step's copy for students (lab) or the projector (no lab). Step 4's and Step 6's instructions depend on the lab.
+// Where each editable text comes from (server/text.js), with its template before {wallLab} and {boss} are filled.
+const src = (p, r) => (typeof r === 'string' ? { p, r } : null);
+
 function stepFor(n, lab) {
   const s = STEPS[n];
   const boss = lab && lab.id === S.stepLab[6];
+  const at = `tue/STEPS/${n}`;
   const wallLab = !S.stepLab[4] ? 'one lab' : lab?.id === S.stepLab[4] ? 'your lab' : labName(S.stepLab[4]);
   return {
     n,
@@ -610,6 +614,16 @@ function stepFor(n, lab) {
     bonus: s.bonus ?? null,
     doneLine: DONE_LINE,
     behind: s.behind,
+    src: {
+      title: src(`${at}/title`, s.title),
+      instruction: boss && s.bossInstruction ? src(`${at}/bossInstruction`, s.bossInstruction) : src(`${at}/instruction`, s.instruction),
+      now: src(`${at}/story/now`, s.story?.now),
+      job: boss && s.story?.jobBoss ? src(`${at}/story/jobBoss`, s.story.jobBoss) : src(`${at}/story/job`, s.story?.job),
+      git: src(`${at}/story/git`, s.story?.git),
+      screen: src(`${at}/screen`, s.screen),
+      bonus: src(`${at}/bonus`, s.bonus),
+      behind: src(`${at}/behind/text`, s.behind?.text),
+    },
   };
 }
 
@@ -625,6 +639,14 @@ function sceneFor(n) {
     line: fillBoss(s.line ?? (s.kind === 'task' ? STEPS[s.step].screen : null)),
     question: s.answerable ? s.ask.q : null,
     answerable: s.answerable,
+    src: {
+      title: src(`tue/SCENES/${s.id}/title`, s.title),
+      line: s.line ? src(`tue/SCENES/${s.id}/line`, s.line) : s.kind === 'task' ? src(`tue/STEPS/${s.step}/screen`, STEPS[s.step].screen) : null,
+      question: src(`tue/SCENES/${s.id}/ask/q`, s.ask?.q),
+      sentence: src(`tue/SCENES/${s.id}/reveal/sentence`, s.reveal?.sentence),
+      behind: src(`tue/SCENES/${s.id}/reveal/behind`, s.reveal?.behind),
+      note: src(`tue/SCENES/${s.id}/reveal/note`, s.reveal?.note),
+    },
     takeawayStep: s.takeawayStep,
     reveal: s.reveal ?? null,
     facts: factsFor(s),
@@ -650,6 +672,11 @@ function teacherScene(n, picks) {
     do: fill(s.do),
     ask: s.ask,
     board: s.board ?? null,
+    teacherSrc: {
+      say: src(`tue/SCENES/${s.id}/say`, s.say), do: src(`tue/SCENES/${s.id}/do`, s.do),
+      ask: src(`tue/SCENES/${s.id}/ask/q`, s.ask?.q), answer: src(`tue/SCENES/${s.id}/ask/a`, s.ask?.a),
+      board: src(`tue/SCENES/${s.id}/board`, s.board),
+    },
     tools: [...s.tools, ...(rescues(s) ? ['rescue'] : []), ...(s.answerable ? ['answers'] : [])],
     next: next ? { n: n + 1, title: next.title, note: [fill(next.next), practiceNote].filter(Boolean).join(' ') || null } : null,
     back: n > 0 ? { n: n - 1, title: SCENES[n - 1].title } : null,

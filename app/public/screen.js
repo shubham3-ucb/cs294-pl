@@ -5,6 +5,10 @@
 import { renderGraph, velocity } from '/graph.js';
 import { emoji, renderMonsterCard } from '/monster.js';
 import { renderFigure, pickLines, LEGEND as FIG_LEGEND, COLOR as FIG_COLOR } from '/figure3.js';
+import { ed } from '/editable.js';
+
+// An edit address with its raw wording, as the server sent it beside a scene's or step's text.
+const src = (o, f) => o?.src?.[f] ?? null;
 
 const EXAMPLE = '2'; // Figure 3's worked example on the projector
 
@@ -126,9 +130,10 @@ const pill = (text) => `<span class="pill">${esc(text)}</span>`;
 
 // The pill and title: "STEP 2 Try two ideas at once", or "THE PAPER" / "EXIT QUESTION" alone.
 function head(scene, state, { timer = false, title = '' } = {}) {
-  const named = { paths: 'The paper · §6', paper: 'The paper', exit: 'Exit question' }[scene.kind];
-  const h1 = title || (named ? '' : esc(state.session.steps[scene.step].title));
-  return `<header class="sl-head">${pill(named ?? `Step ${scene.step}`)}${h1 ? `<h1>${h1}</h1>` : ''}
+  const named = { paths: 'The paper · §6', paper: 'The paper', exit: 'Question' }[scene.kind];
+  const step = state.session.steps[scene.step];
+  const h1 = title || (named ? '' : esc(step.title));
+  return `<header class="sl-head">${pill(named ?? `Step ${scene.step}`)}${h1 ? `<h1${title ? '' : ed(src(step, 'title'))}>${h1}</h1>` : ''}
     ${timer ? '<span class="sl-clock" data-clock></span>' : ''}</header>`;
 }
 
@@ -161,9 +166,10 @@ function auditHtml(label, audit) {
 // One technical card: the command, then what it is, what it does, and how Git does it.
 // A narrow label breaks only at the plain space: "What it / does", "How Git / does it".
 const ROWS = [['is', 'What&nbsp;it&nbsp;is'], ['does', 'What&nbsp;it does'], ['how', 'How&nbsp;Git does&nbsp;it']];
+const cardAt = (card, k) => ed(`tue/CARDS/${card.id}/${k}`, card[k]);
 const techCard = (card) => `<section class="sl-card">
-  <p class="sl-cmd" style="--chars:${[...card.command].length}">${esc(card.command)}</p>
-  <dl class="sl-rows">${ROWS.map(([k, label]) => `<div class="sl-row ${k}"><dt>${label}</dt><dd>${md(card[k])}</dd></div>`).join('')}</dl>
+  <p class="sl-cmd" style="--chars:${[...card.command].length}"${cardAt(card, 'command')}>${esc(card.command)}</p>
+  <dl class="sl-rows">${ROWS.map(([k, label]) => `<div class="sl-row ${k}"><dt>${label}</dt><dd${cardAt(card, k)}>${md(card[k])}</dd></div>`).join('')}</dl>
 </section>`;
 
 // ---------- Integration paths: Step 4's reveal and the paper ----------
@@ -213,7 +219,7 @@ const SLIDES = {
     return `<div class="sl-join"><div class="sl-join-text">
         <p class="sl-kicker">Outfit Lab</p>
         <h1 class="sl-url">${esc(shortUrl(url))}</h1>
-        <p class="sl-line">${esc(scene.line)}</p>
+        <p class="sl-line"${ed(src(scene, 'line'))}>${esc(scene.line)}</p>
         <ul class="sl-roster">${roster.join('')}</ul>
       </div><img class="sl-qr" src="${esc(qrSrc(url))}" alt="QR code for the join link"></div>`;
   },
@@ -231,7 +237,7 @@ const SLIDES = {
     const layout = n <= 3 ? (wall ? ' compact' : '') : wall ? ' ticks' : ' compact two-rows';
     const cols = n <= 3 || wall ? n : Math.ceil(n / 2);
     return `${head(scene, state, { timer: true })}
-      <p class="sl-line">${md(scene.line)}</p>
+      <p class="sl-line"${ed(src(scene, 'line'))}>${md(scene.line)}</p>
       ${wall ? `<div class="sl-stage${audits.length ? ' split' : ''}">
         <div class="sl-wall"><p class="sl-label">The Wall</p><svg class="graph" data-wall preserveAspectRatio="xMinYMin meet"></svg></div>
         ${audits.length ? `<div class="sl-audits">${audits.join('')}</div>` : ''}</div>` : ''}
@@ -243,10 +249,10 @@ const SLIDES = {
   reveal(scene, state) {
     const r = scene.reveal;
     const pair = r.cards.length > 1;
-    const ask = scene.question ? `<p class="sl-ask${pair ? ' small' : ''}">${esc(scene.question)}</p>` : '';
+    const ask = scene.question ? `<p class="sl-ask${pair ? ' small' : ''}"${ed(src(scene, 'question'))}>${esc(scene.question)}</p>` : '';
     if (!r.cards.length) {
-      return `${head(scene, state)}${ask}<p class="sl-sentence">${esc(r.sentence)}</p>
-        <div class="sl-behind"><p class="sl-label">What Git did</p><p>${md(r.behind)}</p></div>`;
+      return `${head(scene, state)}${ask}<p class="sl-sentence"${ed(src(scene, 'sentence'))}>${esc(r.sentence)}</p>
+        <div class="sl-behind"><p class="sl-label">What Git did</p><p${ed(src(scene, 'behind'))}>${md(r.behind)}</p></div>`;
     }
     const after = scene.step === 6 && state.session.audits?.after;
     const bin = scene.step === 6 && state.session.bin;
@@ -259,7 +265,7 @@ const SLIDES = {
     const facts = scene.facts ?? [];
     return `${head(scene, state)}${ask}
       <div class="sl-cards${pair ? ' pair' : ''}">${r.cards.map(techCard).join('')}</div>
-      ${r.note ? `<p class="sl-trust">${md(r.note)}</p>` : ''}
+      ${r.note ? `<p class="sl-trust"${ed(src(scene, 'note'))}>${md(r.note)}</p>` : ''}
       ${evidence.map((line) => `<p class="sl-evidence">${esc(line)}</p>`).join('')}
       ${integration ? pathsStage(integration, state, facts) : factsHtml(facts)}`;
   },
@@ -285,13 +291,13 @@ const SLIDES = {
           <span>Tier ${esc(x.n)}</span></div>`).join('')}</div>
         <div class="sl-f3-main">
           <p class="sl-label">Figure 3 · Tier ${esc(t.n)} · ${esc(t.name)}</p>
-          <p class="sl-tier-text">${md(t.text)}</p>
+          <p class="sl-tier-text"${ed(`tue/PATHS/tiers/${tier}/text`, t.text)}>${md(t.text)}</p>
           <svg class="sl-f3-svg" data-figure></svg>
           <p class="sl-f3-legend"><span><svg viewBox="0 0 14 14" aria-hidden="true"><circle cx="7" cy="7" r="6" fill="#fff" stroke="#8A9095"/></svg>edit</span>
             <span><svg viewBox="0 0 14 14" aria-hidden="true"><circle cx="7" cy="7" r="6" fill="${FIG_COLOR.merge}"/></svg>merge</span>
             ${FIG_LEGEND[tier].map(([n, c, d]) => key(n, c, d)).join('')}</p>
           ${lines ? `<p class="sl-evidence">${esc([lines.path, lines.joins].join(' '))}</p>` : ''}
-          ${tier === 5 ? `<p class="sl-pv-formula">${md(p.formula)}</p>` : ''}
+          ${tier === 5 ? `<p class="sl-pv-formula"${ed('tue/PATHS/formula', p.formula)}>${md(p.formula)}</p>` : ''}
         </div>
       </div>`;
   },
@@ -301,23 +307,23 @@ const SLIDES = {
   paper(scene, state) {
     const p = scene.paper;
     const col = (cls, label, items) => `<div class="sl-col ${cls}"><p class="sl-col-label">${label}</p>
-      ${items.map((t) => `<p>${esc(t)}</p>`).join('')}</div>`;
+      ${items.map((t, i) => `<p${ed(`tue/PAPER/${cls}/${i}`, t)}>${esc(t)}</p>`).join('')}</div>`;
     const paths = state.session.integration?.paths ?? [];
     const onWall = new Set(state.wall?.graph.commits.filter((c) => c.reachable !== false).map((c) => c.id));
     const gone = paths.length > 0 && paths.every((x) => x.cards.every((id) => !onWall.has(id)));
-    return `<p class="sl-source">${esc(p.source)}</p>
-      <h1 class="sl-title">${esc(p.title)}</h1>
+    return `<p class="sl-source"${ed('tue/PAPER/source', p.source)}>${esc(p.source)}</p>
+      <h1 class="sl-title"${ed('tue/PAPER/title', p.title)}>${esc(p.title)}</h1>
       <div class="sl-cols">${col('good', 'Good', p.good)}${col('bad', 'Bad', p.bad)}${col('ugly', 'Ugly', p.ugly)}</div>
       <div class="sl-class">
         ${paths.length ? `<div><p class="sl-label">Code velocity in this class</p>${pathsHtml(paths, state)}
           ${gone ? '<p class="sl-gone">After the squash, the Wall has none of these cards.</p>' : ''}</div>` : ''}
       </div>
-      <div class="sl-msg"><p class="sl-message">${esc(p.message)}</p><p class="sl-tradeoff">${esc(p.tradeoff)}</p></div>`;
+      <div class="sl-msg"><p class="sl-message"${ed('tue/PAPER/message', p.message)}>${esc(p.message)}</p><p class="sl-tradeoff"${ed('tue/PAPER/tradeoff', p.tradeoff)}>${esc(p.tradeoff)}</p></div>`;
   },
 
   exit(scene, state) {
     return `${head(scene, state)}
-      <p class="sl-question">${esc(scene.question)}</p><p class="sl-line">${esc(scene.line)}</p>`;
+      <p class="sl-question"${ed(src(scene, 'question'))}>${esc(scene.question)}</p><p class="sl-line"${ed(src(scene, 'line'))}>${esc(scene.line)}</p>`;
   },
 
   // The three-line summary; with takeaways, a random sample of them under it, names hidden.
@@ -364,10 +370,10 @@ export function renderSlide(root, state) {
       const path = svg.dataset.path ? svg.dataset.path.split(' ') : [];
       renderGraph(svg, wall, { labels: true, compact: true, maxCols: 7, pillFont: 14, path });
     } else if (svg) renderGraph(svg, wall, { labels: true, maxCols: 5, pillFont: 16 });
-    const figure = root.querySelector('[data-figure]');
-    if (figure) {
+    const fig3 = root.querySelector('[data-figure]'); // not `figure`: that is the outfit drawer above
+    if (fig3) {
       const tier = state.session.paths.tier ?? 0;
-      renderFigure(figure, { tier, pick: tier >= 4 ? EXAMPLE : null });
+      renderFigure(fig3, { tier, pick: tier >= 4 ? EXAMPLE : null });
       for (const mini of root.querySelectorAll('[data-mini]')) renderFigure(mini, { tier: Number(mini.dataset.mini), mini: true });
     }
   }
